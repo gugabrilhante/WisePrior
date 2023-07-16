@@ -1,7 +1,10 @@
 buildscript {
 
     ext {
-        hilt_version = '2.47'
+        core_ktx_version = '1.10.1'
+        hilt_version = '2.38.1'
+        activity_compose_version = '1.7.2'
+        lifecycle_version = '2.6.1'
     }
 }
 // Top-level build file where you can add configuration options common to all sub-projects/modules.

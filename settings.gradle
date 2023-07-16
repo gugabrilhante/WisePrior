@@ -16,3 +16,5 @@ rootProject.name = "WisePrior"
 include ':app'
 include ':core:storage'
 include ':core:data'
+include ':feature:taskmanager'
+include ':core:common'
