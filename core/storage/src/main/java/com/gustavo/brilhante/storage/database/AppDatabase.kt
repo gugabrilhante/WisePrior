@@ -5,7 +5,11 @@ import androidx.room.RoomDatabase
 import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.entity.TaskEntity
 
-@Database(entities = [TaskEntity::class], version = 1)
-abstract class TaskDatabase : RoomDatabase() {
+@Database(entities = [TaskEntity::class], version = 2)
+abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
+
+    companion object{
+        const val databaseName = "app_database"
+    }
 }

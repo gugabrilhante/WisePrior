@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class TaskDataSource @Inject constructor(private val taskDao: TaskDao) {
+
     val allTasks: Flow<List<TaskEntity>> = taskDao.getAllTasks()
 
     suspend fun insertTask(task: TaskEntity) {
