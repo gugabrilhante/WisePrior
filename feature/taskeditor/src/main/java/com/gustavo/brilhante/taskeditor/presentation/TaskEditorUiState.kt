@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
 import com.gustavo.brilhante.model.Priority
+import com.gustavo.brilhante.model.RecurrenceType
 
 data class TaskEditorUiState(
     val title: String = "",
@@ -13,9 +14,11 @@ data class TaskEditorUiState(
     val priority: Priority = Priority.NONE,
     val tags: List<String> = emptyList(),
     val isFlagged: Boolean = false,
+    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val titleError: String? = null,
-    val isSaved: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val showDatePicker: Boolean = false,
+    val showTimePicker: Boolean = false
 )
 
 sealed interface TaskEditorEvent {
@@ -27,8 +30,14 @@ sealed interface TaskEditorEvent {
     data object ToggleUrgent : TaskEditorEvent
     data object ToggleFlagged : TaskEditorEvent
     data class PriorityChanged(val priority: Priority) : TaskEditorEvent
-    data class DueDateChanged(val date: Long) : TaskEditorEvent
+    data class DueDateChanged(val dateMillis: Long) : TaskEditorEvent
+    data class TimeChanged(val hour: Int, val minute: Int) : TaskEditorEvent
+    data class RecurrenceChanged(val recurrenceType: RecurrenceType) : TaskEditorEvent
     data class TagAdded(val tag: String) : TaskEditorEvent
     data class TagRemoved(val tag: String) : TaskEditorEvent
+    data object ShowDatePicker : TaskEditorEvent
+    data object HideDatePicker : TaskEditorEvent
+    data object ShowTimePicker : TaskEditorEvent
+    data object HideTimePicker : TaskEditorEvent
     data object Save : TaskEditorEvent
 }

@@ -15,5 +15,6 @@ data class TaskEntity(
     val priority: String = "NONE",
     val tags: List<String> = emptyList(),
     val isFlagged: Boolean = false,
+    val recurrenceType: String = "NONE",
     val createdAt: Long = System.currentTimeMillis()
 )

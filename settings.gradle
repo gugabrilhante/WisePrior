@@ -22,6 +22,7 @@ include ':core:designsystem'
 include ':core:ui'
 include ':core:storage'
 include ':core:data'
+include ':core:notifications'
 // Feature modules
 include ':feature:tasklist'
 include ':feature:taskeditor'

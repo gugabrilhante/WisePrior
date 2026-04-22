@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.database.AppDatabase
+import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_3_4
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,7 +20,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.databaseName)
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_3_4)
             .build()
 
     @Provides

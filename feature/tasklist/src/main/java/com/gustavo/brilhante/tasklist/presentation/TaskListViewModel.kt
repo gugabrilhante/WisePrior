@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.notifications.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val getTasksUseCase: GetTasksUseCase,
-    private val deleteTaskUseCase: DeleteTaskUseCase
+    private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskListUiState())
@@ -39,8 +41,12 @@ class TaskListViewModel @Inject constructor(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
-            runCatching { deleteTaskUseCase(task) }
-                .onFailure { e -> _uiState.update { it.copy(error = e.message) } }
+            runCatching {
+                deleteTaskUseCase(task)
+                notificationScheduler.cancel(task.id)
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
         }
     }
 }

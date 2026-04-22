@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.data.mapper
 
 import com.gustavo.brilhante.model.Priority
+import com.gustavo.brilhante.model.RecurrenceType
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.entity.TaskEntity
 
@@ -15,6 +16,7 @@ fun TaskEntity.toModel() = Task(
     priority = runCatching { Priority.valueOf(priority) }.getOrDefault(Priority.NONE),
     tags = tags,
     isFlagged = isFlagged,
+    recurrenceType = runCatching { RecurrenceType.valueOf(recurrenceType) }.getOrDefault(RecurrenceType.NONE),
     createdAt = createdAt
 )
 
@@ -29,5 +31,6 @@ fun Task.toEntity() = TaskEntity(
     priority = priority.name,
     tags = tags,
     isFlagged = isFlagged,
+    recurrenceType = recurrenceType.name,
     createdAt = createdAt
 )

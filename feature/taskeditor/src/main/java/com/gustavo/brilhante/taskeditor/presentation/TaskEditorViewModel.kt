@@ -6,23 +6,32 @@ import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.notifications.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
 class TaskEditorViewModel @Inject constructor(
     private val addTaskUseCase: AddTaskUseCase,
     private val updateTaskUseCase: UpdateTaskUseCase,
-    private val getTaskByIdUseCase: GetTaskByIdUseCase
+    private val getTaskByIdUseCase: GetTaskByIdUseCase,
+    private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskEditorUiState())
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
+
+    // One-shot navigation event — never re-emits, consumed exactly once
+    private val _navigationEvent = Channel<Unit>(Channel.BUFFERED)
+    val navigationEvent = _navigationEvent.receiveAsFlow()
 
     private var editingTaskId: Long = -1L
 
@@ -44,6 +53,7 @@ class TaskEditorViewModel @Inject constructor(
                         priority = task.priority,
                         tags = task.tags,
                         isFlagged = task.isFlagged,
+                        recurrenceType = task.recurrenceType,
                         isLoading = false
                     )
                 }
@@ -59,8 +69,16 @@ class TaskEditorViewModel @Inject constructor(
                 _uiState.update { it.copy(notes = event.notes) }
             is TaskEditorEvent.UrlChanged ->
                 _uiState.update { it.copy(url = event.url) }
-            is TaskEditorEvent.ToggleDate ->
-                _uiState.update { it.copy(hasDate = !it.hasDate, hasTime = if (it.hasDate) false else it.hasTime) }
+            is TaskEditorEvent.ToggleDate -> {
+                val turning0ff = _uiState.value.hasDate
+                _uiState.update {
+                    it.copy(
+                        hasDate = !it.hasDate,
+                        hasTime = if (turning0ff) false else it.hasTime,
+                        recurrenceType = if (turning0ff) com.gustavo.brilhante.model.RecurrenceType.NONE else it.recurrenceType
+                    )
+                }
+            }
             is TaskEditorEvent.ToggleTime ->
                 _uiState.update { it.copy(hasTime = !it.hasTime) }
             is TaskEditorEvent.ToggleUrgent ->
@@ -70,11 +88,46 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.PriorityChanged ->
                 _uiState.update { it.copy(priority = event.priority) }
             is TaskEditorEvent.DueDateChanged ->
-                _uiState.update { it.copy(dueDate = event.date) }
+                _uiState.update { state ->
+                    // Preserve time component when only date changes
+                    val cal = Calendar.getInstance()
+                    cal.timeInMillis = state.dueDate
+                    val hour = cal.get(Calendar.HOUR_OF_DAY)
+                    val minute = cal.get(Calendar.MINUTE)
+                    val newCal = Calendar.getInstance().apply {
+                        timeInMillis = event.dateMillis
+                        set(Calendar.HOUR_OF_DAY, hour)
+                        set(Calendar.MINUTE, minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    state.copy(dueDate = newCal.timeInMillis, showDatePicker = false)
+                }
+            is TaskEditorEvent.TimeChanged ->
+                _uiState.update { state ->
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = state.dueDate
+                        set(Calendar.HOUR_OF_DAY, event.hour)
+                        set(Calendar.MINUTE, event.minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    state.copy(dueDate = cal.timeInMillis, showTimePicker = false)
+                }
+            is TaskEditorEvent.RecurrenceChanged ->
+                _uiState.update { it.copy(recurrenceType = event.recurrenceType) }
             is TaskEditorEvent.TagAdded ->
                 _uiState.update { it.copy(tags = (it.tags + event.tag).distinct()) }
             is TaskEditorEvent.TagRemoved ->
                 _uiState.update { it.copy(tags = it.tags - event.tag) }
+            is TaskEditorEvent.ShowDatePicker ->
+                _uiState.update { it.copy(showDatePicker = true) }
+            is TaskEditorEvent.HideDatePicker ->
+                _uiState.update { it.copy(showDatePicker = false) }
+            is TaskEditorEvent.ShowTimePicker ->
+                _uiState.update { it.copy(showTimePicker = true) }
+            is TaskEditorEvent.HideTimePicker ->
+                _uiState.update { it.copy(showTimePicker = false) }
             is TaskEditorEvent.Save -> save()
         }
     }
@@ -96,10 +149,25 @@ class TaskEditorViewModel @Inject constructor(
                 isUrgent = state.isUrgent,
                 priority = state.priority,
                 tags = state.tags,
-                isFlagged = state.isFlagged
+                isFlagged = state.isFlagged,
+                recurrenceType = state.recurrenceType
             )
-            if (editingTaskId > 0L) updateTaskUseCase(task) else addTaskUseCase(task)
-            _uiState.update { it.copy(isSaved = true) }
+
+            val savedTask = if (editingTaskId > 0L) {
+                updateTaskUseCase(task)
+                notificationScheduler.cancel(editingTaskId)
+                task
+            } else {
+                addTaskUseCase(task)
+                task
+            }
+
+            savedTask.dueDate?.let { due ->
+                if (due > System.currentTimeMillis()) notificationScheduler.schedule(savedTask)
+            }
+
+            // Single navigation trigger — Channel guarantees one-shot delivery
+            _navigationEvent.send(Unit)
         }
     }
 }

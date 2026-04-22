@@ -40,6 +40,9 @@ dependencies {
     implementation project(':core:designsystem')
     implementation project(':core:model')
     implementation project(':core:data')
+    implementation project(':core:notifications')
+    implementation libs.hilt.work
+    implementation libs.androidx.workmanager
 
     implementation libs.hilt.android
     ksp libs.hilt.compiler
