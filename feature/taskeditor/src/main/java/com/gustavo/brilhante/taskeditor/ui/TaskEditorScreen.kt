@@ -75,9 +75,9 @@ fun TaskEditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Load task only once per screen entry
+    // Load task or reset state on screen entry
     LaunchedEffect(taskId) {
-        taskId?.let { viewModel.loadTask(it) }
+        viewModel.loadTask(taskId ?: -1L)
     }
 
     // ✅ FIX: Channel-based one-shot navigation — no boolean flag in UiState,

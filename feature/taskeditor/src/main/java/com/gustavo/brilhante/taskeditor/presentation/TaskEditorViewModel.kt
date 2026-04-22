@@ -36,7 +36,12 @@ class TaskEditorViewModel @Inject constructor(
     private var editingTaskId: Long = -1L
 
     fun loadTask(id: Long) {
-        if (id <= 0L) return
+        if (id <= 0L) {
+            _uiState.update { TaskEditorUiState() }
+            editingTaskId = -1L
+            return
+        }
+        if (editingTaskId == id) return
         editingTaskId = id
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }

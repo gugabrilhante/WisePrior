@@ -2,56 +2,66 @@ package com.gustavo.brilhante.notifications
 
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
+import android.content.Intent  // needed for onReceive parameter type
+import android.util.Log
 import com.gustavo.brilhante.model.RecurrenceType
-import com.gustavo.brilhante.model.Task
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.Calendar
 import javax.inject.Inject
 
+private const val TAG = "AlarmReceiver"
+
+/**
+ * Receives exact alarms from [AlarmManager] and:
+ *  1. Shows the notification via [NotificationHelper]
+ *  2. For recurring tasks, schedules the next occurrence via [AlarmManagerNotificationScheduler]
+ *
+ * All work is synchronous (AlarmManager scheduling is non-blocking), so [goAsync] is not needed.
+ */
 @AndroidEntryPoint
 class AlarmReceiver : BroadcastReceiver() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
-    @Inject lateinit var notificationScheduler: NotificationScheduler
+
+    // Inject the concrete class to access scheduleNextOccurrence without exposing it on the interface
+    @Inject lateinit var scheduler: AlarmManagerNotificationScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         val taskId = intent.getLongExtra(EXTRA_TASK_ID, -1L)
-        val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: return
+        val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: run {
+            Log.w(TAG, "Missing title in alarm intent for task $taskId")
+            return
+        }
         val notes = intent.getStringExtra(EXTRA_TASK_NOTES) ?: ""
-        val recurrence = intent.getStringExtra("extra_recurrence") ?: RecurrenceType.NONE.name
-        val dueDate = intent.getLongExtra("extra_due_date", -1L)
-        val hasTime = intent.getBooleanExtra("extra_has_time", false)
+        val dueDate = intent.getLongExtra(EXTRA_DUE_DATE, -1L)
+        val hasTime = intent.getBooleanExtra(EXTRA_HAS_TIME, false)
+        val recurrenceRaw = intent.getStringExtra(EXTRA_RECURRENCE) ?: RecurrenceType.NONE.name
 
-        if (taskId < 0L) return
+        if (taskId < 0L || dueDate < 0L) {
+            Log.w(TAG, "Invalid alarm intent — taskId=$taskId dueDate=$dueDate")
+            return
+        }
 
+        Log.d(TAG, "Alarm fired for task $taskId: $title")
+
+        // Step 1: show the notification
         notificationHelper.showNotification(taskId, title, notes)
 
-        val recurrenceType = runCatching { RecurrenceType.valueOf(recurrence) }
+        // Step 2: reschedule next occurrence for recurring tasks
+        val recurrenceType = runCatching { RecurrenceType.valueOf(recurrenceRaw) }
             .getOrDefault(RecurrenceType.NONE)
 
-        if (recurrenceType != RecurrenceType.NONE && dueDate > 0L) {
-            val nextMillis = nextOccurrence(dueDate, recurrenceType)
-            val nextTask = Task(
-                id = taskId,
+        if (recurrenceType != RecurrenceType.NONE) {
+            // Advance from the ORIGINAL dueDate to keep time-of-day consistent (no drift)
+            val nextDue = AlarmManagerNotificationScheduler.nextOccurrence(dueDate, recurrenceType)
+            scheduler.scheduleFromReceiver(
+                taskId = taskId,
                 title = title,
                 notes = notes,
-                dueDate = nextMillis,
+                dueDate = nextDue,
                 hasTime = hasTime,
                 recurrenceType = recurrenceType
             )
-            notificationScheduler.schedule(nextTask)
+            Log.d(TAG, "Rescheduled recurring task $taskId for $nextDue")
         }
-    }
-
-    private fun nextOccurrence(from: Long, type: RecurrenceType): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = from }
-        when (type) {
-            RecurrenceType.DAILY -> cal.add(Calendar.DAY_OF_YEAR, 1)
-            RecurrenceType.WEEKLY -> cal.add(Calendar.WEEK_OF_YEAR, 1)
-            RecurrenceType.MONTHLY -> cal.add(Calendar.MONTH, 1)
-            RecurrenceType.NONE -> Unit
-        }
-        return cal.timeInMillis
     }
 }

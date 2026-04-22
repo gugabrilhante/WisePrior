@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.wiseprior.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -11,8 +12,22 @@ import com.gustavo.brilhante.tasklist.navigation.TaskListRoute
 import com.gustavo.brilhante.tasklist.navigation.taskListEntries
 
 @Composable
-fun WisePriorNavHost(modifier: Modifier = Modifier) {
+fun WisePriorNavHost(
+    modifier: Modifier = Modifier,
+    initialTaskId: Long? = null
+) {
     val backStack = rememberNavBackStack(TaskListRoute)
+
+    // When the user taps a notification, navigate to the TaskEditor for that task.
+    // LaunchedEffect(initialTaskId) re-runs whenever the Activity receives a new intent,
+    // so subsequent notification taps (app already open) also navigate correctly.
+    LaunchedEffect(initialTaskId) {
+        if (initialTaskId != null && initialTaskId > 0L) {
+            // Remove any existing TaskEditor so we don't stack duplicates
+            backStack.removeIf { it is TaskEditorRoute }
+            backStack.add(TaskEditorRoute(taskId = initialTaskId))
+        }
+    }
 
     NavDisplay(
         backStack = backStack,
