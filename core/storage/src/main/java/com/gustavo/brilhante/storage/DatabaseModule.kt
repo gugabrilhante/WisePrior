@@ -17,13 +17,11 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideSearchDatabase(@ApplicationContext context: Context) =
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.databaseName)
-//            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
-    fun provideTaskDao(appDatabase: AppDatabase): TaskDao {
-        return appDatabase.taskDao()
-    }
+    fun provideTaskDao(db: AppDatabase): TaskDao = db.taskDao()
 }

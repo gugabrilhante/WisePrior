@@ -7,7 +7,13 @@ import androidx.room.PrimaryKey
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
-    val description: String,
-    val dueDate: Long,
-    val reminderEnabled: Boolean = false
+    val notes: String = "",
+    val url: String = "",
+    val dueDate: Long? = null,
+    val hasTime: Boolean = false,
+    val isUrgent: Boolean = false,
+    val priority: String = "NONE",
+    val tags: List<String> = emptyList(),
+    val isFlagged: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
 )

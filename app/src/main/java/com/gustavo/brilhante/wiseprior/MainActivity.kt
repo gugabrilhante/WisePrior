@@ -1,22 +1,24 @@
 package com.gustavo.brilhante.wiseprior
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.gustavo.brilhante.taskmanager.ui.TaskManagerActivity
-import com.gustavo.brilhante.wiseprior.ui.theme.TaskManagerTheme
+import com.gustavo.brilhante.designsystem.theme.WisePriorTheme
+import com.gustavo.brilhante.wiseprior.navigation.WisePriorNavHost
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        startActivity(Intent(this, TaskManagerActivity::class.java))
+        setContent {
+            WisePriorTheme {
+                WisePriorNavHost(modifier = Modifier.fillMaxSize())
+            }
+        }
     }
 }

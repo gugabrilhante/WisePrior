@@ -9,15 +9,11 @@ class TaskDataSource @Inject constructor(private val taskDao: TaskDao) {
 
     val allTasks: Flow<List<TaskEntity>> = taskDao.getAllTasks()
 
-    suspend fun insertTask(task: TaskEntity) {
-        taskDao.insertTask(task)
-    }
+    suspend fun getTaskById(id: Long): TaskEntity? = taskDao.getTaskById(id)
 
-    suspend fun updateTask(task: TaskEntity) {
-        taskDao.updateTask(task)
-    }
+    suspend fun insertTask(task: TaskEntity) { taskDao.insertTask(task) }
 
-    suspend fun deleteTask(task: TaskEntity) {
-        taskDao.deleteTask(task)
-    }
+    suspend fun updateTask(task: TaskEntity) { taskDao.updateTask(task) }
+
+    suspend fun deleteTask(task: TaskEntity) { taskDao.deleteTask(task) }
 }

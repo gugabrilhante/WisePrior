@@ -1,0 +1,24 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
+}
+
+android {
+    namespace 'com.gustavo.brilhante.domain'
+    compileSdk 36
+    defaultConfig { minSdk 24 }
+}
+
+kotlin.jvmToolchain(17)
+
+dependencies {
+    implementation project(':core:model')
+
+    implementation libs.hilt.android
+    ksp libs.hilt.compiler
+
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+
+    testImplementation libs.junit
+}

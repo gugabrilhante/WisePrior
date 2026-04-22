@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class TaskManagerViewModel @Inject constructor(private val repository: TaskRepository) : ViewModel() {
+open class TaskManagerViewModel @Inject constructor(private val repository: TaskRepository) : ViewModel() {
 
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks

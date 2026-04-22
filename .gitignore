@@ -1,15 +1,38 @@
-*.iml
-.gradle
+# Build outputs (root and all submodules)
+/build
+**/build/
+
+# Gradle wrapper jar and cache
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+
+# Local machine config
+local.properties
 /local.properties
+
+# IntelliJ / Android Studio generated
+*.iml
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/AndroidProjectSystem.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/migrations.xml
+/.idea/runConfigurations.xml
+/.idea/inspectionProfiles/
+
+# macOS
 .DS_Store
-/build
+
+# Captures folder
 /captures
+
+# Native builds
 .externalNativeBuild
 .cxx
-local.properties
+
+# AI assistant local state (machine-specific, not project-relevant)
+.claude/
