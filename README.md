@@ -6,7 +6,7 @@ A production-ready Android task manager app, built as a portfolio project to dem
 
 ## Demo
 
-| <img src="docs/wise_prior_demo.gif" width="55%"> |
+| <img src="docs/wise_prior_demo.gif" width="45%"> |
 
 ---
 
