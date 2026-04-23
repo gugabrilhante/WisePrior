@@ -64,6 +64,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -88,8 +89,22 @@ fun TaskEditorScreen(
 
     // DatePicker dialog
     if (uiState.showDatePicker) {
+        // Convert local dueDate to UTC midnight so the picker highlights the correct day
+        // regardless of timezone (DatePicker works in UTC midnight values).
+        val initialUtcMidnight = remember(uiState.dueDate) {
+            val localCal = Calendar.getInstance().apply { timeInMillis = uiState.dueDate }
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                set(Calendar.YEAR, localCal.get(Calendar.YEAR))
+                set(Calendar.MONTH, localCal.get(Calendar.MONTH))
+                set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.dueDate
+            initialSelectedDateMillis = initialUtcMidnight
         )
         DatePickerDialog(
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) },
@@ -158,8 +173,8 @@ fun TaskEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
                 .imePadding()
+                .verticalScroll(rememberScrollState())
         ) {
             // ── Title + Notes ─────────────────────────────────────────────
             Surface(

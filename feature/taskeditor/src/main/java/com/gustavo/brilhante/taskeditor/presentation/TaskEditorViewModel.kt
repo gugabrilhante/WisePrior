@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
@@ -94,13 +95,19 @@ class TaskEditorViewModel @Inject constructor(
                 _uiState.update { it.copy(priority = event.priority) }
             is TaskEditorEvent.DueDateChanged ->
                 _uiState.update { state ->
-                    // Preserve time component when only date changes
-                    val cal = Calendar.getInstance()
-                    cal.timeInMillis = state.dueDate
-                    val hour = cal.get(Calendar.HOUR_OF_DAY)
-                    val minute = cal.get(Calendar.MINUTE)
-                    val newCal = Calendar.getInstance().apply {
+                    val prevCal = Calendar.getInstance().apply { timeInMillis = state.dueDate }
+                    val hour = prevCal.get(Calendar.HOUR_OF_DAY)
+                    val minute = prevCal.get(Calendar.MINUTE)
+                    // DatePicker returns UTC midnight — read date fields from UTC calendar to
+                    // avoid a day-shift in UTC- timezones (e.g. UTC-3: midnight UTC = 21h local
+                    // of the PREVIOUS day, which would move the selected date one day back).
+                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                         timeInMillis = event.dateMillis
+                    }
+                    val newCal = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                        set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                        set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
                         set(Calendar.HOUR_OF_DAY, hour)
                         set(Calendar.MINUTE, minute)
                         set(Calendar.SECOND, 0)

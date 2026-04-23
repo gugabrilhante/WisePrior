@@ -20,6 +20,7 @@ local.properties
 /.idea/assetWizardSettings.xml
 /.idea/AndroidProjectSystem.xml
 /.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
 /.idea/migrations.xml
 /.idea/runConfigurations.xml
 /.idea/inspectionProfiles/
