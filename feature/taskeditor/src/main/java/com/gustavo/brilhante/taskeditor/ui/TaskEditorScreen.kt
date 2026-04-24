@@ -1,11 +1,9 @@
 package com.gustavo.brilhante.taskeditor.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +22,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,9 +42,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +54,7 @@ import com.gustavo.brilhante.model.RecurrenceType
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
+import com.gustavo.brilhante.ui.TagChip
 import com.gustavo.brilhante.ui.ToggleRow
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -317,33 +313,41 @@ fun TaskEditorScreen(
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader("Tags")
-            var tagInput by remember { mutableStateOf("") }
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                OutlinedTextField(
-                    value = tagInput,
-                    onValueChange = { tagInput = it },
-                    placeholder = { Text("Add tag") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    trailingIcon = {
-                        if (tagInput.isNotBlank()) {
-                            TextButton(onClick = {
-                                viewModel.onEvent(TaskEditorEvent.TagAdded(tagInput.trim()))
-                                tagInput = ""
-                            }) { Text("Add") }
-                        }
-                    }
-                )
-                if (uiState.tags.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.tags.forEach { tag ->
-                            FilterChip(
-                                selected = true,
-                                onClick = { viewModel.onEvent(TaskEditorEvent.TagRemoved(tag)) },
-                                label = { Text(tag) }
-                            )
-                        }
+            if (uiState.availableTags.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Nenhuma tag criada ainda",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Crie tags na barra lateral",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    uiState.availableTags.forEach { tag ->
+                        val isSelected = uiState.selectedTagIds.contains(tag.id)
+                        TagChip(
+                            tag = tag,
+                            isSelected = isSelected,
+                            onClick = {
+                                if (isSelected) viewModel.onTagRemoved(tag.id)
+                                else viewModel.onTagSelected(tag.id)
+                            }
+                        )
                     }
                 }
             }

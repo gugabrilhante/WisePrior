@@ -3,10 +3,11 @@ package com.gustavo.brilhante.storage.converter
 import androidx.room.TypeConverter
 
 class Converters {
+    // List<Long> — used for tagIds in TaskEntity
     @TypeConverter
-    fun fromTagsList(tags: List<String>): String = tags.joinToString(",")
+    fun fromLongList(ids: List<Long>): String = ids.joinToString(",")
 
     @TypeConverter
-    fun toTagsList(tags: String): List<String> =
-        if (tags.isBlank()) emptyList() else tags.split(",")
+    fun toLongList(ids: String): List<Long> =
+        if (ids.isBlank()) emptyList() else ids.split(",").mapNotNull { it.trim().toLongOrNull() }
 }

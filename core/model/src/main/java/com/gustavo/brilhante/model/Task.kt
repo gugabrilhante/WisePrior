@@ -10,7 +10,9 @@ data class Task(
     val isUrgent: Boolean = false,
     val priority: Priority = Priority.NONE,
     val tags: List<String> = emptyList(),
+    val tagIds: List<Long> = emptyList(),
     val isFlagged: Boolean = false,
+    val isCompleted: Boolean = false,
     val recurrenceType: RecurrenceType = RecurrenceType.NONE,
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -3,16 +3,21 @@ package com.gustavo.brilhante.taskeditor.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
+import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -24,21 +29,44 @@ class TaskEditorViewModel @Inject constructor(
     private val addTaskUseCase: AddTaskUseCase,
     private val updateTaskUseCase: UpdateTaskUseCase,
     private val getTaskByIdUseCase: GetTaskByIdUseCase,
+    private val getTagsUseCase: GetTagsUseCase,
     private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskEditorUiState())
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
 
-    // One-shot navigation event — never re-emits, consumed exactly once
+    // Derived StateFlows for consumers that prefer granular observation
+    val tags: StateFlow<List<Tag>> = uiState
+        .map { it.availableTags }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val selectedTagIds: StateFlow<Set<Long>> = uiState
+        .map { it.selectedTagIds }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
     private val _navigationEvent = Channel<Unit>(Channel.BUFFERED)
     val navigationEvent = _navigationEvent.receiveAsFlow()
 
     private var editingTaskId: Long = -1L
 
+    init {
+        observeAvailableTags()
+    }
+
+    private fun observeAvailableTags() {
+        viewModelScope.launch {
+            getTagsUseCase().collect { tags ->
+                _uiState.update { it.copy(availableTags = tags) }
+            }
+        }
+    }
+
     fun loadTask(id: Long) {
         if (id <= 0L) {
-            _uiState.update { TaskEditorUiState() }
+            _uiState.update { current ->
+                TaskEditorUiState(availableTags = current.availableTags)
+            }
             editingTaskId = -1L
             return
         }
@@ -47,7 +75,7 @@ class TaskEditorViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             getTaskByIdUseCase(id)?.let { task ->
-                _uiState.update {
+                _uiState.update { current ->
                     TaskEditorUiState(
                         title = task.title,
                         notes = task.notes,
@@ -57,8 +85,10 @@ class TaskEditorViewModel @Inject constructor(
                         dueDate = task.dueDate ?: System.currentTimeMillis(),
                         isUrgent = task.isUrgent,
                         priority = task.priority,
-                        tags = task.tags,
+                        selectedTagIds = task.tagIds.toSet(),
+                        availableTags = current.availableTags,
                         isFlagged = task.isFlagged,
+                        isCompleted = task.isCompleted,
                         recurrenceType = task.recurrenceType,
                         isLoading = false
                     )
@@ -66,6 +96,18 @@ class TaskEditorViewModel @Inject constructor(
             } ?: _uiState.update { it.copy(isLoading = false) }
         }
     }
+
+    // ── Tag selection ─────────────────────────────────────────────────────────
+
+    fun onTagSelected(tagId: Long) {
+        _uiState.update { it.copy(selectedTagIds = it.selectedTagIds + tagId) }
+    }
+
+    fun onTagRemoved(tagId: Long) {
+        _uiState.update { it.copy(selectedTagIds = it.selectedTagIds - tagId) }
+    }
+
+    // ── Events ────────────────────────────────────────────────────────────────
 
     fun onEvent(event: TaskEditorEvent) {
         when (event) {
@@ -76,12 +118,12 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.UrlChanged ->
                 _uiState.update { it.copy(url = event.url) }
             is TaskEditorEvent.ToggleDate -> {
-                val turning0ff = _uiState.value.hasDate
+                val turningOff = _uiState.value.hasDate
                 _uiState.update {
                     it.copy(
                         hasDate = !it.hasDate,
-                        hasTime = if (turning0ff) false else it.hasTime,
-                        recurrenceType = if (turning0ff) com.gustavo.brilhante.model.RecurrenceType.NONE else it.recurrenceType
+                        hasTime = if (turningOff) false else it.hasTime,
+                        recurrenceType = if (turningOff) com.gustavo.brilhante.model.RecurrenceType.NONE else it.recurrenceType
                     )
                 }
             }
@@ -98,9 +140,6 @@ class TaskEditorViewModel @Inject constructor(
                     val prevCal = Calendar.getInstance().apply { timeInMillis = state.dueDate }
                     val hour = prevCal.get(Calendar.HOUR_OF_DAY)
                     val minute = prevCal.get(Calendar.MINUTE)
-                    // DatePicker returns UTC midnight — read date fields from UTC calendar to
-                    // avoid a day-shift in UTC- timezones (e.g. UTC-3: midnight UTC = 21h local
-                    // of the PREVIOUS day, which would move the selected date one day back).
                     val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                         timeInMillis = event.dateMillis
                     }
@@ -128,10 +167,6 @@ class TaskEditorViewModel @Inject constructor(
                 }
             is TaskEditorEvent.RecurrenceChanged ->
                 _uiState.update { it.copy(recurrenceType = event.recurrenceType) }
-            is TaskEditorEvent.TagAdded ->
-                _uiState.update { it.copy(tags = (it.tags + event.tag).distinct()) }
-            is TaskEditorEvent.TagRemoved ->
-                _uiState.update { it.copy(tags = it.tags - event.tag) }
             is TaskEditorEvent.ShowDatePicker ->
                 _uiState.update { it.copy(showDatePicker = true) }
             is TaskEditorEvent.HideDatePicker ->
@@ -160,8 +195,9 @@ class TaskEditorViewModel @Inject constructor(
                 hasTime = state.hasTime,
                 isUrgent = state.isUrgent,
                 priority = state.priority,
-                tags = state.tags,
+                tagIds = state.selectedTagIds.toList(),
                 isFlagged = state.isFlagged,
+                isCompleted = state.isCompleted,
                 recurrenceType = state.recurrenceType
             )
 
@@ -178,7 +214,6 @@ class TaskEditorViewModel @Inject constructor(
                 if (due > System.currentTimeMillis()) notificationScheduler.schedule(savedTask)
             }
 
-            // Single navigation trigger — Channel guarantees one-shot delivery
             _navigationEvent.send(Unit)
         }
     }

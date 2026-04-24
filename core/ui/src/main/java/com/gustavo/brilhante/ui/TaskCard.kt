@@ -1,7 +1,9 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,24 +12,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.designsystem.theme.FlaggedColor
 import com.gustavo.brilhante.designsystem.theme.UrgentColor
 import com.gustavo.brilhante.model.Priority
+import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,8 +42,11 @@ import java.util.Locale
 fun TaskCard(
     task: Task,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    allTags: List<Tag> = emptyList()
 ) {
+    val taskTags = allTags.filter { task.tagIds.contains(it.id) }
+
     ElevatedCard(
         onClick = onClick,
         modifier = modifier
@@ -53,7 +60,10 @@ fun TaskCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     if (task.priority != Priority.NONE) {
                         PriorityBadge(priority = task.priority)
                         Spacer(Modifier.width(8.dp))
@@ -66,13 +76,12 @@ fun TaskCard(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
                     if (task.isUrgent) {
-                        Text(
-                            text = "!",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = UrgentColor
-                        )
+                        Text("!", style = MaterialTheme.typography.titleMedium, color = UrgentColor)
                         Spacer(Modifier.width(4.dp))
                     }
                     if (task.isFlagged) {
@@ -109,22 +118,32 @@ fun TaskCard(
                     Spacer(Modifier.width(4.dp))
                     val pattern = if (task.hasTime) "MMM d, HH:mm" else "MMM d"
                     Text(
-                        text = SimpleDateFormat(pattern, Locale.getDefault())
-                            .format(Date(dueDate)),
+                        text = SimpleDateFormat(pattern, Locale.getDefault()).format(Date(dueDate)),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            if (task.tags.isNotEmpty()) {
+            // Colored tag dots — at most 3 visible, "+N" for the rest
+            if (taskTags.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    task.tags.take(3).forEach { tag ->
-                        FilterChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(tag, style = MaterialTheme.typography.labelSmall) }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    taskTags.take(3).forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color(tag.color.toInt()), CircleShape)
+                        )
+                    }
+                    if (taskTags.size > 3) {
+                        Text(
+                            text = "+${taskTags.size - 3}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
