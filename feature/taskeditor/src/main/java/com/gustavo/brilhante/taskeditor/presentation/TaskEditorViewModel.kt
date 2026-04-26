@@ -2,6 +2,7 @@ package com.gustavo.brilhante.taskeditor.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -30,13 +31,13 @@ class TaskEditorViewModel @Inject constructor(
     private val updateTaskUseCase: UpdateTaskUseCase,
     private val getTaskByIdUseCase: GetTaskByIdUseCase,
     private val getTagsUseCase: GetTagsUseCase,
-    private val notificationScheduler: NotificationScheduler
+    private val notificationScheduler: NotificationScheduler,
+    private val dateFormatter: DateFormatter
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskEditorUiState())
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
 
-    // Derived StateFlows for consumers that prefer granular observation
     val tags: StateFlow<List<Tag>> = uiState
         .map { it.availableTags }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -91,7 +92,7 @@ class TaskEditorViewModel @Inject constructor(
                         isCompleted = task.isCompleted,
                         recurrenceType = task.recurrenceType,
                         isLoading = false
-                    )
+                    ).withFormattedDates()
                 }
             } ?: _uiState.update { it.copy(isLoading = false) }
         }
@@ -124,11 +125,11 @@ class TaskEditorViewModel @Inject constructor(
                         hasDate = !it.hasDate,
                         hasTime = if (turningOff) false else it.hasTime,
                         recurrenceType = if (turningOff) com.gustavo.brilhante.model.RecurrenceType.NONE else it.recurrenceType
-                    )
+                    ).withFormattedDates()
                 }
             }
             is TaskEditorEvent.ToggleTime ->
-                _uiState.update { it.copy(hasTime = !it.hasTime) }
+                _uiState.update { it.copy(hasTime = !it.hasTime).withFormattedDates() }
             is TaskEditorEvent.ToggleUrgent ->
                 _uiState.update { it.copy(isUrgent = !it.isUrgent) }
             is TaskEditorEvent.ToggleFlagged ->
@@ -153,6 +154,7 @@ class TaskEditorViewModel @Inject constructor(
                         set(Calendar.MILLISECOND, 0)
                     }
                     state.copy(dueDate = newCal.timeInMillis, showDatePicker = false)
+                        .withFormattedDates()
                 }
             is TaskEditorEvent.TimeChanged ->
                 _uiState.update { state ->
@@ -164,6 +166,7 @@ class TaskEditorViewModel @Inject constructor(
                         set(Calendar.MILLISECOND, 0)
                     }
                     state.copy(dueDate = cal.timeInMillis, showTimePicker = false)
+                        .withFormattedDates()
                 }
             is TaskEditorEvent.RecurrenceChanged ->
                 _uiState.update { it.copy(recurrenceType = event.recurrenceType) }
@@ -178,6 +181,11 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.Save -> save()
         }
     }
+
+    private fun TaskEditorUiState.withFormattedDates(): TaskEditorUiState = copy(
+        formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
+        formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null
+    )
 
     private fun save() {
         val state = _uiState.value

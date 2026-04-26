@@ -56,10 +56,7 @@ import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
 import com.gustavo.brilhante.ui.TagChip
 import com.gustavo.brilhante.ui.ToggleRow
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -224,10 +221,7 @@ fun TaskEditorScreen(
                         checked = uiState.hasDate,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleDate) },
                         icon = Icons.Filled.CalendarMonth,
-                        supportingText = if (uiState.hasDate) {
-                            SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault())
-                                .format(Date(uiState.dueDate))
-                        } else null,
+                        supportingText = if (uiState.hasDate) uiState.formattedDate else null,
                         onRowClick = if (uiState.hasDate) {
                             { viewModel.onEvent(TaskEditorEvent.ShowDatePicker) }
                         } else null
@@ -240,10 +234,7 @@ fun TaskEditorScreen(
                             checked = uiState.hasTime,
                             onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleTime) },
                             icon = Icons.Filled.Schedule,
-                            supportingText = if (uiState.hasTime) {
-                                SimpleDateFormat("HH:mm", Locale.getDefault())
-                                    .format(Date(uiState.dueDate))
-                            } else null,
+                            supportingText = if (uiState.hasTime) uiState.formattedTime else null,
                             onRowClick = if (uiState.hasTime) {
                                 { viewModel.onEvent(TaskEditorEvent.ShowTimePicker) }
                             } else null

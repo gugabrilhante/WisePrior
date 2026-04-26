@@ -11,11 +11,11 @@ data class TaskEditorUiState(
     val hasDate: Boolean = false,
     val hasTime: Boolean = false,
     val dueDate: Long = System.currentTimeMillis(),
+    val formattedDate: String? = null,
+    val formattedTime: String? = null,
     val isUrgent: Boolean = false,
     val priority: Priority = Priority.NONE,
-    // Tags selected for this task — Set for O(1) contains checks
     val selectedTagIds: Set<Long> = emptySet(),
-    // All tags available in the app, loaded from GetTagsUseCase
     val availableTags: List<Tag> = emptyList(),
     val isFlagged: Boolean = false,
     val isCompleted: Boolean = false,

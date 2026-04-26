@@ -1,8 +1,13 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
+import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
+import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
+import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
@@ -29,13 +34,19 @@ class TaskListViewModelTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
     private val deleteTaskUseCase: DeleteTaskUseCase = mockk(relaxed = true)
+    private val getTagsUseCase: GetTagsUseCase = mockk()
+    private val addTagUseCase: AddTagUseCase = mockk(relaxed = true)
+    private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
+    private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
+    private val dateFormatter: DateFormatter = mockk(relaxed = true)
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { getTagsUseCase() } returns flowOf(emptyList())
     }
 
     @After
@@ -44,7 +55,11 @@ class TaskListViewModelTest {
     }
 
     private fun buildViewModel(): TaskListViewModel {
-        return TaskListViewModel(getTasksUseCase, deleteTaskUseCase, notificationScheduler)
+        return TaskListViewModel(
+            getTasksUseCase, deleteTaskUseCase, getTagsUseCase,
+            addTagUseCase, updateTagUseCase, deleteTagUseCase,
+            notificationScheduler, dateFormatter
+        )
     }
 
     @Test
@@ -52,7 +67,6 @@ class TaskListViewModelTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
         val viewModel = buildViewModel()
 
-        // After init with UnconfinedTestDispatcher the flow already collected
         assertFalse(viewModel.uiState.value.isLoading)
         assertNull(viewModel.uiState.value.error)
     }
@@ -82,10 +96,8 @@ class TaskListViewModelTest {
         val viewModel = buildViewModel()
 
         viewModel.uiState.test {
-            // First emission: empty
             assertEquals(emptyList<Task>(), awaitItem().tasks)
 
-            // Second emission: one task added
             val task = Task(id = 1, title = "New task")
             tasksFlow.value = listOf(task)
             assertEquals(listOf(task), awaitItem().tasks)

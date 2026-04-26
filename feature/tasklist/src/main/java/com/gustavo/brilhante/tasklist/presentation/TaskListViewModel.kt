@@ -2,6 +2,7 @@ package com.gustavo.brilhante.tasklist.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -33,7 +34,8 @@ class TaskListViewModel @Inject constructor(
     private val addTagUseCase: AddTagUseCase,
     private val updateTagUseCase: UpdateTagUseCase,
     private val deleteTagUseCase: DeleteTagUseCase,
-    private val notificationScheduler: NotificationScheduler
+    private val notificationScheduler: NotificationScheduler,
+    private val dateFormatter: DateFormatter
 ) : ViewModel() {
 
     private val _selectedCollection = MutableStateFlow<TaskCollection>(TaskCollection.All)
@@ -54,9 +56,18 @@ class TaskListViewModel @Inject constructor(
             ) { tasks, collection, tags -> Triple(tasks, collection, tags) }
                 .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
                 .collect { (tasks, collection, tags) ->
+                    val filteredTasks = tasks.filterByCollection(collection)
+                    val formattedDueDates = filteredTasks.mapNotNull { task ->
+                        task.dueDate?.let { dueDate ->
+                            val formatted = if (task.hasTime) dateFormatter.formatShortDateTime(dueDate)
+                                            else dateFormatter.formatShortDate(dueDate)
+                            task.id to formatted
+                        }
+                    }.toMap()
                     _uiState.update {
                         it.copy(
-                            tasks = tasks.filterByCollection(collection),
+                            tasks = filteredTasks,
+                            formattedDueDates = formattedDueDates,
                             selectedCollection = collection,
                             collectionCounts = tasks.toCounts(),
                             tags = tags,

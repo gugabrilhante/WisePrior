@@ -6,13 +6,13 @@ import com.gustavo.brilhante.tasklist.model.TaskCollection
 
 data class TaskListUiState(
     val tasks: List<Task> = emptyList(),
+    val formattedDueDates: Map<Long, String> = emptyMap(),
     val selectedCollection: TaskCollection = TaskCollection.All,
     val collectionCounts: CollectionCounts = CollectionCounts(),
     val tags: List<Tag> = emptyList(),
     val tagCounts: Map<Long, Int> = emptyMap(),
     val isLoading: Boolean = true,
     val error: String? = null,
-    // Tag editor sheet state
     val showTagEditor: Boolean = false,
     val editingTag: Tag? = null
 )

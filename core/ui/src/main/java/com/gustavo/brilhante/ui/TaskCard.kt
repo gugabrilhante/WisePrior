@@ -1,9 +1,9 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Schedule
@@ -25,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.designsystem.theme.FlaggedColor
@@ -33,17 +31,15 @@ import com.gustavo.brilhante.designsystem.theme.UrgentColor
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TaskCard(
     task: Task,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    allTags: List<Tag> = emptyList()
+    allTags: List<Tag> = emptyList(),
+    formattedDueDate: String? = null,
 ) {
     val taskTags = allTags.filter { task.tagIds.contains(it.id) }
 
@@ -106,7 +102,7 @@ fun TaskCard(
                 )
             }
 
-            task.dueDate?.let { dueDate ->
+            formattedDueDate?.let { dateText ->
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -116,34 +112,27 @@ fun TaskCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.width(4.dp))
-                    val pattern = if (task.hasTime) "MMM d, HH:mm" else "MMM d"
                     Text(
-                        text = SimpleDateFormat(pattern, Locale.getDefault()).format(Date(dueDate)),
+                        text = dateText,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Colored tag dots — at most 3 visible, "+N" for the rest
+            // Tag chips
             if (taskTags.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    taskTags.take(3).forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .background(Color(tag.color.toInt()), CircleShape)
-                        )
-                    }
-                    if (taskTags.size > 3) {
-                        Text(
-                            text = "+${taskTags.size - 3}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    taskTags.forEach { tag ->
+                        TagChip(
+                            tag = tag,
+                            isSelected = false,
+                            onClick = {}
                         )
                     }
                 }

@@ -199,6 +199,7 @@ private fun TaskListContent(
                             TaskCard(
                                 task = task,
                                 allTags = uiState.tags,
+                                formattedDueDate = uiState.formattedDueDates[task.id],
                                 onClick = { onEditTask(task) },
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
