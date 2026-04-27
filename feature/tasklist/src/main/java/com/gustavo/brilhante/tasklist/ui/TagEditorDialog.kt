@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.tasklist.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,26 +38,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.tasklist.R
 
-internal val tagPalette = listOf(
-    0xFFEF4444L, // Red
-    0xFFF97316L, // Orange
-    0xFFEAB308L, // Yellow
-    0xFF22C55EL, // Green
-    0xFF3B82F6L, // Blue
-    0xFF8B5CF6L, // Purple
-    0xFFEC4899L, // Pink
-    0xFF6B7280L, // Gray
+internal data class TagPaletteEntry(
+    val value: Long,
+    @StringRes val nameResId: Int
 )
 
-private val tagPaletteNames = listOf(
-    R.string.color_name_red,
-    R.string.color_name_orange,
-    R.string.color_name_yellow,
-    R.string.color_name_green,
-    R.string.color_name_blue,
-    R.string.color_name_purple,
-    R.string.color_name_pink,
-    R.string.color_name_gray
+internal val tagPalette = listOf(
+    TagPaletteEntry(0xFFEF4444L, R.string.color_name_red),
+    TagPaletteEntry(0xFFF97316L, R.string.color_name_orange),
+    TagPaletteEntry(0xFFEAB308L, R.string.color_name_yellow),
+    TagPaletteEntry(0xFF22C55EL, R.string.color_name_green),
+    TagPaletteEntry(0xFF3B82F6L, R.string.color_name_blue),
+    TagPaletteEntry(0xFF8B5CF6L, R.string.color_name_purple),
+    TagPaletteEntry(0xFFEC4899L, R.string.color_name_pink),
+    TagPaletteEntry(0xFF6B7280L, R.string.color_name_gray),
 )
 
 @Composable
@@ -97,9 +92,10 @@ fun TagEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    tagPalette.forEachIndexed { index, colorValue ->
+                    tagPalette.forEach { entry ->
+                        val colorValue = entry.value
                         val isSelected = selectedColor == colorValue
-                        val colorName = stringResource(tagPaletteNames[index])
+                        val colorName = stringResource(entry.nameResId)
                         val description = stringResource(R.string.color_name_format, colorName)
                         
                         Box(

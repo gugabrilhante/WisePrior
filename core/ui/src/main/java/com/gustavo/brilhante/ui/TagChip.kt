@@ -15,6 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Tag
 
@@ -34,7 +38,7 @@ fun TagChip(
     FilterChip(
         selected = isVisuallySelected,
         onClick = onClick ?: {},
-        enabled = isSelectable && onClick != null,
+        enabled = (isSelectable && onClick != null),
         label = {
             Text(
                 text = tag.name,
@@ -46,7 +50,7 @@ fun TagChip(
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(14.dp),
                 )
             }
         } else null,
@@ -57,8 +61,15 @@ fun TagChip(
             labelColor = tagColor,
             selectedContainerColor = tagColor,
             selectedLabelColor = foregroundColor,
-            selectedLeadingIconColor = foregroundColor
+            selectedLeadingIconColor = foregroundColor,
+            disabledContainerColor = tagColor.copy(alpha = 0.10f),
+            disabledLabelColor = tagColor,
+            disabledSelectedContainerColor = tagColor,
+            disabledLeadingIconColor = foregroundColor,
         ),
-        modifier = modifier
+        modifier = modifier.semantics {
+            selected = isVisuallySelected
+            role = Role.Checkbox
+        }
     )
 }

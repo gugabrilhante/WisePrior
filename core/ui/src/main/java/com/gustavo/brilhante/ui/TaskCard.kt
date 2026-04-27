@@ -1,6 +1,11 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +47,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.designsystem.theme.FlaggedColor
 import com.gustavo.brilhante.designsystem.theme.UrgentColor
@@ -65,7 +71,14 @@ fun TaskCard(
 
     ElevatedCard(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = tween(
+                    durationMillis = 300,
+                    easing = LinearOutSlowInEasing
+                )
+            ),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         // IntrinsicSize.Min lets the trailing column fill the row height
@@ -96,8 +109,7 @@ fun TaskCard(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
-                    .padding(top = 12.dp, bottom = 8.dp)
-                    .animateContentSize(),
+                    .padding(top = 12.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Title (with optional priority badge)
@@ -122,13 +134,13 @@ fun TaskCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
 
                 // Metadata: date + tags (collapsed → max 2 tags, expanded → all)
-                val visibleTags = if (isExpanded) taskTags else taskTags.take(2)
-                if (formattedDueDate != null || visibleTags.isNotEmpty()) {
+                if (formattedDueDate != null || taskTags.isNotEmpty()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -146,8 +158,11 @@ fun TaskCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        visibleTags.forEach { tag ->
-                            TaskTagBadge(tag = tag)
+                        // Tags visibility handled by animateContentSize on the parent Column
+                        taskTags.forEachIndexed { index, tag ->
+                            if (isExpanded || index < 2) {
+                                TaskTagBadge(tag = tag)
+                            }
                         }
                         if (!isExpanded && taskTags.size > 2) {
                             Text(

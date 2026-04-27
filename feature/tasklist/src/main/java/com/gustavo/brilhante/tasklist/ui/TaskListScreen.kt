@@ -1,6 +1,10 @@
 package com.gustavo.brilhante.tasklist.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -132,7 +136,7 @@ fun TaskListScreen(
             title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title) 
                     else stringResource(R.string.new_tag_title),
             initialName = uiState.editingTag?.name ?: "",
-            initialColor = uiState.editingTag?.color ?: tagPalette.first(),
+            initialColor = uiState.editingTag?.color ?: tagPalette.first().value,
             onSave = { name, color -> viewModel.saveTag(name, color) },
             onDismiss = viewModel::dismissTagEditor,
             onDelete = uiState.editingTag?.let { tag -> { viewModel.deleteTag(tag) } }
@@ -215,7 +219,12 @@ private fun TaskListContent(
                                 onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
-                                    .animateItem()
+                                    .animateItem(
+                                        placementSpec = tween(
+                                            durationMillis = 300,
+                                            easing = FastOutLinearInEasing
+                                        )
+                                    )
                             )
                         }
                     }
