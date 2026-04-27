@@ -1,17 +1,23 @@
 package com.gustavo.brilhante.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CardDefaults
@@ -19,10 +25,15 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -50,22 +61,25 @@ fun TaskCard(
 ) {
     val taskTags = allTags.filter { task.tagIds.contains(it.id) }
     val contentAlpha = if (task.isCompleted) 0.6f else 1f
+    var isExpanded by remember { mutableStateOf(false) }
 
     ElevatedCard(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 100.dp),
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
+        // IntrinsicSize.Min lets the trailing column fill the row height
+        // so Arrangement.SpaceBetween can push the chevron to the bottom
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.padding(end = 12.dp)
+            modifier = Modifier
+                .padding(end = 4.dp)
+                .height(IntrinsicSize.Min)
         ) {
             // LEFT: Checkbox in fixed-size touch-target zone
             Box(
                 modifier = Modifier.size(48.dp),
-                contentAlignment = Alignment.TopCenter
+                contentAlignment = Alignment.Center
             ) {
                 Checkbox(
                     checked = task.isCompleted,
@@ -77,15 +91,16 @@ fun TaskCard(
                 )
             }
 
-            // CENTER: Content (weighted)
+            // CENTER: Content with smooth expand/collapse animation
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
-                    .padding(top = 12.dp, bottom = 8.dp),
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .animateContentSize(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Title with optional priority badge
+                // Title (with optional priority badge)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (task.priority != Priority.NONE) {
                         PriorityBadge(priority = task.priority)
@@ -94,14 +109,26 @@ fun TaskCard(
                     Text(
                         text = task.title,
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
+                        maxLines = if (isExpanded) 2 else 1,
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                     )
                 }
 
-                // Metadata: date + tags
-                if (formattedDueDate != null || taskTags.isNotEmpty()) {
+                // Notes — visible only when expanded
+                if (isExpanded && task.notes.isNotBlank()) {
+                    Text(
+                        text = task.notes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Metadata: date + tags (collapsed → max 2 tags, expanded → all)
+                val visibleTags = if (isExpanded) taskTags else taskTags.take(2)
+                if (formattedDueDate != null || visibleTags.isNotEmpty()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -119,12 +146,12 @@ fun TaskCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        taskTags.take(3).forEach { tag ->
+                        visibleTags.forEach { tag ->
                             TaskTagBadge(tag = tag)
                         }
-                        if (taskTags.size > 3) {
+                        if (!isExpanded && taskTags.size > 2) {
                             Text(
-                                text = "+${taskTags.size - 3}",
+                                text = "+${taskTags.size - 2}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -133,23 +160,38 @@ fun TaskCard(
                 }
             }
 
-            // RIGHT: Indicators in fixed-width column (always rendered for stable layout)
+            // RIGHT: Fixed-width column — indicators at top, chevron at bottom
             Column(
                 horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .width(40.dp)
-                    .padding(top = 12.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 8.dp)
                     .alpha(contentAlpha)
             ) {
-                if (task.isUrgent) {
-                    Text("!", style = MaterialTheme.typography.titleMedium, color = UrgentColor)
+                Column(horizontalAlignment = Alignment.End) {
+                    if (task.isUrgent) {
+                        Text("!", style = MaterialTheme.typography.titleMedium, color = UrgentColor)
+                    }
+                    if (task.isFlagged) {
+                        Icon(
+                            imageVector = Icons.Filled.Flag,
+                            contentDescription = "Sinalizada",
+                            tint = FlaggedColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
-                if (task.isFlagged) {
+                IconButton(
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier.size(24.dp)
+                ) {
                     Icon(
-                        imageVector = Icons.Filled.Flag,
-                        contentDescription = "Sinalizada",
-                        tint = FlaggedColor,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (isExpanded) "Recolher" else "Expandir",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -161,8 +203,9 @@ fun TaskCard(
 private fun TaskTagBadge(tag: Tag) {
     val tagColor = Color(tag.color)
     Surface(
-        color = tagColor.copy(alpha = 0.2f),
-        shape = RoundedCornerShape(8.dp)
+        color = tagColor.copy(alpha = 0.25f),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, tagColor)
     ) {
         Text(
             text = tag.name,
