@@ -18,6 +18,9 @@ androidx-junit = "1.1.5"
 espresso-core = "3.5.1"
 workmanager = "2.10.0"
 hilt-work = "1.2.0"
+mockk = "1.13.12"
+turbine = "1.2.0"
+kotlinx-coroutines = "1.9.0"
 
 [libraries]
 # AndroidX Core
@@ -75,6 +78,9 @@ hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-w
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

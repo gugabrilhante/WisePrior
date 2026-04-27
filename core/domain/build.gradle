@@ -21,4 +21,7 @@ dependencies {
     implementation libs.androidx.lifecycle.viewmodel.ktx
 
     testImplementation libs.junit
+    testImplementation libs.mockk
+    testImplementation libs.turbine
+    testImplementation libs.kotlinx.coroutines.test
 }
