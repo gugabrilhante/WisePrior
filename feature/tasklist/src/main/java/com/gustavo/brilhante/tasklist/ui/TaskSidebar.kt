@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.tasklist.R
@@ -180,7 +182,9 @@ fun TaskSidebarContent(
             selected = false,
             onClick = { if (!atLimit) onAddTag() },
             colors = NavigationDrawerItemDefaults.colors(),
-            modifier = itemModifier.alpha(if (atLimit) 0.5f else 1f)
+            modifier = itemModifier
+                .alpha(if (atLimit) 0.5f else 1f)
+                .semantics { if (atLimit) disabled() }
         )
     }
 }

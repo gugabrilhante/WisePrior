@@ -42,7 +42,7 @@ class DateFormatterImplTest {
     }
 
     @Test
-    fun `formatTime returns HH:mm string`() {
+    fun `formatTime returns HHmm string`() {
         assertEquals("14:30", formatter.formatTime(timestamp))
     }
 
