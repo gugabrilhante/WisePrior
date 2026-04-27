@@ -120,7 +120,11 @@ class TaskListViewModel @Inject constructor(
             if (state.editingTag != null) {
                 updateTagUseCase(state.editingTag.copy(name = trimmedName, color = color))
             } else {
-                if (state.tags.size >= MAX_TAGS) return@launch
+                if (state.tags.size >= MAX_TAGS) {
+                    _uiState.update { it.copy(error = "Maximum of $MAX_TAGS tags reached") }
+                    dismissTagEditor()
+                    return@launch
+                }
                 addTagUseCase(Tag(name = trimmedName, color = color))
             }
             dismissTagEditor()
