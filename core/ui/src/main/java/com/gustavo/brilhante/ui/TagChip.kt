@@ -45,8 +45,9 @@ fun TagChip(
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "tagChipBg"
     )
+    val foreground = if (tagColor.luminance() > 0.5f) Color.Black else Color.White
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else tagColor,
+        targetValue = if (isSelected) foreground else tagColor,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "tagChipContent"
     )

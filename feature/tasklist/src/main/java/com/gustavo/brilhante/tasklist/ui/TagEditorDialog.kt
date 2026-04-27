@@ -29,6 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 internal val tagPalette = listOf(
@@ -80,7 +85,7 @@ fun TagEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    tagPalette.forEach { colorValue ->
+                    tagPalette.forEachIndexed { index, colorValue ->
                         val isSelected = selectedColor == colorValue
                         Box(
                             modifier = Modifier
@@ -94,6 +99,11 @@ fun TagEditorDialog(
                                         shape = CircleShape
                                     ) else Modifier
                                 )
+                                .semantics {
+                                    contentDescription = "Color option ${index + 1}"
+                                    role = Role.RadioButton
+                                    selected = isSelected
+                                }
                                 .clickable { selectedColor = colorValue }
                         )
                     }

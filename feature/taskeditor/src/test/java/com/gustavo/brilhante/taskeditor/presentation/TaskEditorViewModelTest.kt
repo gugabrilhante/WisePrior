@@ -206,6 +206,8 @@ class TaskEditorViewModelTest {
     fun `ToggleFlagged toggles isFlagged`() {
         viewModel.onEvent(TaskEditorEvent.ToggleFlagged)
         assertTrue(viewModel.uiState.value.isFlagged)
+        viewModel.onEvent(TaskEditorEvent.ToggleFlagged)
+        assertFalse(viewModel.uiState.value.isFlagged)
     }
 
     // ── formatted date/time ───────────────────────────────────────────────────

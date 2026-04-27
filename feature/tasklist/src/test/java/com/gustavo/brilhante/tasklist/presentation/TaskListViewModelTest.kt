@@ -63,7 +63,7 @@ class TaskListViewModelTest {
     }
 
     @Test
-    fun `initial state has isLoading true`() = runTest {
+    fun `initial state has isLoading false`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
         val viewModel = buildViewModel()
 

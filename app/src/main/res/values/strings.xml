@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">WisePrior</string>
+    <string name="no_tags_created">No tags created yet</string>
+    <string name="create_tags_sidebar">Create tags in the sidebar</string>
 </resources>

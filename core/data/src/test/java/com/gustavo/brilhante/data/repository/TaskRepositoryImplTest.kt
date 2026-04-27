@@ -32,8 +32,9 @@ class TaskRepositoryImplTest {
         hasTime = false,
         isUrgent = false,
         priority = "NONE",
-        tags = emptyList(),
+        tagIds = emptyList(),
         isFlagged = false,
+        isCompleted = false,
         recurrenceType = "NONE",
         createdAt = 1_000L
     )

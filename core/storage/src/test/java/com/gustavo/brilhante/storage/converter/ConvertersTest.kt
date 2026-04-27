@@ -8,39 +8,57 @@ class ConvertersTest {
     private val converters = Converters()
 
     @Test
-    fun `fromTagsList joins tags with comma`() {
-        val tags = listOf("work", "urgent", "home")
-        assertEquals("work,urgent,home", converters.fromTagsList(tags))
+    fun `fromLongList joins ids with comma`() {
+        val ids = listOf(1L, 2L, 3L)
+        assertEquals("1,2,3", converters.fromLongList(ids))
     }
 
     @Test
-    fun `fromTagsList returns empty string for empty list`() {
-        assertEquals("", converters.fromTagsList(emptyList()))
+    fun `fromLongList returns empty string for empty list`() {
+        assertEquals("", converters.fromLongList(emptyList()))
     }
 
     @Test
-    fun `toTagsList splits comma-separated string into list`() {
-        val result = converters.toTagsList("work,urgent,home")
-        assertEquals(listOf("work", "urgent", "home"), result)
+    fun `toLongList splits comma-separated string into list`() {
+        val result = converters.toLongList("1,2,3")
+        assertEquals(listOf(1L, 2L, 3L), result)
     }
 
     @Test
-    fun `toTagsList returns empty list for blank string`() {
-        assertEquals(emptyList<String>(), converters.toTagsList(""))
-        assertEquals(emptyList<String>(), converters.toTagsList("   "))
+    fun `toLongList returns empty list for blank string`() {
+        assertEquals(emptyList<Long>(), converters.toLongList(""))
+        assertEquals(emptyList<Long>(), converters.toLongList("   "))
     }
 
     @Test
-    fun `fromTagsList and toTagsList are inverse operations`() {
-        val original = listOf("alpha", "beta", "gamma")
-        val encoded = converters.fromTagsList(original)
-        val decoded = converters.toTagsList(encoded)
+    fun `fromLongList and toLongList are inverse operations`() {
+        val original = listOf(10L, 20L, 30L)
+        val encoded = converters.fromLongList(original)
+        val decoded = converters.toLongList(encoded)
         assertEquals(original, decoded)
     }
 
     @Test
-    fun `single tag round-trips correctly`() {
-        val tags = listOf("solo")
-        assertEquals(tags, converters.toTagsList(converters.fromTagsList(tags)))
+    fun `single id round-trips correctly`() {
+        val ids = listOf(42L)
+        assertEquals(ids, converters.toLongList(converters.fromLongList(ids)))
+    }
+
+    @Test
+    fun `toLongList silently drops malformed tokens`() {
+        val result = converters.toLongList("1, abc, 2")
+        assertEquals(listOf(1L, 2L), result)
+    }
+
+    @Test
+    fun `toLongList handles whitespace around numbers`() {
+        val result = converters.toLongList("1 , 2 , 3")
+        assertEquals(listOf(1L, 2L, 3L), result)
+    }
+
+    @Test
+    fun `toLongList drops empty segments`() {
+        val result = converters.toLongList("1,,3")
+        assertEquals(listOf(1L, 3L), result)
     }
 }
