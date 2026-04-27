@@ -314,12 +314,12 @@ fun TaskEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = stringResource(com.gustavo.brilhante.R.string.no_tags_created),
+                        text = stringResource(com.gustavo.brilhante.taskeditor.R.string.no_tags_created),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = stringResource(com.gustavo.brilhante.R.string.create_tags_sidebar),
+                        text = stringResource(com.gustavo.brilhante.taskeditor.R.string.create_tags_sidebar),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )

@@ -97,7 +97,7 @@ abstract class AppDatabase : RoomDatabase() {
                     val color = colors[index % colors.size]
                     database.execSQL(
                         "INSERT INTO tags (name, color) VALUES (?, ?)",
-                        arrayOf(name, color)
+                        arrayOf<Any>(name, color)
                     )
                     // Query to get the last inserted row id
                     val idCursor = database.query("SELECT last_insert_rowid()")
@@ -157,7 +157,7 @@ abstract class AppDatabase : RoomDatabase() {
                             (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
                             VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
                             """.trimIndent(),
-                            arrayOf(id, title, notes, url, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
+                            arrayOf<Any?>(id, title, notes, url, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
                         )
                     } else {
                         database.execSQL(
@@ -166,7 +166,7 @@ abstract class AppDatabase : RoomDatabase() {
                             (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """.trimIndent(),
-                            arrayOf(id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
+                            arrayOf<Any?>(id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceType, createdAt)
                         )
                     }
                 }
