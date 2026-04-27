@@ -1,0 +1,47 @@
+<resources>
+    <string name="tag_name_label">Nome da tag</string>
+    <string name="color_label">Cor</string>
+    <string name="save_button">Salvar</string>
+    <string name="cancel_button">Cancelar</string>
+    <string name="delete_button">Excluir</string>
+    <string name="edit_tag_title">Editar Tag</string>
+    <string name="new_tag_title">Nova Tag</string>
+
+    <string name="sidebar_today">Hoje</string>
+    <string name="sidebar_scheduled">Programados</string>
+    <string name="sidebar_all">Todos</string>
+    <string name="sidebar_flagged">Sinalizados</string>
+    <string name="sidebar_completed">Concluídos</string>
+    <string name="app_name_sidebar">WisePrior</string>
+    <string name="sidebar_tags_header">Tags</string>
+    <string name="edit_tag_description">Editar tag</string>
+    <string name="add_tag_label">Nova Tag</string>
+
+    <string name="empty_tasks_title">Sem lembretes</string>
+    <string name="empty_tasks_subtitle">Toque em + para adicionar seu primeiro lembrete</string>
+    <string name="menu_button_description">Abrir menu</string>
+    <string name="add_task_button_description">Adicionar lembrete</string>
+    <string name="delete_swipe_action">Excluir</string>
+
+    <string name="collection_all">Todos</string>
+    <string name="collection_today">Hoje</string>
+    <string name="collection_scheduled">Programados</string>
+    <string name="collection_flagged">Sinalizados</string>
+    <string name="collection_completed">Concluídos</string>
+    <string name="collection_tag_fallback">Tag</string>
+
+    <plurals name="tag_limit_message">
+        <item quantity="one">Limite de %d tag atingido</item>
+        <item quantity="other">Limite de %d tags atingido</item>
+    </plurals>
+
+    <string name="color_name_red">Vermelho</string>
+    <string name="color_name_orange">Laranja</string>
+    <string name="color_name_yellow">Amarelo</string>
+    <string name="color_name_green">Verde</string>
+    <string name="color_name_blue">Azul</string>
+    <string name="color_name_purple">Roxo</string>
+    <string name="color_name_pink">Rosa</string>
+    <string name="color_name_gray">Cinza</string>
+    <string name="color_name_format">Cor %s</string>
+</resources>

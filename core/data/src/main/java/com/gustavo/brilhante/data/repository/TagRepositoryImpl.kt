@@ -32,6 +32,6 @@ class TagRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteTag(tag: Tag) = withContext(ioDispatcher) {
-        tagDataSource.deleteTag(tag.toEntity())
+        tagDataSource.deleteTagTransactional(tag.toEntity())
     }
 }

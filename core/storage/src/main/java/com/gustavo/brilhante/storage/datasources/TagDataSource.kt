@@ -9,5 +9,5 @@ class TagDataSource @Inject constructor(private val tagDao: TagDao) {
     val allTags: Flow<List<TagEntity>> = tagDao.getAllTags()
     suspend fun insertTag(tag: TagEntity): Long = tagDao.insertTag(tag)
     suspend fun updateTag(tag: TagEntity) = tagDao.updateTag(tag)
-    suspend fun deleteTag(tag: TagEntity) = tagDao.deleteTag(tag)
+    suspend fun deleteTagTransactional(tag: TagEntity) = tagDao.deleteTagAndRemoveFromTasks(tag)
 }

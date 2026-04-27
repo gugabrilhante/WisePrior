@@ -123,16 +123,23 @@ fun TaskCard(
             // Tag chips
             if (taskTags.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                FlowRow(
+                Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    taskTags.forEach { tag ->
+                    taskTags.take(3).forEach { tag ->
                         TagChip(
                             tag = tag,
                             isSelected = false,
-                            onClick = {}
+                            onClick = null
+                        )
+                    }
+                    if (taskTags.size > 3) {
+                        Text(
+                            text = "+${taskTags.size - 3}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

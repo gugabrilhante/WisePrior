@@ -3,6 +3,7 @@ package com.gustavo.brilhante.tasklist.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,19 +37,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.tasklist.R
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 import com.gustavo.brilhante.tasklist.presentation.TaskListViewModel
 import com.gustavo.brilhante.ui.EmptyState
 import com.gustavo.brilhante.ui.TaskCard
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,7 +127,8 @@ fun TaskListScreen(
     // Tag editor dialog — shown on top of either layout
     if (uiState.showTagEditor) {
         TagEditorDialog(
-            title = if (uiState.editingTag != null) "Editar Tag" else "Nova Tag",
+            title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title) 
+                    else stringResource(R.string.new_tag_title),
             initialName = uiState.editingTag?.name ?: "",
             initialColor = uiState.editingTag?.color ?: tagPalette.first(),
             onSave = { name, color -> viewModel.saveTag(name, color) },
@@ -155,7 +163,7 @@ private fun TaskListContent(
                 navigationIcon = {
                     if (showMenuButton) {
                         IconButton(onClick = onMenuClick) {
-                            Icon(Icons.Filled.Menu, contentDescription = "Abrir menu")
+                            Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu_button_description))
                         }
                     }
                 },
@@ -164,7 +172,7 @@ private fun TaskListContent(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddTask) {
-                Icon(Icons.Filled.Add, contentDescription = "Adicionar lembrete")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_task_button_description))
             }
         }
     ) { paddingValues ->
@@ -178,8 +186,8 @@ private fun TaskListContent(
                 enter = fadeIn(), exit = fadeOut()
             ) {
                 EmptyState(
-                    title = "Sem lembretes",
-                    subtitle = "Toque em + para adicionar seu primeiro lembrete"
+                    title = stringResource(R.string.empty_tasks_title),
+                    subtitle = stringResource(R.string.empty_tasks_subtitle)
                 )
             }
 
@@ -215,13 +223,14 @@ private fun TaskListContent(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+@Composable
 private fun TaskCollection.label(tags: List<Tag>): String = when (this) {
-    TaskCollection.All -> "Todos"
-    TaskCollection.Today -> "Hoje"
-    TaskCollection.Scheduled -> "Programados"
-    TaskCollection.Flagged -> "Sinalizados"
-    TaskCollection.Completed -> "Concluídos"
-    is TaskCollection.ByTag -> tags.find { it.id == tagId }?.name ?: "Tag"
+    TaskCollection.All -> stringResource(R.string.collection_all)
+    TaskCollection.Today -> stringResource(R.string.collection_today)
+    TaskCollection.Scheduled -> stringResource(R.string.collection_scheduled)
+    TaskCollection.Flagged -> stringResource(R.string.collection_flagged)
+    TaskCollection.Completed -> stringResource(R.string.collection_completed)
+    is TaskCollection.ByTag -> tags.find { it.id == tagId }?.name ?: stringResource(R.string.collection_tag_fallback)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,8 +242,40 @@ private fun SwipeToDeleteContainer(
 ) {
     val state = rememberSwipeToDismissBoxState()
     val currentValue = state.currentValue
+
     LaunchedEffect(currentValue) {
-        if (currentValue == SwipeToDismissBoxValue.EndToStart) onDelete()
+        if (currentValue == SwipeToDismissBoxValue.EndToStart) {
+            // Provide a small delay so the user sees the item fully swiped before removal
+            delay(400)
+            onDelete()
+        }
     }
-    SwipeToDismissBox(state = state, backgroundContent = {}, content = { content() })
+
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            val color = when (state.dismissDirection) {
+                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                else -> Color.Transparent
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 4.dp)
+                    .background(color, MaterialTheme.shapes.medium)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (state.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_swipe_action),
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        },
+        content = { content() }
+    )
 }

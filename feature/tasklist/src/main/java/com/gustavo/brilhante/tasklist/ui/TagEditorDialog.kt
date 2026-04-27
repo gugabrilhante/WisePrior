@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
@@ -29,7 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.gustavo.brilhante.tasklist.R
 
 internal val tagPalette = listOf(
     0xFFEF4444L, // Red
@@ -40,6 +46,17 @@ internal val tagPalette = listOf(
     0xFF8B5CF6L, // Purple
     0xFFEC4899L, // Pink
     0xFF6B7280L, // Gray
+)
+
+private val tagPaletteNames = listOf(
+    R.string.color_name_red,
+    R.string.color_name_orange,
+    R.string.color_name_yellow,
+    R.string.color_name_green,
+    R.string.color_name_blue,
+    R.string.color_name_purple,
+    R.string.color_name_pink,
+    R.string.color_name_gray
 )
 
 @Composable
@@ -62,7 +79,7 @@ fun TagEditorDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nome da tag") },
+                    label = { Text(stringResource(R.string.tag_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -70,7 +87,7 @@ fun TagEditorDialog(
                 Spacer(Modifier.height(16.dp))
 
                 Text(
-                    text = "Cor",
+                    text = stringResource(R.string.color_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -80,13 +97,16 @@ fun TagEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    tagPalette.forEach { colorValue ->
+                    tagPalette.forEachIndexed { index, colorValue ->
                         val isSelected = selectedColor == colorValue
+                        val colorName = stringResource(tagPaletteNames[index])
+                        val description = stringResource(R.string.color_name_format, colorName)
+                        
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(colorValue.toInt()))
+                                .background(Color(colorValue))
                                 .then(
                                     if (isSelected) Modifier.border(
                                         width = 3.dp,
@@ -94,6 +114,11 @@ fun TagEditorDialog(
                                         shape = CircleShape
                                     ) else Modifier
                                 )
+                                .semantics {
+                                    contentDescription = description
+                                    role = Role.RadioButton
+                                    selected = isSelected
+                                }
                                 .clickable { selectedColor = colorValue }
                         )
                     }
@@ -102,20 +127,25 @@ fun TagEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { if (name.isNotBlank()) onSave(name.trim(), selectedColor) },
+                onClick = { onSave(name.trim(), selectedColor) },
                 enabled = name.isNotBlank()
             ) {
-                Text("Salvar")
+                Text(stringResource(R.string.save_button))
             }
         },
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
                     TextButton(onClick = onDelete) {
-                        Text("Excluir", color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = stringResource(R.string.delete_button),
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancelar") }
+                TextButton(onClick = onDismiss) { 
+                    Text(stringResource(R.string.cancel_button)) 
+                }
             }
         }
     )

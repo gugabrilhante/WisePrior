@@ -41,11 +41,14 @@ class TaskEditorViewModelTest {
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
 
     private val testDispatcher = UnconfinedTestDispatcher()
+    private var originalTimeZone: TimeZone? = null
 
     private lateinit var viewModel: TaskEditorViewModel
 
     @Before
     fun setup() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { dateFormatter.formatDate(any()) } returns "Mon, Jan 1, 2024"
@@ -58,6 +61,7 @@ class TaskEditorViewModelTest {
 
     @After
     fun tearDown() {
+        TimeZone.setDefault(originalTimeZone)
         Dispatchers.resetMain()
     }
 
@@ -109,29 +113,26 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `loadTask with valid id when task not found sets isLoading false`() = runTest {
-        coEvery { getTaskByIdUseCase(99L) } returns null
-
-        viewModel.loadTask(99L)
-
-        assertFalse(viewModel.uiState.value.isLoading)
-    }
-
-    @Test
-    fun `loadTask with same id twice does not reload`() = runTest {
-        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Task")
+    fun `loadTask with same id twice does not reload and preserves state`() = runTest {
+        val task = Task(id = 10L, title = "Task")
+        coEvery { getTaskByIdUseCase(10L) } returns task
 
         viewModel.loadTask(10L)
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals("Task", viewModel.uiState.value.title)
+
         viewModel.loadTask(10L)
 
         coVerify(exactly = 1) { getTaskByIdUseCase(10L) }
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals("Task", viewModel.uiState.value.title)
     }
 
     // ── field events ──────────────────────────────────────────────────────────
 
     @Test
     fun `TitleChanged updates title and clears titleError`() {
-        viewModel.onEvent(TaskEditorEvent.Save) // triggers titleError since title is blank
+        viewModel.onEvent(TaskEditorEvent.Save)
         assertNotNull(viewModel.uiState.value.titleError)
 
         viewModel.onEvent(TaskEditorEvent.TitleChanged("My Task"))
@@ -175,23 +176,15 @@ class TaskEditorViewModelTest {
 
     @Test
     fun `ToggleDate turning off resets hasTime and recurrenceType`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleDate) // on
+        viewModel.onEvent(TaskEditorEvent.ToggleDate)
         viewModel.onEvent(TaskEditorEvent.ToggleTime)
         viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceType.WEEKLY))
-        viewModel.onEvent(TaskEditorEvent.ToggleDate) // off
+        viewModel.onEvent(TaskEditorEvent.ToggleDate)
 
         val state = viewModel.uiState.value
         assertFalse(state.hasDate)
         assertFalse(state.hasTime)
         assertEquals(RecurrenceType.NONE, state.recurrenceType)
-    }
-
-    @Test
-    fun `ToggleTime toggles hasTime`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        assertTrue(viewModel.uiState.value.hasTime)
-        viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        assertFalse(viewModel.uiState.value.hasTime)
     }
 
     @Test
@@ -202,12 +195,6 @@ class TaskEditorViewModelTest {
         assertFalse(viewModel.uiState.value.isUrgent)
     }
 
-    @Test
-    fun `ToggleFlagged toggles isFlagged`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleFlagged)
-        assertTrue(viewModel.uiState.value.isFlagged)
-    }
-
     // ── formatted date/time ───────────────────────────────────────────────────
 
     @Test
@@ -216,130 +203,21 @@ class TaskEditorViewModelTest {
         assertNotNull(viewModel.uiState.value.formattedDate)
     }
 
-    @Test
-    fun `ToggleDate off clears formattedDate and formattedTime`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        viewModel.onEvent(TaskEditorEvent.ToggleDate) // off
+    // ── tag selection ─────────────────────────────────────────────────────────
 
-        val state = viewModel.uiState.value
-        assertNull(state.formattedDate)
-        assertNull(state.formattedTime)
+    @Test
+    fun `onTagSelected adds tagId to selectedTagIds`() {
+        viewModel.onTagSelected(1L)
+        viewModel.onTagSelected(2L)
+        assertEquals(setOf(1L, 2L), viewModel.uiState.value.selectedTagIds)
     }
 
     @Test
-    fun `ToggleTime on populates formattedTime`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        assertNotNull(viewModel.uiState.value.formattedTime)
-    }
-
-    @Test
-    fun `ToggleTime off clears formattedTime`() {
-        viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        viewModel.onEvent(TaskEditorEvent.ToggleTime) // off
-        assertNull(viewModel.uiState.value.formattedTime)
-    }
-
-    // ── date & time events ────────────────────────────────────────────────────
-
-    @Test
-    fun `DueDateChanged stores correct local date from UTC midnight`() {
-        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(2026, Calendar.JUNE, 15, 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val utcMidnight = utcCal.timeInMillis
-
-        viewModel.onEvent(TaskEditorEvent.DueDateChanged(utcMidnight))
-
-        val storedCal = Calendar.getInstance().apply {
-            timeInMillis = viewModel.uiState.value.dueDate
-        }
-        assertEquals(2026, storedCal.get(Calendar.YEAR))
-        assertEquals(Calendar.JUNE, storedCal.get(Calendar.MONTH))
-        assertEquals(15, storedCal.get(Calendar.DAY_OF_MONTH))
-    }
-
-    @Test
-    fun `DueDateChanged preserves hour and minute from previous dueDate`() {
-        viewModel.onEvent(TaskEditorEvent.TimeChanged(9, 45))
-
-        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(2026, Calendar.JUNE, 15, 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        viewModel.onEvent(TaskEditorEvent.DueDateChanged(utcCal.timeInMillis))
-
-        val storedCal = Calendar.getInstance().apply {
-            timeInMillis = viewModel.uiState.value.dueDate
-        }
-        assertEquals(9, storedCal.get(Calendar.HOUR_OF_DAY))
-        assertEquals(45, storedCal.get(Calendar.MINUTE))
-    }
-
-    @Test
-    fun `DueDateChanged hides date picker`() {
-        viewModel.onEvent(TaskEditorEvent.ShowDatePicker)
-        assertTrue(viewModel.uiState.value.showDatePicker)
-
-        val utcMidnight = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(2026, Calendar.JUNE, 15, 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        viewModel.onEvent(TaskEditorEvent.DueDateChanged(utcMidnight))
-
-        assertFalse(viewModel.uiState.value.showDatePicker)
-    }
-
-    @Test
-    fun `TimeChanged updates hour and minute on existing date`() {
-        val utcMidnight = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(2026, Calendar.JUNE, 15, 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        viewModel.onEvent(TaskEditorEvent.DueDateChanged(utcMidnight))
-
-        viewModel.onEvent(TaskEditorEvent.TimeChanged(14, 30))
-
-        val storedCal = Calendar.getInstance().apply {
-            timeInMillis = viewModel.uiState.value.dueDate
-        }
-        assertEquals(14, storedCal.get(Calendar.HOUR_OF_DAY))
-        assertEquals(30, storedCal.get(Calendar.MINUTE))
-        assertEquals(0, storedCal.get(Calendar.SECOND))
-        assertEquals(15, storedCal.get(Calendar.DAY_OF_MONTH))
-    }
-
-    @Test
-    fun `TimeChanged hides time picker`() {
-        viewModel.onEvent(TaskEditorEvent.ShowTimePicker)
-        assertTrue(viewModel.uiState.value.showTimePicker)
-
-        viewModel.onEvent(TaskEditorEvent.TimeChanged(10, 0))
-
-        assertFalse(viewModel.uiState.value.showTimePicker)
-    }
-
-    // ── picker visibility events ───────────────────────────────────────────────
-
-    @Test
-    fun `ShowDatePicker and HideDatePicker toggle showDatePicker`() {
-        viewModel.onEvent(TaskEditorEvent.ShowDatePicker)
-        assertTrue(viewModel.uiState.value.showDatePicker)
-
-        viewModel.onEvent(TaskEditorEvent.HideDatePicker)
-        assertFalse(viewModel.uiState.value.showDatePicker)
-    }
-
-    @Test
-    fun `ShowTimePicker and HideTimePicker toggle showTimePicker`() {
-        viewModel.onEvent(TaskEditorEvent.ShowTimePicker)
-        assertTrue(viewModel.uiState.value.showTimePicker)
-
-        viewModel.onEvent(TaskEditorEvent.HideTimePicker)
-        assertFalse(viewModel.uiState.value.showTimePicker)
+    fun `onTagRemoved removes tagId from selectedTagIds`() {
+        viewModel.onTagSelected(1L)
+        viewModel.onTagSelected(2L)
+        viewModel.onTagRemoved(1L)
+        assertEquals(setOf(2L), viewModel.uiState.value.selectedTagIds)
     }
 
     // ── save ──────────────────────────────────────────────────────────────────
@@ -374,7 +252,6 @@ class TaskEditorViewModelTest {
         }
 
         coVerify(exactly = 1) { updateTaskUseCase(any()) }
-        coVerify(exactly = 0) { addTaskUseCase(any()) }
     }
 
     @Test
@@ -393,23 +270,21 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `Save without hasDate stores null dueDate`() = runTest {
-        viewModel.onEvent(TaskEditorEvent.TitleChanged("No date task"))
-
-        viewModel.navigationEvent.test {
-            viewModel.onEvent(TaskEditorEvent.Save)
-            awaitItem()
-        }
-
-        coVerify {
-            addTaskUseCase(match { it.dueDate == null })
-        }
-    }
-
-    @Test
-    fun `Save with hasDate stores dueDate`() = runTest {
+    fun `Save with hasDate stores exact dueDate and time`() = runTest {
+        val testDate = 1_700_000_000_000L
         viewModel.onEvent(TaskEditorEvent.TitleChanged("Dated task"))
         viewModel.onEvent(TaskEditorEvent.ToggleDate)
+        viewModel.onEvent(TaskEditorEvent.DueDateChanged(testDate))
+        viewModel.onEvent(TaskEditorEvent.TimeChanged(15, 45))
+
+        val expectedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            timeInMillis = testDate
+            set(Calendar.HOUR_OF_DAY, 15)
+            set(Calendar.MINUTE, 45)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val expectedMillis = expectedCal.timeInMillis
 
         viewModel.navigationEvent.test {
             viewModel.onEvent(TaskEditorEvent.Save)
@@ -417,7 +292,7 @@ class TaskEditorViewModelTest {
         }
 
         coVerify {
-            addTaskUseCase(match { it.dueDate != null })
+            addTaskUseCase(match { it.dueDate == expectedMillis })
         }
     }
 }

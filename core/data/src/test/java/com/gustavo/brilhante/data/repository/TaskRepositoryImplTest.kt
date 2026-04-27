@@ -10,6 +10,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -32,18 +33,21 @@ class TaskRepositoryImplTest {
         hasTime = false,
         isUrgent = false,
         priority = "NONE",
-        tags = emptyList(),
+        tagIds = emptyList(),
         isFlagged = false,
+        isCompleted = false,
         recurrenceType = "NONE",
-        createdAt = 1_000L
+        createdAt = 1_000L,
     )
 
     private val task = Task(
         id = 1L,
         title = "Task",
         priority = Priority.NONE,
+        tagIds = emptyList(),
+        isCompleted = false,
         recurrenceType = RecurrenceType.NONE,
-        createdAt = 1_000L
+        createdAt = 1_000L,
     )
 
     @Test
@@ -88,28 +92,46 @@ class TaskRepositoryImplTest {
 
     @Test
     fun `addTask inserts entity into data source`() = runTest {
-        coEvery { dataSource.insertTask(any()) } returns Unit
+        val slot = slot<TaskEntity>()
+        coEvery { dataSource.insertTask(capture(slot)) } returns Unit
 
         repository.addTask(task)
 
         coVerify(exactly = 1) { dataSource.insertTask(any()) }
+        val captured = slot.captured
+        assertEquals(task.id, captured.id)
+        assertEquals(task.title, captured.title)
+        assertEquals(task.priority.name, captured.priority)
+        assertEquals(task.tagIds, captured.tagIds)
+        assertEquals(task.isCompleted, captured.isCompleted)
     }
 
     @Test
     fun `updateTask updates entity in data source`() = runTest {
-        coEvery { dataSource.updateTask(any()) } returns Unit
+        val slot = slot<TaskEntity>()
+        coEvery { dataSource.updateTask(capture(slot)) } returns Unit
 
         repository.updateTask(task)
 
         coVerify(exactly = 1) { dataSource.updateTask(any()) }
+        val captured = slot.captured
+        assertEquals(task.id, captured.id)
+        assertEquals(task.title, captured.title)
+        assertEquals(task.priority.name, captured.priority)
+        assertEquals(task.tagIds, captured.tagIds)
+        assertEquals(task.isCompleted, captured.isCompleted)
     }
 
     @Test
     fun `deleteTask deletes entity from data source`() = runTest {
-        coEvery { dataSource.deleteTask(any()) } returns Unit
+        val slot = slot<TaskEntity>()
+        coEvery { dataSource.deleteTask(capture(slot)) } returns Unit
 
         repository.deleteTask(task)
 
         coVerify(exactly = 1) { dataSource.deleteTask(any()) }
+        val captured = slot.captured
+        assertEquals(task.id, captured.id)
+        assertEquals(task.title, captured.title)
     }
 }
