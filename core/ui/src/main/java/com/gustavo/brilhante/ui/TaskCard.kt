@@ -1,15 +1,16 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Schedule
@@ -19,11 +20,13 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
@@ -52,31 +55,37 @@ fun TaskCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp),
+            .heightIn(min = 100.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.padding(end = 12.dp)
         ) {
-            // Leading: completion checkbox
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = onToggleComplete,
-                modifier = Modifier.semantics {
-                    contentDescription =
-                        if (task.isCompleted) "Marcar tarefa como incompleta" else "Marcar tarefa como completa"
-                }
-            )
+            // LEFT: Checkbox in fixed-size touch-target zone
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = onToggleComplete,
+                    modifier = Modifier.semantics {
+                        contentDescription =
+                            if (task.isCompleted) "Marcar tarefa como incompleta" else "Marcar tarefa como completa"
+                    }
+                )
+            }
 
-            // Middle: content (weighted)
+            // CENTER: Content (weighted)
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
-                    .padding(vertical = 12.dp)
+                    .padding(top = 12.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Title row (priority badge + title)
+                // Title with optional priority badge
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (task.priority != Priority.NONE) {
                         PriorityBadge(priority = task.priority)
@@ -91,9 +100,8 @@ fun TaskCard(
                     )
                 }
 
-                // Metadata row: date + tags
+                // Metadata: date + tags
                 if (formattedDueDate != null || taskTags.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -112,7 +120,7 @@ fun TaskCard(
                             )
                         }
                         taskTags.take(3).forEach { tag ->
-                            TagChip(tag = tag, isSelected = true, isSelectable = false, onClick = null)
+                            TaskTagBadge(tag = tag)
                         }
                         if (taskTags.size > 3) {
                             Text(
@@ -125,25 +133,42 @@ fun TaskCard(
                 }
             }
 
-            // Trailing: urgent + flagged indicators
-            if (task.isUrgent || task.isFlagged) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.alpha(contentAlpha)
-                ) {
-                    if (task.isUrgent) {
-                        Text("!", style = MaterialTheme.typography.titleMedium, color = UrgentColor)
-                    }
-                    if (task.isFlagged) {
-                        Icon(
-                            imageVector = Icons.Filled.Flag,
-                            contentDescription = "Sinalizada",
-                            tint = FlaggedColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+            // RIGHT: Indicators in fixed-width column (always rendered for stable layout)
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier
+                    .width(40.dp)
+                    .padding(top = 12.dp)
+                    .alpha(contentAlpha)
+            ) {
+                if (task.isUrgent) {
+                    Text("!", style = MaterialTheme.typography.titleMedium, color = UrgentColor)
+                }
+                if (task.isFlagged) {
+                    Icon(
+                        imageVector = Icons.Filled.Flag,
+                        contentDescription = "Sinalizada",
+                        tint = FlaggedColor,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TaskTagBadge(tag: Tag) {
+    val tagColor = Color(tag.color)
+    Surface(
+        color = tagColor.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = tag.name,
+            style = MaterialTheme.typography.labelMedium,
+            color = tagColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
