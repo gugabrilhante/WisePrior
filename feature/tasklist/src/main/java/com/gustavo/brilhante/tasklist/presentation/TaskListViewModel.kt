@@ -7,6 +7,7 @@ import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
+import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.model.Tag
@@ -30,6 +31,7 @@ private const val MAX_TAGS = 5
 class TaskListViewModel @Inject constructor(
     private val getTasksUseCase: GetTasksUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val updateTaskUseCase: UpdateTaskUseCase,
     private val getTagsUseCase: GetTagsUseCase,
     private val addTagUseCase: AddTagUseCase,
     private val updateTagUseCase: UpdateTagUseCase,
@@ -92,6 +94,17 @@ class TaskListViewModel @Inject constructor(
             runCatching {
                 deleteTaskUseCase(task)
                 notificationScheduler.cancel(task.id)
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    fun onTaskCheckedChange(task: Task, isChecked: Boolean) {
+        viewModelScope.launch {
+            runCatching {
+                updateTaskUseCase(task.copy(isCompleted = isChecked))
+                if (isChecked) notificationScheduler.cancel(task.id)
             }.onFailure { e ->
                 _uiState.update { it.copy(error = e.message) }
             }

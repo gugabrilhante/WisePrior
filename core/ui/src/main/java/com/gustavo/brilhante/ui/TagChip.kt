@@ -1,6 +1,5 @@
 package com.gustavo.brilhante.ui
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,37 +18,30 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Tag
 
-/**
- * A rounded-rectangle chip representing a [Tag].
- *
- * Selected state: filled with tag color, presence of a check icon.
- * Unselected state: outlined border with tag color, low-alpha background.
- *
- * The foreground (text and icon) color is computed from tagColor.luminance() to ensure
- * sufficient contrast. The selection uses an animated color transition via [animateColorAsState].
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagChip(
     tag: Tag,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    isSelectable: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
     val tagColor = Color(tag.color)
     val foregroundColor = if (tagColor.luminance() > 0.5f) Color.Black else Color.White
+    val isVisuallySelected = if (!isSelectable) true else isSelected
 
     FilterChip(
-        selected = isSelected,
+        selected = isVisuallySelected,
         onClick = onClick ?: {},
-        enabled = onClick != null,
+        enabled = isSelectable && onClick != null,
         label = {
             Text(
                 text = tag.name,
                 style = MaterialTheme.typography.labelLarge,
             )
         },
-        leadingIcon = if (isSelected) {
+        leadingIcon = if (isSelectable && isSelected) {
             {
                 Icon(
                     imageVector = Icons.Rounded.Check,

@@ -104,7 +104,8 @@ fun TaskListScreen(
                 onMenuClick = {},
                 onAddTask = onAddTask,
                 onEditTask = onEditTask,
-                onDeleteTask = viewModel::deleteTask
+                onDeleteTask = viewModel::deleteTask,
+                onToggleComplete = viewModel::onTaskCheckedChange
             )
         }
     } else {
@@ -119,7 +120,8 @@ fun TaskListScreen(
                 onMenuClick = { scope.launch { drawerState.open() } },
                 onAddTask = onAddTask,
                 onEditTask = onEditTask,
-                onDeleteTask = viewModel::deleteTask
+                onDeleteTask = viewModel::deleteTask,
+                onToggleComplete = viewModel::onTaskCheckedChange
             )
         }
     }
@@ -147,6 +149,7 @@ private fun TaskListContent(
     onAddTask: () -> Unit,
     onEditTask: (Task) -> Unit,
     onDeleteTask: (Task) -> Unit,
+    onToggleComplete: (Task, Boolean) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -209,6 +212,7 @@ private fun TaskListContent(
                                 allTags = uiState.tags,
                                 formattedDueDate = uiState.formattedDueDates[task.id],
                                 onClick = { onEditTask(task) },
+                                onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
                                     .animateItem()

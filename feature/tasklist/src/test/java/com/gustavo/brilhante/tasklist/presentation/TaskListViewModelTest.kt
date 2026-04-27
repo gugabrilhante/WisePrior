@@ -8,6 +8,7 @@ import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
+import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
@@ -34,6 +35,7 @@ class TaskListViewModelTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
     private val deleteTaskUseCase: DeleteTaskUseCase = mockk(relaxed = true)
+    private val updateTaskUseCase: UpdateTaskUseCase = mockk(relaxed = true)
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val addTagUseCase: AddTagUseCase = mockk(relaxed = true)
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
@@ -56,7 +58,7 @@ class TaskListViewModelTest {
 
     private fun buildViewModel(): TaskListViewModel {
         return TaskListViewModel(
-            getTasksUseCase, deleteTaskUseCase, getTagsUseCase,
+            getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
             addTagUseCase, updateTagUseCase, deleteTagUseCase,
             notificationScheduler, dateFormatter
         )
@@ -126,5 +128,41 @@ class TaskListViewModelTest {
         viewModel.deleteTask(task)
 
         assertEquals("DB error", viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onTaskCheckedChange with true marks task complete and cancels notification`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val task = Task(id = 7, title = "Finish report")
+        val viewModel = buildViewModel()
+
+        viewModel.onTaskCheckedChange(task, true)
+
+        coVerify(exactly = 1) { updateTaskUseCase(task.copy(isCompleted = true)) }
+        verify(exactly = 1) { notificationScheduler.cancel(7L) }
+    }
+
+    @Test
+    fun `onTaskCheckedChange with false marks task incomplete without cancelling notification`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val task = Task(id = 8, title = "Review PR", isCompleted = true)
+        val viewModel = buildViewModel()
+
+        viewModel.onTaskCheckedChange(task, false)
+
+        coVerify(exactly = 1) { updateTaskUseCase(task.copy(isCompleted = false)) }
+        verify(exactly = 0) { notificationScheduler.cancel(any()) }
+    }
+
+    @Test
+    fun `onTaskCheckedChange failure updates error in uiState`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        coEvery { updateTaskUseCase(any()) } throws RuntimeException("Update failed")
+        val task = Task(id = 9, title = "Crash task")
+        val viewModel = buildViewModel()
+
+        viewModel.onTaskCheckedChange(task, true)
+
+        assertEquals("Update failed", viewModel.uiState.value.error)
     }
 }
