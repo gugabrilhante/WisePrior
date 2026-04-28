@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.model.Priority
@@ -107,11 +108,11 @@ fun TaskEditorScreen(
                     datePickerState.selectedDateMillis?.let {
                         viewModel.onEvent(TaskEditorEvent.DueDateChanged(it))
                     } ?: viewModel.onEvent(TaskEditorEvent.HideDatePicker)
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.editor_ok)) }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.editor_cancel))
                 }
             }
         ) {
@@ -134,11 +135,11 @@ fun TaskEditorScreen(
                     viewModel.onEvent(
                         TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
                     )
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.editor_ok)) }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.HideTimePicker) }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.editor_cancel))
                 }
             },
             text = { TimePicker(state = timePickerState) }
@@ -149,15 +150,15 @@ fun TaskEditorScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(if (taskId != null) "Edit Reminder" else "New Reminder") },
+                title = { Text(if (taskId != null) stringResource(R.string.editor_title_edit) else stringResource(R.string.editor_title_new)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.editor_back))
                     }
                 },
                 actions = {
                     TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.Save) }) {
-                        Text("Done", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.editor_done), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             )
@@ -182,7 +183,7 @@ fun TaskEditorScreen(
                     OutlinedTextField(
                         value = uiState.title,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.TitleChanged(it)) },
-                        placeholder = { Text("Title") },
+                        placeholder = { Text(stringResource(R.string.editor_placeholder_title)) },
                         isError = uiState.titleError != null,
                         supportingText = uiState.titleError?.let { { Text(it) } },
                         modifier = Modifier.fillMaxWidth(),
@@ -196,7 +197,7 @@ fun TaskEditorScreen(
                     OutlinedTextField(
                         value = uiState.notes,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.NotesChanged(it)) },
-                        placeholder = { Text("Notes") },
+                        placeholder = { Text(stringResource(R.string.editor_placeholder_notes)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -208,7 +209,7 @@ fun TaskEditorScreen(
             }
 
             // ── Date & Time ───────────────────────────────────────────────
-            SectionHeader("Date & Time")
+            SectionHeader(stringResource(R.string.editor_section_datetime))
             Surface(
                 tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.medium,
@@ -218,7 +219,7 @@ fun TaskEditorScreen(
             ) {
                 Column {
                     ToggleRow(
-                        label = "Date",
+                        label = stringResource(R.string.editor_label_date),
                         checked = uiState.hasDate,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleDate) },
                         icon = Icons.Filled.CalendarMonth,
@@ -231,7 +232,7 @@ fun TaskEditorScreen(
                     if (uiState.hasDate) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         ToggleRow(
-                            label = "Time",
+                            label = stringResource(R.string.editor_label_time),
                             checked = uiState.hasTime,
                             onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleTime) },
                             icon = Icons.Filled.Schedule,
@@ -254,7 +255,7 @@ fun TaskEditorScreen(
 
             // ── Details ───────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader("Details")
+            SectionHeader(stringResource(R.string.editor_section_details))
             Surface(
                 tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.medium,
@@ -264,14 +265,14 @@ fun TaskEditorScreen(
             ) {
                 Column {
                     ToggleRow(
-                        label = "Urgent",
+                        label = stringResource(R.string.editor_label_urgent),
                         checked = uiState.isUrgent,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleUrgent) },
                         icon = Icons.Filled.Warning
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ToggleRow(
-                        label = "Flag",
+                        label = stringResource(R.string.editor_label_flag),
                         checked = uiState.isFlagged,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleFlagged) },
                         icon = Icons.Filled.Flag
@@ -281,7 +282,7 @@ fun TaskEditorScreen(
 
             // ── Priority ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader("Priority")
+            SectionHeader(stringResource(R.string.editor_section_priority))
             val priorities = Priority.entries
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
@@ -295,7 +296,12 @@ fun TaskEditorScreen(
                         shape = SegmentedButtonDefaults.itemShape(index, priorities.size),
                         label = {
                             Text(
-                                priority.name.lowercase().replaceFirstChar { it.uppercase() }
+                                when (priority) {
+                                    Priority.NONE -> stringResource(R.string.priority_none)
+                                    Priority.LOW -> stringResource(R.string.priority_low)
+                                    Priority.MEDIUM -> stringResource(R.string.priority_medium)
+                                    Priority.HIGH -> stringResource(R.string.priority_high)
+                                }
                             )
                         }
                     )
@@ -304,7 +310,7 @@ fun TaskEditorScreen(
 
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader("Tags")
+            SectionHeader(stringResource(R.string.editor_section_tags))
             if (uiState.availableTags.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -314,12 +320,12 @@ fun TaskEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = stringResource(com.gustavo.brilhante.taskeditor.R.string.no_tags_created),
+                        text = stringResource(R.string.no_tags_created),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = stringResource(com.gustavo.brilhante.taskeditor.R.string.create_tags_sidebar),
+                        text = stringResource(R.string.create_tags_sidebar),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -346,11 +352,11 @@ fun TaskEditorScreen(
 
             // ── URL ───────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader("URL")
+            SectionHeader(stringResource(R.string.editor_section_url))
             OutlinedTextField(
                 value = uiState.url,
                 onValueChange = { viewModel.onEvent(TaskEditorEvent.UrlChanged(it)) },
-                placeholder = { Text("https://") },
+                placeholder = { Text(stringResource(R.string.editor_placeholder_url)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -371,7 +377,7 @@ private fun RecurrenceSelector(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "Repeat",
+            text = stringResource(R.string.editor_recurrence_repeat),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -386,10 +392,10 @@ private fun RecurrenceSelector(
                     label = {
                         Text(
                             when (type) {
-                                RecurrenceType.NONE -> "None"
-                                RecurrenceType.DAILY -> "Daily"
-                                RecurrenceType.WEEKLY -> "Weekly"
-                                RecurrenceType.MONTHLY -> "Monthly"
+                                RecurrenceType.NONE -> stringResource(R.string.recurrence_none)
+                                RecurrenceType.DAILY -> stringResource(R.string.recurrence_daily)
+                                RecurrenceType.WEEKLY -> stringResource(R.string.recurrence_weekly)
+                                RecurrenceType.MONTHLY -> stringResource(R.string.recurrence_monthly)
                             },
                             style = MaterialTheme.typography.labelSmall
                         )

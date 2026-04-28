@@ -3,11 +3,13 @@ package com.gustavo.brilhante.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,12 +20,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +45,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -81,51 +81,61 @@ fun TaskCard(
     allTags: List<Tag> = emptyList(),
     formattedDueDate: String? = null,
 ) {
-    val taskTags = allTags.filter { task.tagIds.contains(it.id) }
+    val taskTags = remember(task.tagIds, allTags) {
+        allTags.filter { task.tagIds.contains(it.id) }
+    }
     val contentAlpha = if (task.isCompleted) 0.6f else 1f
     var isExpanded by remember { mutableStateOf(false) }
 
-    val hasPriority = task.priority != Priority.NONE
-    val animationSpec = remember { tween<IntSize>(300, easing = FastOutLinearInEasing) }
+    val hasPriority = remember(task.priority) { task.priority != Priority.NONE }
+    val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
     val checkboxDescription = if (task.isCompleted)
         stringResource(R.string.task_card_mark_incomplete)
     else
         stringResource(R.string.task_card_mark_complete)
 
-    // Animation states for translation
-    val verticalBias by animateFloatAsState(
-        targetValue = if (isExpanded) -1f else 1f,
-        animationSpec = tween(300, easing = FastOutLinearInEasing),
+    // Single transition drives all coordinated animations, reducing recompositions
+    val transition = updateTransition(targetState = isExpanded, label = "task_card_transition")
+
+    val verticalBias by transition.animateFloat(
+        transitionSpec = { tween(280, easing = FastOutSlowInEasing) },
         label = "verticalBias"
-    )
-    val titleTopPadding by animateDpAsState(
-        targetValue = if (hasPriority && isExpanded) 24.dp else 0.dp,
-        animationSpec = tween(if (isExpanded) 100 else 200, easing = FastOutLinearInEasing),
+    ) { expanded -> if (expanded) -1f else 1f }
+
+    val titleTopPadding by transition.animateDp(
+        transitionSpec = {
+            if (targetState) tween(150, delayMillis = 50, easing = FastOutSlowInEasing)
+            else tween(180, easing = FastOutLinearInEasing)
+        },
         label = "titleTopPadding"
-    )
-    val titleStartPadding by animateDpAsState(
-        targetValue = if (isExpanded || !hasPriority) 0.dp else 16.dp,
-        animationSpec = tween(if (isExpanded) 100 else 200, easing = FastOutLinearInEasing),
+    ) { expanded -> if (hasPriority && expanded) 24.dp else 0.dp }
+
+    val titleStartPadding by transition.animateDp(
+        transitionSpec = {
+            if (targetState) tween(150, delayMillis = 50, easing = FastOutSlowInEasing)
+            else tween(180, easing = FastOutLinearInEasing)
+        },
         label = "titleStartPadding"
-    )
-    val priorityAlpha by animateFloatAsState(
-        targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(if (isExpanded) 400 else 300, easing = FastOutLinearInEasing),
+    ) { expanded -> if (expanded || !hasPriority) 0.dp else 16.dp }
+
+    val priorityAlpha by transition.animateFloat(
+        transitionSpec = {
+            if (targetState) tween(220, delayMillis = 80, easing = FastOutLinearInEasing)
+            else tween(150, easing = FastOutLinearInEasing)
+        },
         label = "priorityAlpha"
-    )
+    ) { expanded -> if (expanded) 1f else 0f }
 
     ElevatedCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(animationSpec = animationSpec),
+            .animateContentSize(animationSpec = contentSizeAnimSpec),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .height(IntrinsicSize.Min) // Critical for BiasAlignment to work inside Box
+            modifier = Modifier.padding(end = 8.dp)
         ) {
             // LEFT: Checkbox
             Box(
@@ -142,14 +152,15 @@ fun TaskCard(
             }
 
             // CENTER & RIGHT: Main Content Area
+            // Box wraps its content; BiasAlignment positions the indicators Row
+            // relative to the Column height, achieving the translation effect
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
                     .padding(top = 12.dp, bottom = 8.dp)
-                    .fillMaxHeight()
             ) {
-                // Moving Indicators & Expand Button (Translates between top and bottom)
+                // Moving Indicators & Expand Button (translates between top and bottom)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,8 +168,6 @@ fun TaskCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-
-                    // Indicators with text fade
                     Spacer(Modifier.weight(1f))
 
                     if (task.isFlagged) {
@@ -166,7 +175,7 @@ fun TaskCard(
                             icon = Icons.Filled.Flag,
                             text = stringResource(R.string.task_card_flagged),
                             color = FlaggedColor,
-                            showText = isExpanded,
+                            transition = transition,
                         )
                     }
                     if (task.isUrgent) {
@@ -174,7 +183,7 @@ fun TaskCard(
                             icon = Icons.Filled.Warning,
                             text = stringResource(R.string.task_card_urgent),
                             color = UrgentColor,
-                            showText = isExpanded,
+                            transition = transition,
                         )
                     }
 
@@ -185,16 +194,8 @@ fun TaskCard(
                 }
 
                 // Main Stack: Title, Notes, Metadata
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    // TITLE LINE: (Priority badge if collapsed) + Title
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         if (hasPriority) {
                             PriorityIndicator(
                                 priority = task.priority,
@@ -218,12 +219,12 @@ fun TaskCard(
                     AnimatedVisibility(
                         visible = isExpanded && task.notes.isNotBlank(),
                         enter = expandVertically(
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            animationSpec = tween(50, easing = FastOutSlowInEasing)
                         ) + fadeIn(
                             animationSpec = tween(300, easing = LinearOutSlowInEasing)
                         ),
                         exit = shrinkVertically(
-                            animationSpec = tween(200, easing = FastOutLinearInEasing)
+                            animationSpec = tween(300, easing = FastOutLinearInEasing)
                         ) + fadeOut(
                             animationSpec = tween(150, easing = FastOutLinearInEasing)
                         )
@@ -238,15 +239,12 @@ fun TaskCard(
                         )
                     }
 
-
                     // METADATA ROW (Date + Tags)
-                    // Note: Indicators are now handled by the translating Row above
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Date
                         if (formattedDueDate != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -264,10 +262,9 @@ fun TaskCard(
                             }
                         }
 
-                        // Tags (if collapsed, show first 2)
                         if (!isExpanded && taskTags.isNotEmpty()) {
                             taskTags.take(2).forEach { tag ->
-                                TaskTagBadge(tag = tag)
+                                key(tag.id) { TaskTagBadge(tag = tag) }
                             }
                             if (taskTags.size > 2) {
                                 Text(
@@ -289,7 +286,7 @@ fun TaskCard(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             taskTags.forEach { tag ->
-                                TaskTagBadge(tag = tag)
+                                key(tag.id) { TaskTagBadge(tag = tag) }
                             }
                         }
                     }
@@ -355,40 +352,32 @@ private fun StatusIndicator(
     icon: ImageVector,
     text: String,
     color: Color,
-    showText: Boolean,
+    transition: Transition<Boolean>,
 ) {
-    val statusHorizontalBias by animateFloatAsState(
-        targetValue = if (showText) -1f else 1f,
-        animationSpec = tween(
-            durationMillis = if (showText) 300 else 200,
-            delayMillis = if (showText) 0 else 100,
-            easing = FastOutLinearInEasing
-        ),
+    val statusHorizontalBias by transition.animateFloat(
+        transitionSpec = {
+            if (targetState) tween(280, delayMillis = 0, easing = FastOutSlowInEasing)
+            else tween(200, delayMillis = 80, easing = FastOutLinearInEasing)
+        },
         label = "statusHorizontalBias"
-    )
-    val statusTextStartPadding by animateDpAsState(
-        targetValue = if (showText) 18.dp else 0.dp,
-        animationSpec = tween(
-            durationMillis = 100,
-            delayMillis = if (showText) 0 else 300,
-            easing = FastOutLinearInEasing
-        ),
+    ) { expanded -> if (expanded) -1f else 1f }
+    val statusTextStartPadding by transition.animateDp(
+        transitionSpec = {
+            if (targetState) tween(160, delayMillis = 120, easing = FastOutSlowInEasing)
+            else tween(100, delayMillis = 0, easing = FastOutLinearInEasing)
+        },
         label = "statusTextStartPadding"
-    )
-    val statusTextAlpha by animateFloatAsState(
-        targetValue = if (showText) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = if (showText) 300 else 100,
-            delayMillis = if (showText) 300 else 0,
-            easing = FastOutLinearInEasing
-        ),
+    ) { expanded -> if (expanded) 18.dp else 0.dp }
+    val statusTextAlpha by transition.animateFloat(
+        transitionSpec = {
+            if (targetState) tween(200, delayMillis = 150, easing = FastOutLinearInEasing)
+            else tween(100, delayMillis = 0, easing = FastOutLinearInEasing)
+        },
         label = "statusTextAlpha"
-    )
+    ) { expanded -> if (expanded) 1f else 0f }
+
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .wrapContentWidth()
-        ) {
+        Box(modifier = Modifier.wrapContentWidth()) {
             Icon(
                 imageVector = icon,
                 contentDescription = text,
