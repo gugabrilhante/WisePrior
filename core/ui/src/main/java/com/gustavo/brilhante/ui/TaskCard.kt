@@ -2,28 +2,32 @@ package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
@@ -48,13 +52,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.designsystem.theme.FlaggedColor
 import com.gustavo.brilhante.designsystem.theme.PriorityHigh
@@ -65,7 +71,7 @@ import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TaskCard(
     task: Task,
@@ -78,58 +84,50 @@ fun TaskCard(
     val taskTags = allTags.filter { task.tagIds.contains(it.id) }
     val contentAlpha = if (task.isCompleted) 0.6f else 1f
     var isExpanded by remember { mutableStateOf(false) }
-    val chevronVerticalBias by animateFloatAsState(
-        targetValue = if (isExpanded) -1f else 0.5f,
-        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
-        label = "chevronBias"
-    )
 
-    // Badge is a fixed 10dp circle — offsets derived from that size
-    val hasBadge = task.priority != Priority.NONE
-    val badgeVerticalBias by animateFloatAsState(
-        targetValue = if (isExpanded) -1f else 0f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "badgeBias"
+    val hasPriority = task.priority != Priority.NONE
+    val animationSpec = remember { tween<IntSize>(300, easing = FastOutLinearInEasing) }
+    val checkboxDescription = if (task.isCompleted)
+        stringResource(R.string.task_card_mark_incomplete)
+    else
+        stringResource(R.string.task_card_mark_complete)
+
+    // Animation states for translation
+    val verticalBias by animateFloatAsState(
+        targetValue = if (isExpanded) -1f else 1f,
+        animationSpec = tween(300, easing = FastOutLinearInEasing),
+        label = "verticalBias"
     )
-    // Collapsed: title indented to leave room for badge on the left (10dp + 6dp gap)
-    val titleStartPadding by animateDpAsState(
-        targetValue = if (hasBadge && !isExpanded) 16.dp else 0.dp,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "titleStart"
-    )
-    // Expanded: title pushed down below badge (10dp + 4dp gap)
     val titleTopPadding by animateDpAsState(
-        targetValue = if (hasBadge && isExpanded) 14.dp else 0.dp,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "titleTop"
+        targetValue = if (hasPriority && isExpanded) 24.dp else 0.dp,
+        animationSpec = tween(if (isExpanded) 100 else 200, easing = FastOutLinearInEasing),
+        label = "titleTopPadding"
     )
-    val priorityNameAlpha by animateFloatAsState(
+    val titleStartPadding by animateDpAsState(
+        targetValue = if (isExpanded || !hasPriority) 0.dp else 16.dp,
+        animationSpec = tween(if (isExpanded) 100 else 200, easing = FastOutLinearInEasing),
+        label = "titleStartPadding"
+    )
+    val priorityAlpha by animateFloatAsState(
         targetValue = if (isExpanded) 1f else 0f,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "priorityNameAlpha"
+        animationSpec = tween(if (isExpanded) 400 else 300, easing = FastOutLinearInEasing),
+        label = "priorityAlpha"
     )
 
     ElevatedCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = tween(
-                    durationMillis = 300,
-                    easing = LinearOutSlowInEasing
-                )
-            ),
+            .animateContentSize(animationSpec = animationSpec),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
-        // IntrinsicSize.Min lets the trailing box fill the row height
-        // so BiasAlignment can animate the chevron from bottom to top
         Row(
             verticalAlignment = Alignment.Top,
             modifier = Modifier
-                .padding(end = 4.dp)
-                .height(IntrinsicSize.Min)
+                .padding(end = 8.dp)
+                .height(IntrinsicSize.Min) // Critical for BiasAlignment to work inside Box
         ) {
-            // LEFT: Checkbox in fixed-size touch-target zone
+            // LEFT: Checkbox
             Box(
                 modifier = Modifier.size(48.dp),
                 contentAlignment = Alignment.Center
@@ -138,196 +136,276 @@ fun TaskCard(
                     checked = task.isCompleted,
                     onCheckedChange = onToggleComplete,
                     modifier = Modifier.semantics {
-                        contentDescription =
-                            if (task.isCompleted) "Marcar tarefa como incompleta" else "Marcar tarefa como completa"
+                        contentDescription = checkboxDescription
                     }
                 )
             }
 
-            // CENTER: Content with smooth expand/collapse animation
-            Column(
+            // CENTER & RIGHT: Main Content Area
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
-                    .padding(top = 12.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .fillMaxHeight()
             ) {
-                // Single PriorityBadge that translates: left-of-title (collapsed) → above-title (expanded)
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    if (hasBadge) {
-                        val priorityColor = when (task.priority) {
-                            Priority.LOW -> PriorityLow
-                            Priority.MEDIUM -> PriorityMedium
-                            Priority.HIGH -> PriorityHigh
-                            else -> PriorityLow
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.align(BiasAlignment(-1f, badgeVerticalBias))
-                        ) {
-                            PriorityBadge(priority = task.priority)
-                            Text(
-                                text = when (task.priority) {
-                                    Priority.LOW -> "Baixa"
-                                    Priority.MEDIUM -> "Média"
-                                    Priority.HIGH -> "Alta"
-                                    else -> ""
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = priorityColor,
-                                modifier = Modifier.alpha(priorityNameAlpha)
-                            )
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = titleStartPadding, top = titleTopPadding)
-                    ) {
-                        Text(
-                            text = task.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = if (isExpanded) 2 else 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.wrapContentWidth(Alignment.Start),
-                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                // Moving Indicators & Expand Button (Translates between top and bottom)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(BiasAlignment(1f, verticalBias)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    // Indicators with text fade
+                    Spacer(Modifier.weight(1f))
+
+                    if (task.isFlagged) {
+                        StatusIndicator(
+                            icon = Icons.Filled.Flag,
+                            text = stringResource(R.string.task_card_flagged),
+                            color = FlaggedColor,
+                            showText = isExpanded,
                         )
                     }
-                }
+                    if (task.isUrgent) {
+                        StatusIndicator(
+                            icon = Icons.Filled.Warning,
+                            text = stringResource(R.string.task_card_urgent),
+                            color = UrgentColor,
+                            showText = isExpanded,
+                        )
+                    }
 
-                // Notes — visible only when expanded
-                if (isExpanded && task.notes.isNotBlank()) {
-                    Text(
-                        text = task.notes,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(vertical = 2.dp)
+                    ExpandButton(
+                        isExpanded = isExpanded,
+                        onClick = { isExpanded = !isExpanded }
                     )
                 }
 
-                // Metadata: date + tags (collapsed → max 2 tags, expanded → all)
-                if (formattedDueDate != null || taskTags.isNotEmpty()) {
+                // Main Stack: Title, Notes, Metadata
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    // TITLE LINE: (Priority badge if collapsed) + Title
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        if (hasPriority) {
+                            PriorityIndicator(
+                                priority = task.priority,
+                                showText = isExpanded,
+                                textAlpha = priorityAlpha
+                            )
+                        }
+                        Text(
+                            text = task.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = if (isExpanded) 3 else 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = titleTopPadding, start = titleStartPadding)
+                        )
+                    }
+
+                    // NOTES
+                    AnimatedVisibility(
+                        visible = isExpanded && task.notes.isNotBlank(),
+                        enter = expandVertically(
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        ) + fadeIn(
+                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = tween(200, easing = FastOutLinearInEasing)
+                        ) + fadeOut(
+                            animationSpec = tween(150, easing = FastOutLinearInEasing)
+                        )
+                    ) {
+                        Text(
+                            text = task.notes,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
+
+
+                    // METADATA ROW (Date + Tags)
+                    // Note: Indicators are now handled by the translating Row above
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Date
                         if (formattedDueDate != null) {
-                            Icon(
-                                imageVector = Icons.Outlined.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = formattedDueDate,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Tags visibility handled by animateContentSize on the parent Column
-                        taskTags.forEachIndexed { index, tag ->
-                            if (isExpanded || index < 2) {
-                                TaskTagBadge(tag = tag)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Schedule,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = formattedDueDate,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
-                        if (!isExpanded && taskTags.size > 2) {
-                            Text(
-                                text = "+${taskTags.size - 2}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+
+                        // Tags (if collapsed, show first 2)
+                        if (!isExpanded && taskTags.isNotEmpty()) {
+                            taskTags.take(2).forEach { tag ->
+                                TaskTagBadge(tag = tag)
+                            }
+                            if (taskTags.size > 2) {
+                                Text(
+                                    text = "+${taskTags.size - 2}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // EXPANDED TAGS (FlowRow)
+                    if (isExpanded && taskTags.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            taskTags.forEach { tag ->
+                                TaskTagBadge(tag = tag)
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            // RIGHT: indicators + chevron animate vertically together
-            Box(
+@Composable
+private fun ExpandButton(
+    isExpanded: Boolean,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(24.dp)
+    ) {
+        Icon(
+            imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = if (isExpanded) stringResource(R.string.task_card_collapse) else stringResource(R.string.task_card_expand),
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun PriorityIndicator(
+    priority: Priority,
+    showText: Boolean,
+    textAlpha: Float
+) {
+    Row(
+        modifier = Modifier.padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PriorityBadge(priority = priority)
+        if (showText || textAlpha > 0f) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = when (priority) {
+                    Priority.LOW -> stringResource(R.string.priority_low)
+                    Priority.MEDIUM -> stringResource(R.string.priority_medium)
+                    Priority.HIGH -> stringResource(R.string.priority_high)
+                    else -> ""
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = when (priority) {
+                    Priority.LOW -> PriorityLow
+                    Priority.MEDIUM -> PriorityMedium
+                    Priority.HIGH -> PriorityHigh
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.alpha(textAlpha)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusIndicator(
+    icon: ImageVector,
+    text: String,
+    color: Color,
+    showText: Boolean,
+) {
+    val statusHorizontalBias by animateFloatAsState(
+        targetValue = if (showText) -1f else 1f,
+        animationSpec = tween(
+            durationMillis = if (showText) 300 else 200,
+            delayMillis = if (showText) 0 else 100,
+            easing = FastOutLinearInEasing
+        ),
+        label = "statusHorizontalBias"
+    )
+    val statusTextStartPadding by animateDpAsState(
+        targetValue = if (showText) 18.dp else 0.dp,
+        animationSpec = tween(
+            durationMillis = 100,
+            delayMillis = if (showText) 0 else 300,
+            easing = FastOutLinearInEasing
+        ),
+        label = "statusTextStartPadding"
+    )
+    val statusTextAlpha by animateFloatAsState(
+        targetValue = if (showText) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = if (showText) 300 else 100,
+            delayMillis = if (showText) 300 else 0,
+            easing = FastOutLinearInEasing
+        ),
+        label = "statusTextAlpha"
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .wrapContentWidth()
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = color,
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(vertical = 8.dp)
-                    .alpha(contentAlpha)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.align(BiasAlignment(1f, chevronVerticalBias))
-                ) {
-                    if (task.isUrgent || task.isFlagged) {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            if (task.isUrgent) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Warning,
-                                        contentDescription = "Urgente",
-                                        tint = UrgentColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    AnimatedVisibility(
-                                        visible = isExpanded,
-                                        enter = fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                                                expandHorizontally(tween(300, easing = FastOutSlowInEasing)),
-                                        exit = fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                                               shrinkHorizontally(tween(200, easing = FastOutSlowInEasing)),
-                                    ) {
-                                        Text(
-                                            text = "Urgente",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = UrgentColor,
-                                        )
-                                    }
-                                }
-                            }
-                            if (task.isFlagged) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Flag,
-                                        contentDescription = "Sinalizada",
-                                        tint = FlaggedColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    AnimatedVisibility(
-                                        visible = isExpanded,
-                                        enter = fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                                                expandHorizontally(tween(300, easing = FastOutSlowInEasing)),
-                                        exit = fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                                               shrinkHorizontally(tween(200, easing = FastOutSlowInEasing)),
-                                    ) {
-                                        Text(
-                                            text = "Sinalizada",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = FlaggedColor,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    IconButton(
-                        onClick = { isExpanded = !isExpanded },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                            contentDescription = if (isExpanded) "Recolher" else "Expandir",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                    .size(16.dp)
+                    .align(BiasAlignment(statusHorizontalBias, 0f))
+            )
+            if (statusTextAlpha > 0f) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = color,
+                    modifier = Modifier
+                        .alpha(statusTextAlpha)
+                        .padding(start = statusTextStartPadding)
+                )
             }
         }
     }

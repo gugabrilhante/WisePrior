@@ -221,7 +221,7 @@ private fun TaskListContent(
                                     .padding(vertical = 4.dp)
                                     .animateItem(
                                         placementSpec = tween(
-                                            durationMillis = 300,
+                                            durationMillis = 150,
                                             easing = FastOutLinearInEasing
                                         )
                                     )
