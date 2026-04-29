@@ -88,6 +88,10 @@ fun TaskCard(
     var isExpanded by remember { mutableStateOf(false) }
 
     val hasPriority = remember(task.priority) { task.priority != Priority.NONE }
+    val hasExpandableContent = remember(hasPriority, task.isFlagged, task.isUrgent, task.notes, taskTags) {
+        hasPriority || task.isFlagged || task.isUrgent || task.notes.isNotBlank() || taskTags.size > 2
+    }
+    if (!hasExpandableContent) isExpanded = false
     val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
     val checkboxDescription = if (task.isCompleted)
         stringResource(R.string.task_card_mark_incomplete)
@@ -128,14 +132,14 @@ fun TaskCard(
 
     ElevatedCard(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .animateContentSize(animationSpec = contentSizeAnimSpec),
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.padding(end = 8.dp)
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .animateContentSize(animationSpec = contentSizeAnimSpec)
         ) {
             // LEFT: Checkbox
             Box(
@@ -187,10 +191,12 @@ fun TaskCard(
                         )
                     }
 
-                    ExpandButton(
-                        isExpanded = isExpanded,
-                        onClick = { isExpanded = !isExpanded }
-                    )
+                    if (hasExpandableContent) {
+                        ExpandButton(
+                            isExpanded = isExpanded,
+                            onClick = { isExpanded = !isExpanded }
+                        )
+                    }
                 }
 
                 // Main Stack: Title, Notes, Metadata
@@ -263,12 +269,12 @@ fun TaskCard(
                         }
 
                         if (!isExpanded && taskTags.isNotEmpty()) {
-                            taskTags.take(2).forEach { tag ->
+                            taskTags.take(1).forEach { tag ->
                                 key(tag.id) { TaskTagBadge(tag = tag) }
                             }
-                            if (taskTags.size > 2) {
+                            if (taskTags.size > 1) {
                                 Text(
-                                    text = "+${taskTags.size - 2}",
+                                    text = "+${taskTags.size - 1}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
