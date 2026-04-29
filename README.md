@@ -1,5 +1,10 @@
 # WisePrior
 
+[![Build](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml)
+[![Unit Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml)
+[![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
+[![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
+
 A production-ready Android task manager app, built as a portfolio project to demonstrate modern Android architecture, multi-module design, and reliable background processing.
 
 ---
@@ -249,6 +254,192 @@ WisePrior/
 ├── gradle/
 │   └── libs.versions.toml      # Version catalog
 └── .agents/skills/             # Android Agent Skills (navigation-3, edge-to-edge, agp-9-upgrade)
+```
+
+---
+
+## Quality Engineering & Test Strategy
+
+WisePrior treats testing as a first-class concern, not an afterthought. The strategy is designed to give fast feedback during development, prevent regressions on every pull request, and build long-term confidence in the codebase — the same standards expected in production Android teams.
+
+---
+
+### 🏗️ Test Pyramid
+
+The project follows the classic **Test Pyramid** principle: favour many fast, isolated unit tests at the base; a smaller set of integration tests in the middle; and targeted UI tests at the top for critical user flows.
+
+```
+         ▲
+        /  \          UI / End-to-End
+       / UI \         (Espresso — critical flows)
+      /──────\
+     /        \       Integration
+    / Integrat.\      (Room in-memory, Repository + DataSource)
+   /────────────\
+  /              \    Unit tests
+ /   Unit Tests   \   (Use Cases, ViewModels, Repositories, Mappers)
+/──────────────────\
+```
+
+| Level | Speed | Confidence | Cost |
+|---|---|---|---|
+| Unit | ⚡ Milliseconds | Business logic & edge cases | Low — pure JVM, no device |
+| Integration | 🕐 Seconds | Data persistence & real SQL behaviour | Medium — requires emulator |
+| UI | 🕑 Minutes | End-to-end user flows | High — full app stack |
+
+**Why prioritise unit tests?** They run in milliseconds on the JVM without any Android framework, give immediate feedback on business rule regressions, and are trivial to run locally or in CI. Unit tests cover the vast majority of logic; integration and UI tests verify the seams between layers.
+
+---
+
+### 🧪 Unit Tests
+
+Unit tests target every layer of the Clean Architecture stack — use cases, repositories, mappers, and view models — using fakes and mocks to keep each test fully isolated.
+
+**What is covered**
+
+| Module | Classes under test |
+|---|---|
+| `core:domain` | All 9 use cases: `GetTasksUseCase`, `AddTaskUseCase`, `UpdateTaskUseCase`, `DeleteTaskUseCase`, `GetTaskByIdUseCase`, `GetTagsUseCase`, `AddTagUseCase`, `UpdateTagUseCase`, `DeleteTagUseCase` |
+| `core:data` | `TaskRepositoryImpl`, `TagRepositoryImpl`, `TaskMapper`, `TagMapper` |
+| `core:storage` | `Converters` (Room TypeConverter round-trips) |
+| `feature:tasklist` | `TaskListViewModel` — state emissions, deletion, error handling, all 6 collection filters, tag editor with MAX_TAGS enforcement |
+| `feature:taskeditor` | `TaskEditorViewModel` — task loading, all `TaskEditorEvent` types, save validation, date/time preservation, notification scheduling |
+
+**Tools**
+
+| Tool | Role |
+|---|---|
+| **JUnit 4** | Test runner and base assertions |
+| **MockK 1.13** | Kotlin-idiomatic mocking — `mockk(relaxed = true)`, slot capture, `coVerify` |
+| **Turbine 1.2** | `StateFlow` / `Flow` testing: `awaitItem()`, `cancelAndIgnoreRemainingEvents()` |
+| **kotlinx.coroutines.test** | `runTest`, `UnconfinedTestDispatcher`, `Dispatchers.setMain/resetMain` |
+
+**Naming convention** — every test name is self-documenting using the `given / when / then` format:
+
+```kotlin
+@Test
+fun `given active ByTag collection, when that tag deleted, then selection falls back to All`()
+
+@Test
+fun `given tag count at maximum, when saveTag called for new tag, then error is set and tag is not added`()
+```
+
+**Key scenarios**
+
+- All collection filters (All, Today, Scheduled, Flagged, Completed, ByTag) verified in isolation
+- `CollectionCounts` always totals the unfiltered list, even when a collection is active
+- Tag limit of 5 enforced — error message set, use case never called
+- `ToggleDate` off cascades: clears `hasTime` and resets `recurrenceType` to `NONE`
+- Save trims whitespace from title, notes, and URL before persisting
+- `TitleChanged` clears `titleError`; blank title on Save sets it
+
+---
+
+### 🔗 Integration Tests
+
+Integration tests wire real collaborators together against an **in-memory Room database**, removing all mocks from the persistence layer. They validate the full data flow — from the repository interface down to SQLite — and catch issues that unit tests cannot: schema mismatches, TypeConverter errors, DAO query bugs, and reactive Flow behaviour.
+
+**What is validated**
+
+| Test class | Stack exercised |
+|---|---|
+| `TaskDaoIntegrationTest` | `TaskDao` ↔ Room in-memory SQLite — insert, query, update, delete, ordering by `createdAt DESC`, Flow reactivity after insert |
+| `TaskRepositoryIntegrationTest` | `TaskRepositoryImpl → TaskDataSource → TaskDao → SQLite` — full domain model round-trip, `getTasks` Flow, `getTaskById`, update, delete |
+
+**Why in-memory database?**
+Each test gets a fresh `Room.inMemoryDatabaseBuilder` instance that is closed in `@After`. There is no shared state between tests, no leftover rows, and no need to clean up — tests are deterministic and can run in any order.
+
+```kotlin
+@Before
+fun setup() {
+    database = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext(),
+        AppDatabase::class.java
+    ).allowMainThreadQueries().build()
+}
+```
+
+**Key scenarios**
+
+- Domain model survives `toEntity() → toModel()` without field loss for all `Priority` and `RecurrenceType` variants
+- `getAllTasks` Flow emits a new list immediately after an insert within the same observation (reactive SQLite)
+- `getTaskById` returns `null` for unknown IDs — no crash, no exception
+- `deleteTask` followed by `getTasks` yields an empty list
+
+---
+
+### 📱 UI / End-to-End Tests *(planned)*
+
+Espresso UI tests are planned to cover the critical happy paths that no unit or integration test can fully validate — real user gestures, IME behaviour, and screen transitions.
+
+**Target flows**
+
+- Create a task → verify it appears in the list
+- Swipe-to-delete a task → verify it is removed
+- Open task editor → fill all fields → save → verify persistence
+- Toggle task completion → verify notification cancellation
+
+These tests will run as part of the `connectedDebugAndroidTest` Gradle task and will be gated in CI the same way as unit tests.
+
+---
+
+### ⚙️ CI/CD Integration
+
+Every pull request triggers the full test suite automatically via the CI pipeline. No code reaches `main` without passing:
+
+1. **Unit tests** (`./gradlew testDebugUnitTest`) — run on every commit, sub-minute feedback
+2. **Integration tests** (`./gradlew connectedDebugAndroidTest`) — run on PRs against an emulator
+
+This fast-feedback loop means regressions are caught at the source — in the PR — before they ever reach the main branch or a release build.
+
+---
+
+### 📊 Code Coverage
+
+Coverage is measured with **JaCoCo** to track which lines and branches are exercised by the test suite. Coverage is treated as a tool for finding gaps, not a target to game — a 100% number with trivial tests is worth less than 70% coverage of genuinely complex business logic.
+
+| Module | Approximate coverage |
+|---|---|
+| `core:domain` (use cases) | ~95% |
+| `core:data` (repositories + mappers) | ~90% |
+| `core:storage` (converters) | ~100% |
+| `feature:tasklist` (ViewModel) | ~85% |
+| `feature:taskeditor` (ViewModel) | ~90% |
+
+> Coverage percentages are approximate and reflect the current unit + integration test suite. UI test coverage will increase these figures once Espresso tests are added.
+
+Generate a coverage report locally:
+```bash
+./gradlew testDebugUnitTest jacocoTestReport
+# Report: build/reports/jacoco/jacocoTestReport/html/index.html
+```
+
+---
+
+### 💡 Engineering Mindset
+
+Good tests are not just about catching bugs today — they are documentation, a safety net for refactoring, and a forcing function for better design. Every test class in WisePrior was written with three goals in mind:
+
+- **Isolation**: each test owns its dependencies and fails for one reason only
+- **Readability**: a failing test name tells you exactly what broke and why, without reading the implementation
+- **Maintainability**: fakes and relaxed mocks are preferred over brittle over-specification, so tests survive internal refactors
+
+As the feature set grows, the same patterns extend naturally: new use cases get new test classes, new ViewModel state gets new `given/when/then` cases, and new DAO queries get new in-memory integration tests. Quality engineering scales with the codebase, not against it.
+
+---
+
+### Running the tests
+
+```bash
+# All unit tests across all modules
+./gradlew testDebugUnitTest
+
+# Integration tests (connected device or emulator required)
+./gradlew connectedDebugAndroidTest
+
+# Single module
+./gradlew :feature:tasklist:testDebugUnitTest
+./gradlew :core:storage:connectedDebugAndroidTest
 ```
 
 ---

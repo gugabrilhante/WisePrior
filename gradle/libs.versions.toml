@@ -21,6 +21,7 @@ hilt-work = "1.2.0"
 mockk = "1.13.12"
 turbine = "1.2.0"
 kotlinx-coroutines = "1.9.0"
+androidx-test-runner = "1.6.2"
 
 [libraries]
 # AndroidX Core
@@ -81,6 +82,8 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidx-test-runner" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

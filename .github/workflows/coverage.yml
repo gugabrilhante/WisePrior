@@ -1,6 +1,8 @@
-name: Unit Tests
+name: Code Coverage
 
 on:
+  push:
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -9,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run unit tests
+  coverage:
+    name: Generate coverage report
     runs-on: ubuntu-latest
 
     steps:
@@ -29,13 +31,20 @@ jobs:
       - name: Remove local JDK path from gradle.properties
         run: sed -i '/org.gradle.java.home/d' gradle.properties
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Run unit tests with coverage
+        run: ./gradlew testDebugUnitTest jacocoFullReport --stacktrace
 
-      - name: Upload test reports
+      - name: Upload coverage XML to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: build/reports/jacoco/jacocoFullReport/jacocoFullReport.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload HTML coverage report as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-reports
-          path: '**/build/reports/tests/'
-          retention-days: 7
+          name: coverage-report-html
+          path: build/reports/jacoco/jacocoFullReport/html/
+          retention-days: 14
