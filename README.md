@@ -6,9 +6,9 @@ A production-ready Android task manager app, built as a portfolio project to dem
 
 ## Demo
 
-| <img src="docs/wise_prior_demo_01.gif" width="30%"> |  <img src="docs/wise_prior_demo_01.gif" width="30%"> | <img src="docs/wise_prior_demo_03.gif" width="30%"> |
-| <img src="docs/wise_prior_demo_04.gif" width="30%"> |  <img src="docs/wise_prior_demo_05.gif" width="30%"> | <img src="docs/wise_prior_demo_06.gif" width="30%"> |
-| <img src="docs/wise_prior_demo_07.gif" width="30%"> |  <img src="docs/wise_prior_demo_08.gif" width="30%"> | <img src="docs/wise_prior_demo_09.gif" width="30%"> |
+<img src="docs/wise_prior_demo_01.gif" width="33%" alt="Demo 01">  <img src="docs/wise_prior_demo_02.gif" width="33%" alt="Demo 02"> <img src="docs/wise_prior_demo_03.gif" width="33%" alt="Demo 03">
+<img src="docs/wise_prior_demo_04.gif" width="33%" alt="Demo 04">  <img src="docs/wise_prior_demo_05.gif" width="33%" alt="Demo 05"> <img src="docs/wise_prior_demo_06.gif" width="33%" alt="Demo 06">
+<img src="docs/wise_prior_demo_07.gif" width="33%" alt="Demo 07">  <img src="docs/wise_prior_demo_08.gif" width="33%" alt="Demo 08"> <img src="docs/wise_prior_demo_09.gif" width="33%" alt="Demo 09">
 
 ---
 
