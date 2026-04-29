@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -49,7 +50,7 @@ fun TagChip(
             {
                 Icon(
                     imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.tag_selected_description),
                     modifier = Modifier.size(14.dp),
                 )
             }

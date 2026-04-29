@@ -311,7 +311,7 @@ fun TaskEditorScreen(
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_tags))
-            if (uiState.availableTags.isEmpty()) {
+            if (uiState.availableTags.isEmpty() && uiState.selectedTagIds.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

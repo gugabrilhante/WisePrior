@@ -8,4 +8,5 @@
     <string name="priority_low">Baixa prioridade</string>
     <string name="priority_medium">Média prioridade</string>
     <string name="priority_high">Alta prioridade</string>
+    <string name="tag_selected_description">Selecionada</string>
 </resources>
