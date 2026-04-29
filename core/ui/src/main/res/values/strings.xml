@@ -1,0 +1,12 @@
+<resources>
+    <string name="task_card_mark_complete">Mark task as complete</string>
+    <string name="task_card_mark_incomplete">Mark task as incomplete</string>
+    <string name="task_card_flagged">Flagged</string>
+    <string name="task_card_urgent">Urgent</string>
+    <string name="task_card_expand">Expand</string>
+    <string name="task_card_collapse">Collapse</string>
+    <string name="priority_low">Low priority</string>
+    <string name="priority_medium">Medium priority</string>
+    <string name="priority_high">High priority</string>
+    <string name="tag_selected_description">Selected</string>
+</resources>

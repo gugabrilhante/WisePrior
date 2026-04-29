@@ -14,8 +14,9 @@ fun TaskEntity.toModel() = Task(
     hasTime = hasTime,
     isUrgent = isUrgent,
     priority = runCatching { Priority.valueOf(priority) }.getOrDefault(Priority.NONE),
-    tags = tags,
+    tagIds = tagIds,
     isFlagged = isFlagged,
+    isCompleted = isCompleted,
     recurrenceType = runCatching { RecurrenceType.valueOf(recurrenceType) }.getOrDefault(RecurrenceType.NONE),
     createdAt = createdAt
 )
@@ -29,8 +30,9 @@ fun Task.toEntity() = TaskEntity(
     hasTime = hasTime,
     isUrgent = isUrgent,
     priority = priority.name,
-    tags = tags,
+    tagIds = tagIds,
     isFlagged = isFlagged,
+    isCompleted = isCompleted,
     recurrenceType = recurrenceType.name,
     createdAt = createdAt
 )

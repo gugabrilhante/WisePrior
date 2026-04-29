@@ -1,0 +1,37 @@
+<resources>
+    <string name="no_tags_created">No tags created yet</string>
+    <string name="create_tags_sidebar">Create tags in the sidebar</string>
+
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Cancel</string>
+    <string name="editor_title_new">New Reminder</string>
+    <string name="editor_title_edit">Edit Reminder</string>
+    <string name="editor_back">Back</string>
+    <string name="editor_done">Done</string>
+
+    <string name="editor_placeholder_title">Title</string>
+    <string name="editor_placeholder_notes">Notes</string>
+    <string name="editor_placeholder_url">https://</string>
+
+    <string name="editor_section_datetime">Date &amp; Time</string>
+    <string name="editor_section_details">Details</string>
+    <string name="editor_section_priority">Priority</string>
+    <string name="editor_section_tags">Tags</string>
+    <string name="editor_section_url">URL</string>
+
+    <string name="editor_label_date">Date</string>
+    <string name="editor_label_time">Time</string>
+    <string name="editor_label_urgent">Urgent</string>
+    <string name="editor_label_flag">Flag</string>
+
+    <string name="editor_recurrence_repeat">Repeat</string>
+    <string name="recurrence_none">None</string>
+    <string name="recurrence_daily">Daily</string>
+    <string name="recurrence_weekly">Weekly</string>
+    <string name="recurrence_monthly">Monthly</string>
+
+    <string name="priority_none">None</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+</resources>

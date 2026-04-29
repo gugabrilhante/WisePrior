@@ -1,0 +1,37 @@
+<resources>
+    <string name="no_tags_created">Nenhuma tag criada</string>
+    <string name="create_tags_sidebar">Crie tags na barra lateral</string>
+
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Cancelar</string>
+    <string name="editor_title_new">Novo Lembrete</string>
+    <string name="editor_title_edit">Editar Lembrete</string>
+    <string name="editor_back">Voltar</string>
+    <string name="editor_done">Concluir</string>
+
+    <string name="editor_placeholder_title">Título</string>
+    <string name="editor_placeholder_notes">Notas</string>
+    <string name="editor_placeholder_url">https://</string>
+
+    <string name="editor_section_datetime">Data e Hora</string>
+    <string name="editor_section_details">Detalhes</string>
+    <string name="editor_section_priority">Prioridade</string>
+    <string name="editor_section_tags">Tags</string>
+    <string name="editor_section_url">URL</string>
+
+    <string name="editor_label_date">Data</string>
+    <string name="editor_label_time">Hora</string>
+    <string name="editor_label_urgent">Urgente</string>
+    <string name="editor_label_flag">Sinalizar</string>
+
+    <string name="editor_recurrence_repeat">Repetir</string>
+    <string name="recurrence_none">Nunca</string>
+    <string name="recurrence_daily">Diariamente</string>
+    <string name="recurrence_weekly">Semanalmente</string>
+    <string name="recurrence_monthly">Mensalmente</string>
+
+    <string name="priority_none">Nenhuma</string>
+    <string name="priority_low">Baixa</string>
+    <string name="priority_medium">Média</string>
+    <string name="priority_high">Alta</string>
+</resources>

@@ -1,0 +1,47 @@
+<resources>
+    <string name="tag_name_label">Tag Name</string>
+    <string name="color_label">Color</string>
+    <string name="save_button">Save</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="delete_button">Delete</string>
+    <string name="edit_tag_title">Edit Tag</string>
+    <string name="new_tag_title">New Tag</string>
+
+    <string name="sidebar_today">Today</string>
+    <string name="sidebar_scheduled">Scheduled</string>
+    <string name="sidebar_all">All</string>
+    <string name="sidebar_flagged">Flagged</string>
+    <string name="sidebar_completed">Completed</string>
+    <string name="app_name_sidebar">WisePrior</string>
+    <string name="sidebar_tags_header">Tags</string>
+    <string name="edit_tag_description">Edit tag</string>
+    <string name="add_tag_label">New Tag</string>
+
+    <string name="empty_tasks_title">No reminders</string>
+    <string name="empty_tasks_subtitle">Tap + to add your first reminder</string>
+    <string name="menu_button_description">Open menu</string>
+    <string name="add_task_button_description">Add reminder</string>
+    <string name="delete_swipe_action">Delete</string>
+
+    <string name="collection_all">All</string>
+    <string name="collection_today">Today</string>
+    <string name="collection_scheduled">Scheduled</string>
+    <string name="collection_flagged">Flagged</string>
+    <string name="collection_completed">Completed</string>
+    <string name="collection_tag_fallback">Tag</string>
+
+    <plurals name="tag_limit_message">
+        <item quantity="one">Limit of %d tag reached</item>
+        <item quantity="other">Limit of %d tags reached</item>
+    </plurals>
+
+    <string name="color_name_red">Red</string>
+    <string name="color_name_orange">Orange</string>
+    <string name="color_name_yellow">Yellow</string>
+    <string name="color_name_green">Green</string>
+    <string name="color_name_blue">Blue</string>
+    <string name="color_name_purple">Purple</string>
+    <string name="color_name_pink">Pink</string>
+    <string name="color_name_gray">Gray</string>
+    <string name="color_name_format">Color %s</string>
+</resources>

@@ -13,8 +13,9 @@ data class TaskEntity(
     val hasTime: Boolean = false,
     val isUrgent: Boolean = false,
     val priority: String = "NONE",
-    val tags: List<String> = emptyList(),
+    val tagIds: List<Long> = emptyList(),
     val isFlagged: Boolean = false,
+    val isCompleted: Boolean = false,
     val recurrenceType: String = "NONE",
     val createdAt: Long = System.currentTimeMillis()
 )

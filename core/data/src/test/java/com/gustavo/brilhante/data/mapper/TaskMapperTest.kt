@@ -18,8 +18,9 @@ class TaskMapperTest {
         hasTime = true,
         isUrgent = true,
         priority = "HIGH",
-        tags = listOf("shopping", "food"),
+        tagIds = listOf(101L, 102L),
         isFlagged = true,
+        isCompleted = true,
         recurrenceType = "WEEKLY",
         createdAt = 1_699_000_000_000L
     )
@@ -33,8 +34,9 @@ class TaskMapperTest {
         hasTime = true,
         isUrgent = true,
         priority = Priority.HIGH,
-        tags = listOf("shopping", "food"),
+        tagIds = listOf(101L, 102L),
         isFlagged = true,
+        isCompleted = true,
         recurrenceType = RecurrenceType.WEEKLY,
         createdAt = 1_699_000_000_000L
     )
@@ -44,6 +46,8 @@ class TaskMapperTest {
         val model = sampleEntity.toModel()
 
         assertEquals(sampleTask, model)
+        assertEquals(sampleEntity.tagIds, model.tagIds)
+        assertEquals(sampleEntity.isCompleted, model.isCompleted)
     }
 
     @Test
@@ -51,6 +55,8 @@ class TaskMapperTest {
         val entity = sampleTask.toEntity()
 
         assertEquals(sampleEntity, entity)
+        assertEquals(sampleTask.tagIds, entity.tagIds)
+        assertEquals(sampleTask.isCompleted, entity.isCompleted)
     }
 
     @Test
