@@ -1,9 +1,11 @@
 package com.gustavo.brilhante.wiseprior.e2e
 
+import android.Manifest
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -12,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.test.rule.GrantPermissionRule
 import com.gustavo.brilhante.wiseprior.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -34,6 +37,11 @@ class CreateAndCompleteTaskE2ETest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.POST_NOTIFICATIONS
+    )
+
+    @get:Rule(order = 2)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     private lateinit var addReminderCd: String
@@ -68,12 +76,11 @@ class CreateAndCompleteTaskE2ETest {
      * Step 1: App opens → empty state is shown.
      * Step 2: Tap FAB → task editor opens for a new task.
      * Step 3: Enter title "Buy coffee" → tap Done → task appears in list.
-     * Step 4: Tap the task card → task editor opens in edit mode.
+     * Step 4: Tap the task card → task editor opens in edit mode with title pre-filled.
      * Step 5: Change title to "Buy coffee and milk" and set priority to High → tap Done.
      * Step 6: Updated title appears in list.
      * Step 7: Tap the checkbox → task is marked complete.
-     * Step 8: Empty-state is gone; task still shows (completed tasks remain in the list
-     *         unless filtered to the Completed collection).
+     * Step 8: Checkbox switches to the "mark incomplete" content description.
      */
     @Test
     fun fullTaskLifecycle_createEditComplete() {
@@ -81,6 +88,8 @@ class CreateAndCompleteTaskE2ETest {
         val updatedTitle = "Buy coffee and milk"
 
         // ── Step 1: App launches with empty state ─────────────────────────────
+        // isLoading starts as true; wait for Room's first emission to clear it.
+        waitUntilDisplayed(emptyStateTitle)
         composeTestRule.onNodeWithText(emptyStateTitle).assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription(addReminderCd).assertIsDisplayed()
 
@@ -92,15 +101,17 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput(originalTitle)
         composeTestRule.onNodeWithText(doneLabel).performClick()
 
-        // Task list shows the new task; empty state node is gone from the tree
+        // Wait for Room insert + Flow re-emit to reach the list.
+        waitUntilDisplayed(originalTitle)
         composeTestRule.onNodeWithText(originalTitle).assertIsDisplayed()
-        // Empty state text should no longer be in the UI tree
         composeTestRule.onAllNodes(hasText(emptyStateTitle)).assertCountEquals(0)
 
         // ── Step 4: Open the task in edit mode ───────────────────────────────
         composeTestRule.onNodeWithText(originalTitle).performClick()
         composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
-        composeTestRule.onNodeWithText(originalTitle).assertIsDisplayed()
+        // loadTask() is async; wait for the title field to be populated.
+        waitUntilTextFieldHasText(originalTitle)
+        composeTestRule.onNode(hasText(originalTitle).and(hasSetTextAction())).assertIsDisplayed()
 
         // ── Step 5: Change title and set priority ────────────────────────────
         composeTestRule.onAllNodes(hasSetTextAction())[0].performTextClearance()
@@ -109,6 +120,7 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.onNodeWithText(doneLabel).performClick()
 
         // ── Step 6: Updated title is visible; original title is gone ─────────
+        waitUntilDisplayed(updatedTitle)
         composeTestRule.onNodeWithText(updatedTitle).assertIsDisplayed()
         composeTestRule.onAllNodes(hasText(originalTitle)).assertCountEquals(0)
 
@@ -116,7 +128,8 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.onNodeWithContentDescription(markCompleteCd).assertIsOff()
         composeTestRule.onNodeWithContentDescription(markCompleteCd).performClick()
 
-        // ── Step 8: Task is now marked complete ───────────────────────────────
+        // ── Step 8: Wait for Room update + re-emit; checkbox is now "incomplete" ──
+        waitUntilCdExists(markIncompleteCd)
         composeTestRule.onNodeWithContentDescription(markIncompleteCd).assertIsOn()
     }
 
@@ -129,10 +142,8 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
         composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
 
-        // Attempt to save without entering a title
         composeTestRule.onNodeWithText(doneLabel).performClick()
 
-        // Editor is still displayed — navigation did not happen
         composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
     }
 
@@ -145,8 +156,38 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput("Unsaved task")
         composeTestRule.onNodeWithContentDescription(backCd).performClick()
 
-        // Back in the list — empty state because nothing was saved
+        // Back in the list — wait for the empty state to be visible.
+        waitUntilDisplayed(emptyStateTitle)
         composeTestRule.onNodeWithText(emptyStateTitle).assertIsDisplayed()
         composeTestRule.onAllNodes(hasText("Unsaved task")).assertCountEquals(0)
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Waits until at least one node with the given text exists in the semantic tree. */
+    private fun waitUntilDisplayed(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * Waits until a text-input field (hasSetTextAction) containing the given text exists.
+     * More specific than [waitUntilDisplayed] — ignores non-editable Text nodes such as
+     * task-card titles that may linger in the back-stack composition.
+     */
+    private fun waitUntilTextFieldHasText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasText(text).and(hasSetTextAction()))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /** Waits until at least one node with the given content description exists. */
+    private fun waitUntilCdExists(contentDesc: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasContentDescription(contentDesc))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }

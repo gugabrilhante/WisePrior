@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.wiseprior.ui
 
+import android.Manifest
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -9,8 +10,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.test.rule.GrantPermissionRule
 import com.gustavo.brilhante.wiseprior.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -29,6 +30,11 @@ class TaskEditorScreenTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.POST_NOTIFICATIONS
+    )
+
+    @get:Rule(order = 2)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     private lateinit var addReminderCd: String
@@ -59,7 +65,11 @@ class TaskEditorScreenTest {
             sectionDatetime = getString(com.gustavo.brilhante.taskeditor.R.string.editor_section_datetime)
             flagLabel = getString(com.gustavo.brilhante.taskeditor.R.string.editor_label_flag)
         }
-        // Navigate to editor before each test
+        // Navigate to editor before each test.
+        // Wait for list to load first to avoid hierarchy issues
+        val emptyTitle = composeTestRule.activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
+        waitUntilDisplayed(emptyTitle)
+
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
         composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
     }
@@ -76,7 +86,8 @@ class TaskEditorScreenTest {
 
     @Test
     fun dateTimeSection_isVisible() {
-        composeTestRule.onNodeWithText(sectionDatetime).assertIsDisplayed()
+        // SectionHeader calls .uppercase() on the title
+        composeTestRule.onNodeWithText(sectionDatetime.uppercase()).assertIsDisplayed()
     }
 
     @Test
@@ -100,9 +111,9 @@ class TaskEditorScreenTest {
 
     @Test
     fun savingWithBlankTitle_showsValidationError() {
-        // Do not enter a title — just tap Done
+        // Do not enter a title — just tap Done.
         composeTestRule.onNodeWithText(doneLabel).performClick()
-        // The editor remains open (navigation did not occur)
+        // The editor remains open (navigation did not occur).
         composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
     }
 
@@ -113,6 +124,8 @@ class TaskEditorScreenTest {
         )
         composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput("Walk the dog")
         composeTestRule.onNodeWithText(doneLabel).performClick()
+        // Wait for Room insert + Flow re-emit to reach the list.
+        waitUntilDisplayed("Walk the dog")
         composeTestRule.onAllNodes(hasText(emptyTitle)).assertCountEquals(0)
         composeTestRule.onNodeWithText("Walk the dog").assertIsDisplayed()
     }
@@ -120,32 +133,49 @@ class TaskEditorScreenTest {
     @Test
     fun existingTask_loadsTitleInEditorForEditing() {
         val taskTitle = "Existing task"
-        val emptyTitle = composeTestRule.activity.getString(
-            com.gustavo.brilhante.tasklist.R.string.empty_tasks_title
-        )
-        val markCompleteCd = composeTestRule.activity.getString(
-            com.gustavo.brilhante.ui.R.string.task_card_mark_complete
-        )
 
-        // Create the task
+        // Create the task from the editor that setUp() opened.
         composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput(taskTitle)
         composeTestRule.onNodeWithText(doneLabel).performClick()
 
-        // Wait for the list to show, then tap the card to re-open editor
+        // Wait for the task to appear in the list after the Room insert.
+        waitUntilDisplayed(taskTitle)
         composeTestRule.onNodeWithText(taskTitle).assertIsDisplayed()
-        composeTestRule.onNodeWithText(taskTitle).performClick()
 
-        // Should open in edit mode and pre-fill title
+        // Tap the card to open the editor in edit mode.
+        composeTestRule.onNodeWithText(taskTitle).performClick()
         composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
-        composeTestRule.onNodeWithText(taskTitle).assertIsDisplayed()
+
+        // loadTask() is async; wait for the title field to be populated.
+        waitUntilTextFieldHasText(taskTitle)
+        composeTestRule.onNode(hasText(taskTitle).and(hasSetTextAction())).assertIsDisplayed()
     }
 
     @Test
     fun flagToggle_changesState() {
         composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
-        // Scroll to the details section and toggle the Flag row
         composeTestRule.onNodeWithText(flagLabel).performClick()
-        // After toggling, the row should still be visible (switch changed state internally)
         composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** Waits until at least one node with the given text exists in the semantic tree. */
+    private fun waitUntilDisplayed(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * Waits until a text-input field containing the given text exists.
+     * Uses [hasSetTextAction] to distinguish the editor's OutlinedTextField from
+     * plain Text composables (e.g. task-card titles in the back-stack composition).
+     */
+    private fun waitUntilTextFieldHasText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasText(text).and(hasSetTextAction()))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }
