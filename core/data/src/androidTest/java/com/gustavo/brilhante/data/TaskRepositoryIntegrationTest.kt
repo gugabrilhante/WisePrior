@@ -79,7 +79,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → getTasks ────────────────────────────────────────────────────────
 
     @Test
-    fun `given new task, when addTask then getTasks observed, then task appears in flow`() = runTest {
+    fun givenNewTask_whenAddTaskThenGetTasksObserved_thenTaskAppearsInFlow() = runTest {
         repository.addTask(buildTask(title = "Buy groceries"))
 
         repository.getTasks().test {
@@ -91,7 +91,7 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    fun `given multiple tasks added, when getTasks observed, then all tasks appear ordered by createdAt desc`() = runTest {
+    fun givenMultipleTasksAdded_whenGetTasksObserved_thenAllTasksAppearOrderedByCreatedAtDesc() = runTest {
         repository.addTask(buildTask(title = "Task A", createdAt = 1_000L))
         repository.addTask(buildTask(title = "Task B", createdAt = 2_000L))
         repository.addTask(buildTask(title = "Task C", createdAt = 3_000L))
@@ -109,7 +109,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → getTaskById ─────────────────────────────────────────────────────
 
     @Test
-    fun `given added task, when getTaskById called with its id, then returns task matching original`() = runTest {
+    fun givenAddedTask_whenGetTaskByIdCalledWithItsId_thenReturnsTaskMatchingOriginal() = runTest {
         val inserted = addAndGet(buildTask(title = "Read book"))
 
         val retrieved = repository.getTaskById(inserted.id)
@@ -120,14 +120,14 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    fun `given empty repository, when getTaskById called, then returns null`() = runTest {
+    fun givenEmptyRepository_whenGetTaskByIdCalled_thenReturnsNull() = runTest {
         assertNull(repository.getTaskById(999L))
     }
 
     // ── add → update → getTasks ───────────────────────────────────────────────
 
     @Test
-    fun `given added task, when updateTask then getTasks observed, then flow reflects updated fields`() = runTest {
+    fun givenAddedTask_whenUpdateTaskThenGetTasksObserved_thenFlowReflectsUpdatedFields() = runTest {
         val inserted = addAndGet(buildTask(title = "Original title"))
         val updated = inserted.copy(title = "Updated title", priority = Priority.HIGH)
 
@@ -145,7 +145,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → delete → getTasks ───────────────────────────────────────────────
 
     @Test
-    fun `given added task, when deleteTask then getTasks observed, then flow is empty`() = runTest {
+    fun givenAddedTask_whenDeleteTaskThenGetTasksObserved_thenFlowIsEmpty() = runTest {
         val inserted = addAndGet(buildTask(title = "To delete"))
 
         repository.deleteTask(inserted)
@@ -159,7 +159,7 @@ class TaskRepositoryIntegrationTest {
     // ── domain model round-trip ───────────────────────────────────────────────
 
     @Test
-    fun `given task with all fields, when add then retrieve, then all domain fields survive the round-trip`() = runTest {
+    fun givenTaskWithAllFields_whenAddThenRetrieve_thenAllDomainFieldsSurviveTheRoundTrip() = runTest {
         val original = buildTask(title = "Full task").copy(
             notes = "My notes",
             isUrgent = true,

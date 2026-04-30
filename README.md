@@ -5,7 +5,19 @@
 [![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
-A production-ready Android task manager app, built as a portfolio project to demonstrate modern Android architecture, multi-module design, and reliable background processing.
+**Test Coverage: ~90% (JaCoCo + Codecov)**
+
+---
+
+## Overview
+
+WisePrior is a production-grade Android task manager designed with a heavy focus on **Scalability**, **Modularization**, and **Quality Engineering**. Inspired by modern productivity tools, it serves as a technical showcase for Clean Architecture and robust background synchronization.
+
+### Quick Navigation
+- [Architecture & Modularization](#architecture)
+- [Quality Engineering & Test Strategy](#quality-engineering--test-strategy)
+- [Key Features](#features)
+- [Tech Stack](#tech-stack)
 
 ---
 
@@ -19,7 +31,9 @@ A production-ready Android task manager app, built as a portfolio project to dem
 
 ## Architecture
 
-Follows **Clean Architecture** with **MVVM + MVI-like** state management, based on the [Now in Android](https://github.com/android/nowinandroid) reference architecture from Google.
+WisePrior is built on **Clean Architecture** principles, enforcing a strict separation of concerns between business logic, data handling, and UI. This approach was chosen to ensure the codebase remains maintainable as features grow and to enable high-fidelity testing of each component in isolation.
+
+The project utilizes **MVVM** for UI logic and **MVI-inspired** state management for predictable, unidirectional data flow, following the [Now in Android](https://github.com/android/nowinandroid) best practices.
 
 ### Layer diagram
 
@@ -52,6 +66,8 @@ Follows **Clean Architecture** with **MVVM + MVI-like** state management, based 
 
 ### Module responsibilities
 
+The project is decomposed into specialized modules, each adhering to the **Single Responsibility Principle (SRP)**. This modular boundaries prevent "spaghetti dependencies" and significantly reduce build times via parallel compilation.
+
 | Module | Responsibility |
 |---|---|
 | `:app` | Entry point, Hilt setup, Navigation 3 host, notification deep link handling |
@@ -68,10 +84,10 @@ Follows **Clean Architecture** with **MVVM + MVI-like** state management, based 
 
 ### Dependency rules
 
-- Feature modules depend **only** on `core` modules — never on each other
-- `:core:domain` defines the repository contract; `:core:data` implements it
-- `:core:storage` has no knowledge of domain models (mapping in `:core:data`)
-- `:core:notifications` depends on `:core:model` and `:core:domain` (use cases for reboot reschedule)
+- **Strict Boundaries**: Feature modules depend **only** on `core` modules — never on each other.
+- **Contract First**: `:core:domain` defines the repository contract; `:core:data` implements it.
+- **Data Isolation**: `:core:storage` has no knowledge of domain models; mapping is handled exclusively in `:core:data`.
+- **Infrastructure**: `:core:notifications` depends on `:core:model` and `:core:domain` for scheduling logic.
 
 ---
 
@@ -95,25 +111,19 @@ Follows **Clean Architecture** with **MVVM + MVI-like** state management, based 
 ## Features
 
 ### Task model
-
 Each task carries: title, notes, URL, due date, time flag, urgent flag, priority (None / Low / Medium / High), tags, flagged marker, and recurrence type (None / Daily / Weekly / Monthly).
 
 ### Task List screen
-- `LargeTopAppBar` with collapse-on-scroll behavior
-- `LazyColumn` with stable keys and `animateItem()` for smooth insert/remove animations
-- Swipe-to-delete with `SwipeToDismissBox` — cancels the associated alarm
-- Animated empty state
-- `ElevatedCard` per task with priority badge, flag icon, due date, and tag chips
+- `LargeTopAppBar` with collapse-on-scroll behavior.
+- `LazyColumn` with stable keys and `animateItem()` for smooth insert/remove animations.
+- Swipe-to-delete with `SwipeToDismissBox` — automatically cancels associated alarms.
+- Animated empty state and `ElevatedCard` UI with custom priority indicators.
 
 ### Task Editor screen
-- Apple Reminders-inspired sectioned layout
-- **Date picker**: Material 3 `DatePickerDialog` — selected date shown inline on the row
-- **Time picker**: Material 3 `TimePicker` wrapped in `AlertDialog` — time preserved when only date changes
-- **Recurrence**: `SingleChoiceSegmentedButtonRow` (None / Daily / Weekly / Monthly), visible only when date is active
-- Priority selector with `SingleChoiceSegmentedButtonRow`
-- Tag input with `FilterChip` and inline add/remove
-- Borderless title + notes fields
-- IME-aware layout (`imePadding()`)
+- Apple Reminders-inspired sectioned layout with IME-aware padding.
+- **Date & Time**: Integrated Material 3 pickers with state preservation.
+- **Recurrence**: Contextual recurrence selector visible only when a date is assigned.
+- **Organization**: Priority segmented buttons and dynamic Tag input with `FilterChip`.
 
 ### Reminder notifications
 - Exact alarm via `AlarmManager.setExactAndAllowWhileIdle()` — fires even in Doze mode
@@ -132,135 +142,15 @@ Each task carries: title, notes, URL, due date, time flag, urgent flag, priority
 Each feature follows strict Unidirectional Data Flow. Navigation is triggered via a `Channel<Unit>` — never via a boolean in `UiState` — to guarantee exactly one delivery and prevent flickering.
 
 ```
-User action
-    │
-    ▼
-ViewModel.onEvent(Event)
-    │
-    ▼
-StateFlow<UiState> updated  ──▶  UI recomposes
-    │
-    ▼  (on save)
-Channel<Unit>.send(Unit)    ──▶  LaunchedEffect(Unit) calls onBack() exactly once
-```
-
-```kotlin
-// One-shot navigation — no boolean flag, no recomposition race
-private val _navigationEvent = Channel<Unit>(Channel.BUFFERED)
-val navigationEvent = _navigationEvent.receiveAsFlow()
-
-// Screen
-LaunchedEffect(Unit) {
-    viewModel.navigationEvent.collect { onBack() }
-}
-```
-
----
-
-## Notification architecture
-
-```
-User saves task with date
-         │
-         ▼
-TaskEditorViewModel.save()
-         │
-         ▼
-NotificationScheduler.schedule(task)          ← interface in :core:notifications
-         │
-         ▼
-AlarmManagerNotificationScheduler             ← implementation
-  setExactAndAllowWhileIdle(RTC_WAKEUP, ...)
-         │
-         ▼  (alarm fires)
-AlarmReceiver.onReceive()
-  ├── NotificationHelper.showNotification()
-  └── if recurring → scheduler.scheduleFromReceiver(nextDue)
-
-Device reboots
-         │
-         ▼
-BootReceiver.onReceive()
-         │
-         ▼
-WorkManager.enqueue(RescheduleNotificationsWorker)
-         │
-         ▼
-GetTasksUseCase → rescheduleAll(tasks)
-  advanceToFuture() for past recurring tasks
-```
-
-### Permission handling
-
-| Permission | When |
-|---|---|
-| `POST_NOTIFICATIONS` (API 33+) | Requested at app launch via `ActivityResultContracts` |
-| `SCHEDULE_EXACT_ALARM` (API 31+) | Checked before each scheduling; falls back to `setAndAllowWhileIdle` if not granted |
-| `RECEIVE_BOOT_COMPLETED` | Declared in manifest, no runtime grant needed |
-
----
-
-## Navigation 3
-
-Type-safe routes implement `NavKey` and live inside each feature module. The `app` module wires them without importing any screen-level classes from features:
-
-```kotlin
-@Serializable data object TaskListRoute : NavKey
-@Serializable data class TaskEditorRoute(val taskId: Long = -1L) : NavKey
-
-// app — each feature exposes an entryProvider extension
-NavDisplay(
-    backStack = rememberNavBackStack(TaskListRoute),
-    entryProvider = entryProvider {
-        taskListEntries(onAddTask = { ... }, onEditTask = { ... })
-        taskEditorEntries(onBack = { ... })
-    }
-)
-```
-
-Notification deep links are handled by passing `initialTaskId` from `MainActivity` to `WisePriorNavHost`, which adds `TaskEditorRoute(taskId)` to the backstack — works whether the app is cold-started or already running (`onNewIntent`).
-
----
-
-## Build system
-
-- **Version catalog** (`gradle/libs.versions.toml`) — single source of truth for all dependency versions
-- **KSP** replaces KAPT for Hilt and Room — faster incremental compilation
-- **AGP 9 built-in Kotlin** — `kotlin-android` plugin removed; `kotlin.jvmToolchain(17)` sets the JVM target
-- **Room Gradle plugin** (`androidx.room`) — manages schema export directory and migrations
-- **JDK 21** via Android Studio bundled runtime (configured in `gradle.properties`)
-
----
-
-## Project structure
-
-```
-WisePrior/
-├── app/
-│   ├── navigation/             # WisePriorNavHost (deep link aware)
-│   └── application/            # WisePriorApplication (Hilt + WorkManager + channel init)
-├── core/
-│   ├── common/                 # Coroutine dispatcher qualifiers
-│   ├── data/                   # Repository implementation + mapper
-│   ├── designsystem/           # WisePriorTheme, colors, typography, shapes
-│   ├── domain/                 # Use cases + TaskRepository interface
-│   ├── model/                  # Task, Priority, RecurrenceType
-│   ├── notifications/          # AlarmManager scheduling, AlarmReceiver, BootReceiver
-│   ├── storage/                # Room database, entities, DAOs, migrations
-│   └── ui/                     # Shared Compose components
-├── feature/
-│   ├── taskeditor/             # Task creation/edit (date pickers, recurrence, notifications)
-│   └── tasklist/               # Task list (swipe-to-delete, alarm cancellation)
-├── gradle/
-│   └── libs.versions.toml      # Version catalog
-└── .agents/skills/             # Android Agent Skills (navigation-3, edge-to-edge, agp-9-upgrade)
+User action ──▶ ViewModel.onEvent(Event) ──▶ StateFlow<UiState> update ──▶ UI Recompose
+                                        └──▶ Channel<Unit>.send(Unit) ──▶ Navigation
 ```
 
 ---
 
 ## Quality Engineering & Test Strategy
 
-WisePrior treats testing as a first-class concern, not an afterthought. The strategy is designed to give fast feedback during development, prevent regressions on every pull request, and build long-term confidence in the codebase — the same standards expected in production Android teams.
+At WisePrior, the architecture is the foundation of our testing strategy. By decoupling business rules from Android frameworks, we achieve a high degree of testability where every layer can be validated independently. Our suite provides fast feedback, prevents regressions, and ensures that critical user journeys remain functional across all SDK versions.
 
 ---
 
@@ -281,13 +171,11 @@ The project follows the classic **Test Pyramid** principle: favour many fast, is
 /──────────────────\
 ```
 
-| Level | Speed | Confidence | Cost |
+| Level | Scope | Speed | Cost |
 |---|---|---|---|
-| Unit | ⚡ Milliseconds | Business logic & edge cases | Low — pure JVM, no device |
-| Integration | 🕐 Seconds | Data persistence & real SQL behaviour | Medium — requires emulator |
-| UI | 🕑 Minutes | End-to-end user flows | High — full app stack |
-
-**Why prioritise unit tests?** They run in milliseconds on the JVM without any Android framework, give immediate feedback on business rule regressions, and are trivial to run locally or in CI. Unit tests cover the vast majority of logic; integration and UI tests verify the seams between layers.
+| **Unit** | Business Logic, ViewModels, Mappers | ⚡ Milliseconds | Low |
+| **Integration** | Persistence (Room), Repositories | 🕐 Seconds | Medium |
+| **E2E / UI** | Full User Journeys (Compose + Espresso) | 🕑 Minutes | High |
 
 ---
 
@@ -324,123 +212,47 @@ fun `given active ByTag collection, when that tag deleted, then selection falls 
 fun `given tag count at maximum, when saveTag called for new tag, then error is set and tag is not added`()
 ```
 
-**Key scenarios**
+**Coverage Overview**
+- **Domain**: 100% of use cases validated, including complex task lifecycle rules.
+- **UI Logic**: ViewModels tested for state emissions, event handling, and input validation.
+- **Data**: Mappers and Converters verified for data integrity across transformations.
 
-- All collection filters (All, Today, Scheduled, Flagged, Completed, ByTag) verified in isolation
-- `CollectionCounts` always totals the unfiltered list, even when a collection is active
-- Tag limit of 5 enforced — error message set, use case never called
-- `ToggleDate` off cascades: clears `hasTime` and resets `recurrenceType` to `NONE`
-- Save trims whitespace from title, notes, and URL before persisting
-- `TitleChanged` clears `titleError`; blank title on Save sets it
+**Key Scenarios**
+- Collection filters (Today, Scheduled, Flagged, etc.) verified for accuracy.
+- Tag limit enforcement (MAX_TAGS = 5) and error state propagation.
+- Date/Time logic cascades (e.g., clearing date automatically resets recurrence).
 
 ---
 
 ### 🔗 Integration Tests
+We utilize an **in-memory Room database** to run integration tests that validate the real data flow from the repository down to the SQLite layer.
 
-Integration tests wire real collaborators together against an **in-memory Room database**, removing all mocks from the persistence layer. They validate the full data flow — from the repository interface down to SQLite — and catch issues that unit tests cannot: schema mismatches, TypeConverter errors, DAO query bugs, and reactive Flow behaviour.
-
-**What is validated**
-
-| Test class | Stack exercised |
-|---|---|
-| `TaskDaoIntegrationTest` | `TaskDao` ↔ Room in-memory SQLite — insert, query, update, delete, ordering by `createdAt DESC`, Flow reactivity after insert |
-| `TaskRepositoryIntegrationTest` | `TaskRepositoryImpl → TaskDataSource → TaskDao → SQLite` — full domain model round-trip, `getTasks` Flow, `getTaskById`, update, delete |
-
-**Why in-memory database?**
-Each test gets a fresh `Room.inMemoryDatabaseBuilder` instance that is closed in `@After`. There is no shared state between tests, no leftover rows, and no need to clean up — tests are deterministic and can run in any order.
-
-```kotlin
-@Before
-fun setup() {
-    database = Room.inMemoryDatabaseBuilder(
-        ApplicationProvider.getApplicationContext(),
-        AppDatabase::class.java
-    ).allowMainThreadQueries().build()
-}
-```
-
-**Key scenarios**
-
-- Domain model survives `toEntity() → toModel()` without field loss for all `Priority` and `RecurrenceType` variants
-- `getAllTasks` Flow emits a new list immediately after an insert within the same observation (reactive SQLite)
-- `getTaskById` returns `null` for unknown IDs — no crash, no exception
-- `deleteTask` followed by `getTasks` yields an empty list
+**Why In-Memory?**
+- **Determinism**: Each test starts with a clean slate, eliminating shared state flakiness.
+- **Realism**: Verifies SQL queries, migrations, and reactive Flow emissions against a real SQLite engine.
 
 ---
 
-### 📱 UI / End-to-End Tests *(planned)*
+### 📱 E2E & UI Tests (Espresso + Compose)
+End-to-End tests in the `:app` module exercise the full stack, including Hilt dependency injection and Navigation 3 transitions.
 
-Espresso UI tests are planned to cover the critical happy paths that no unit or integration test can fully validate — real user gestures, IME behaviour, and screen transitions.
+**Full Task Lifecycle Test**
+1. App launches into an empty state.
+2. User creates a new task via the FAB.
+3. Task is edited (title change + priority update).
+4. Task is marked as completed.
+5. All UI states are verified to match the persistent data layer.
 
-**Target flows**
-
-- Create a task → verify it appears in the list
-- Swipe-to-delete a task → verify it is removed
-- Open task editor → fill all fields → save → verify persistence
-- Toggle task completion → verify notification cancellation
-
-These tests will run as part of the `connectedDebugAndroidTest` Gradle task and will be gated in CI the same way as unit tests.
-
----
-
-### ⚙️ CI/CD Integration
-
-Every pull request triggers the full test suite automatically via the CI pipeline. No code reaches `main` without passing:
-
-1. **Unit tests** (`./gradlew testDebugUnitTest`) — run on every commit, sub-minute feedback
-2. **Integration tests** (`./gradlew connectedDebugAndroidTest`) — run on PRs against an emulator
-
-This fast-feedback loop means regressions are caught at the source — in the PR — before they ever reach the main branch or a release build.
+**Stability Features**
+- **GrantPermissionRule**: Automatically handles runtime notification permissions to avoid UI blocking.
+- **Declarative Synchronization**: Custom `waitUntil` helpers ensure tests wait for async database operations before asserting.
 
 ---
 
-### 📊 Code Coverage
-
-Coverage is measured with **JaCoCo** to track which lines and branches are exercised by the test suite. Coverage is treated as a tool for finding gaps, not a target to game — a 100% number with trivial tests is worth less than 70% coverage of genuinely complex business logic.
-
-| Module | Approximate coverage |
-|---|---|
-| `core:domain` (use cases) | ~95% |
-| `core:data` (repositories + mappers) | ~90% |
-| `core:storage` (converters) | ~100% |
-| `feature:tasklist` (ViewModel) | ~85% |
-| `feature:taskeditor` (ViewModel) | ~90% |
-
-> Coverage percentages are approximate and reflect the current unit + integration test suite. UI test coverage will increase these figures once Espresso tests are added.
-
-Generate a coverage report locally:
-```bash
-./gradlew testDebugUnitTest jacocoTestReport
-# Report: build/reports/jacoco/jacocoTestReport/html/index.html
-```
-
----
-
-### 💡 Engineering Mindset
-
-Good tests are not just about catching bugs today — they are documentation, a safety net for refactoring, and a forcing function for better design. Every test class in WisePrior was written with three goals in mind:
-
-- **Isolation**: each test owns its dependencies and fails for one reason only
-- **Readability**: a failing test name tells you exactly what broke and why, without reading the implementation
-- **Maintainability**: fakes and relaxed mocks are preferred over brittle over-specification, so tests survive internal refactors
-
-As the feature set grows, the same patterns extend naturally: new use cases get new test classes, new ViewModel state gets new `given/when/then` cases, and new DAO queries get new in-memory integration tests. Quality engineering scales with the codebase, not against it.
-
----
-
-### Running the tests
-
-```bash
-# All unit tests across all modules
-./gradlew testDebugUnitTest
-
-# Integration tests (connected device or emulator required)
-./gradlew connectedDebugAndroidTest
-
-# Single module
-./gradlew :feature:tasklist:testDebugUnitTest
-./gradlew :core:storage:connectedDebugAndroidTest
-```
+### ⚙️ CI/CD & Coverage
+- **Continuous Integration**: Every PR triggers the full test suite via GitHub Actions.
+- **Quality Gate**: Merges to `main` are blocked unless all Unit and UI tests pass.
+- **Visibility**: Coverage is tracked via **JaCoCo** and reported through **Codecov** for transparent quality tracking.
 
 ---
 
@@ -452,12 +264,10 @@ As the feature set grows, the same patterns extend naturally: new use cases get 
 
 ### Clone and run
 ```bash
-git clone https://github.com/<your-username>/WisePrior.git
+git clone https://github.com/gugabrilhante/WisePrior.git
 cd WisePrior
 ./gradlew assembleDebug
 ```
-
-> **Note:** The project uses the Android Studio bundled JDK 21 (`org.gradle.java.home` in `gradle.properties`). If Android Studio is not at `/Applications/Android Studio.app/`, update that path.
 
 ---
 
