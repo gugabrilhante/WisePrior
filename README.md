@@ -256,6 +256,63 @@ End-to-End tests in the `:app` module exercise the full stack, including Hilt de
 
 ---
 
+## CI/CD & Build Infrastructure
+
+WisePrior ships with a multi-layer CI/CD setup designed for consistency across local, cloud, and enterprise environments.
+
+### GitHub Actions (primary CI)
+
+Every pull request triggers four parallel workflows:
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| **Build** | PR → master | `assembleDebug` — verifies the project compiles cleanly |
+| **Unit Tests** | PR → master | `testDebugUnitTest` — runs all JVM tests across every module |
+| **UI Tests** | PR → master | `connectedDebugAndroidTest` on an API 34 emulator |
+| **Coverage** | PR → master | `jacocoFullReport` → Codecov upload |
+
+Merges to `master` are blocked until all four workflows are green.
+
+### Jenkins (enterprise / portable CI)
+
+A `Jenkinsfile` is included at the repository root for teams that run on-premises or in air-gapped environments. It implements the same five-stage pipeline using declarative syntax:
+
+```
+Checkout → Build → Unit Tests → UI Tests → Code Coverage
+```
+
+The UI Tests stage manages the full emulator lifecycle (create AVD → boot → disable animations → run → kill) so Jenkins agents with Android SDK installed can run the full suite without manual setup.
+
+### Docker / BuildKit (reproducible builds)
+
+A `Dockerfile` at the repository root provides a hermetically sealed build environment:
+
+- **Base**: `eclipse-temurin:21-jdk-jammy` — matches the JDK used in CI
+- **Android SDK**: command-line tools + `platforms;android-36` + `build-tools;36.0.0` installed at image build time
+- **Layer caching**: build scripts are copied before source files so the dependency-download layer survives source-only changes
+- **BuildKit cache mounts** (`--mount=type=cache`): the Gradle home is persisted across image rebuilds via a named volume, making incremental rebuilds significantly faster
+
+```bash
+# Build the image (BuildKit enabled by default on Docker 23+)
+docker build -t wiseprior-builder .
+
+# Run with a persistent Gradle cache for fast incremental rebuilds
+docker run --rm -v wiseprior-gradle:/root/.gradle wiseprior-builder
+```
+
+Note: UI / instrumented tests require a connected device or KVM-enabled host and are excluded from the Docker image. Use GitHub Actions or the Jenkins pipeline for end-to-end test execution.
+
+### Why this matters
+
+| Concern | Solution |
+|---|---|
+| **Consistency** | Every engineer and every CI agent builds from the same SDK version and JDK — no more "works on my machine" |
+| **Scalability** | GitHub Actions handles cloud PR builds; Jenkins handles long-running nightly or release pipelines on dedicated hardware |
+| **Isolation** | Docker eliminates host-level SDK version drift and ensures that build outputs are reproducible given the same source input |
+| **Portability** | Teams migrating from GitHub to GitLab, Bitbucket, or an on-premises solution can adopt the Jenkinsfile or Dockerfile without rewriting CI logic |
+
+---
+
 ## Getting started
 
 ### Requirements

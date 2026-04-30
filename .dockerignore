@@ -1,0 +1,45 @@
+# ── Version control ───────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+**/build/
+**/out/
+
+# ── Local Gradle caches ───────────────────────────────────────────────────────
+# The container manages its own Gradle home via a BuildKit cache mount.
+.gradle/
+**/.gradle/
+
+# ── IDE & OS files ────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Android local configuration ───────────────────────────────────────────────
+# local.properties contains the SDK path for local development; the container
+# uses ANDROID_HOME instead.
+local.properties
+
+# ── CI/CD infrastructure files ────────────────────────────────────────────────
+# These are not needed at build time and keeping them out reduces context size.
+Dockerfile
+.dockerignore
+Jenkinsfile
+.github/
+
+# ── Documentation & assets ────────────────────────────────────────────────────
+docs/
+*.md
+*.gif
+*.png
+*.jpg
+
+# ── Test reports & coverage ───────────────────────────────────────────────────
+# Generated during CI; not needed as build inputs.
+**/reports/
+**/test-results/
