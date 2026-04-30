@@ -123,10 +123,12 @@ class TaskSidebarTest {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun openDrawerIfClosed() {
-        // If 'Open menu' button is visible, it means the drawer is closed (portrait mode).
-        val menuButton = composeTestRule.onNodeWithContentDescription(menuButtonCd)
-        if (menuButton.isDisplayed()) {
-            menuButton.performClick()
+        // In portrait mode, the Drawer starts closed and the Menu button is visible.
+        // In landscape (expanded width), PermanentNavigationDrawer is used and there is NO Menu button.
+        val menuButtonNodes = composeTestRule.onAllNodes(hasContentDescription(menuButtonCd))
+        
+        if (menuButtonNodes.fetchSemanticsNodes().isNotEmpty()) {
+            menuButtonNodes[0].performClick()
             // Wait for drawer to open animation
             composeTestRule.waitForIdle()
         }

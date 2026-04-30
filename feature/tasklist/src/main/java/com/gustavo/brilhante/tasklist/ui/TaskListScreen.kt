@@ -2,8 +2,6 @@ package com.gustavo.brilhante.tasklist.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -109,7 +107,8 @@ fun TaskListScreen(
                 onAddTask = onAddTask,
                 onEditTask = onEditTask,
                 onDeleteTask = viewModel::deleteTask,
-                onToggleComplete = viewModel::onTaskCheckedChange
+                onToggleComplete = viewModel::onTaskCheckedChange,
+                onToggleExpanded = viewModel::toggleExpanded
             )
         }
     } else {
@@ -125,7 +124,8 @@ fun TaskListScreen(
                 onAddTask = onAddTask,
                 onEditTask = onEditTask,
                 onDeleteTask = viewModel::deleteTask,
-                onToggleComplete = viewModel::onTaskCheckedChange
+                onToggleComplete = viewModel::onTaskCheckedChange,
+                onToggleExpanded = viewModel::toggleExpanded
             )
         }
     }
@@ -154,6 +154,7 @@ private fun TaskListContent(
     onEditTask: (Task) -> Unit,
     onDeleteTask: (Task) -> Unit,
     onToggleComplete: (Task, Boolean) -> Unit,
+    onToggleExpanded: (Long) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -217,6 +218,8 @@ private fun TaskListContent(
                                 formattedDueDate = uiState.formattedDueDates[task.id],
                                 onClick = { onEditTask(task) },
                                 onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
+                                isExpanded = task.id in uiState.expandedTaskIds,
+                                onToggleExpanded = { onToggleExpanded(task.id) },
                                 modifier = Modifier
                                     .padding(vertical = 4.dp)
                                     .animateItem(

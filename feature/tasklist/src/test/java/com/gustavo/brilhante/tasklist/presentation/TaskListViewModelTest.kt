@@ -41,7 +41,7 @@ class TaskListViewModelTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
+    private val dateFormatter: DateFormatter = com.gustavo.brilhante.common.DateFormatterImpl()
 
     private val testDispatcher = UnconfinedTestDispatcher()
 

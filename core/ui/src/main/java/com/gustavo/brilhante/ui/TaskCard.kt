@@ -46,9 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -80,18 +78,25 @@ fun TaskCard(
     modifier: Modifier = Modifier,
     allTags: List<Tag> = emptyList(),
     formattedDueDate: String? = null,
+    // Expansion state is hoisted to the ViewModel so it survives config changes
+    // and is not reset when the item is recycled in a LazyColumn.
+    isExpanded: Boolean = false,
+    onToggleExpanded: () -> Unit = {},
 ) {
     val taskTags = remember(task.tagIds, allTags) {
         allTags.filter { task.tagIds.contains(it.id) }
     }
     val contentAlpha = if (task.isCompleted) 0.6f else 1f
-    var isExpanded by remember { mutableStateOf(false) }
 
     val hasPriority = remember(task.priority) { task.priority != Priority.NONE }
     val hasExpandableContent = remember(hasPriority, task.isFlagged, task.isUrgent, task.notes, taskTags) {
         hasPriority || task.isFlagged || task.isUrgent || task.notes.isNotBlank() || taskTags.size > 2
     }
-    if (!hasExpandableContent) isExpanded = false
+
+    // Guard: treat as collapsed when the card has nothing to expand, even if the
+    // ViewModel still holds an "expanded" entry for this id (e.g. content was removed).
+    val effectiveExpanded = isExpanded && hasExpandableContent
+
     val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
     val checkboxDescription = if (task.isCompleted)
         stringResource(R.string.task_card_mark_incomplete)
@@ -99,7 +104,7 @@ fun TaskCard(
         stringResource(R.string.task_card_mark_complete)
 
     // Single transition drives all coordinated animations, reducing recompositions
-    val transition = updateTransition(targetState = isExpanded, label = "task_card_transition")
+    val transition = updateTransition(targetState = effectiveExpanded, label = "task_card_transition")
 
     val verticalBias by transition.animateFloat(
         transitionSpec = { tween(280, easing = FastOutSlowInEasing) },
@@ -156,15 +161,13 @@ fun TaskCard(
             }
 
             // CENTER & RIGHT: Main Content Area
-            // Box wraps its content; BiasAlignment positions the indicators Row
-            // relative to the Column height, achieving the translation effect
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(contentAlpha)
                     .padding(top = 12.dp, bottom = 8.dp)
             ) {
-                // Moving Indicators & Expand Button (translates between top and bottom)
+                // Moving Indicators & Expand Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -193,8 +196,8 @@ fun TaskCard(
 
                     if (hasExpandableContent) {
                         ExpandButton(
-                            isExpanded = isExpanded,
-                            onClick = { isExpanded = !isExpanded }
+                            isExpanded = effectiveExpanded,
+                            onClick = onToggleExpanded
                         )
                     }
                 }
@@ -205,14 +208,14 @@ fun TaskCard(
                         if (hasPriority) {
                             PriorityIndicator(
                                 priority = task.priority,
-                                showText = isExpanded,
+                                showText = effectiveExpanded,
                                 textAlpha = priorityAlpha
                             )
                         }
                         Text(
                             text = task.title,
                             style = MaterialTheme.typography.titleMedium,
-                            maxLines = if (isExpanded) 3 else 1,
+                            maxLines = if (effectiveExpanded) 3 else 1,
                             overflow = TextOverflow.Ellipsis,
                             textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
                             modifier = Modifier
@@ -223,7 +226,7 @@ fun TaskCard(
 
                     // NOTES
                     AnimatedVisibility(
-                        visible = isExpanded && task.notes.isNotBlank(),
+                        visible = effectiveExpanded && task.notes.isNotBlank(),
                         enter = expandVertically(
                             animationSpec = tween(50, easing = FastOutSlowInEasing)
                         ) + fadeIn(
@@ -268,7 +271,7 @@ fun TaskCard(
                             }
                         }
 
-                        if (!isExpanded && taskTags.isNotEmpty()) {
+                        if (!effectiveExpanded && taskTags.isNotEmpty()) {
                             taskTags.take(1).forEach { tag ->
                                 key(tag.id) { TaskTagBadge(tag = tag) }
                             }
@@ -283,7 +286,7 @@ fun TaskCard(
                     }
 
                     // EXPANDED TAGS (FlowRow)
-                    if (isExpanded && taskTags.isNotEmpty()) {
+                    if (effectiveExpanded && taskTags.isNotEmpty()) {
                         FlowRow(
                             modifier = Modifier
                                 .fillMaxWidth()

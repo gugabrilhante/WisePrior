@@ -38,7 +38,6 @@ class TaskEditorViewModelTest {
     private val getTaskByIdUseCase: GetTaskByIdUseCase = mockk()
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private var originalTimeZone: TimeZone? = null
@@ -50,12 +49,14 @@ class TaskEditorViewModelTest {
         originalTimeZone = TimeZone.getDefault()
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         Dispatchers.setMain(testDispatcher)
+        
+        // Use a real DateFormatterImpl to ensure date manipulation logic is tested
+        val realFormatter = com.gustavo.brilhante.common.DateFormatterImpl()
+        
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { dateFormatter.formatDate(any()) } returns "Mon, Jan 1, 2024"
-        every { dateFormatter.formatTime(any()) } returns "10:00"
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, dateFormatter
+            getTagsUseCase, notificationScheduler, realFormatter
         )
     }
 

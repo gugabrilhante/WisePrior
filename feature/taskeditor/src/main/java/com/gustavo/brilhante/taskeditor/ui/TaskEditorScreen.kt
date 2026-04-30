@@ -42,7 +42,6 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,8 +57,6 @@ import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
 import com.gustavo.brilhante.ui.TagChip
 import com.gustavo.brilhante.ui.ToggleRow
-import java.util.Calendar
-import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -82,24 +79,11 @@ fun TaskEditorScreen(
         viewModel.navigationEvent.collect { onBack() }
     }
 
-    // DatePicker dialog
+    // DatePicker dialog — initial value is pre-computed by the ViewModel so this
+    // composable needs no Calendar imports.
     if (uiState.showDatePicker) {
-        // Convert local dueDate to UTC midnight so the picker highlights the correct day
-        // regardless of timezone (DatePicker works in UTC midnight values).
-        val initialUtcMidnight = remember(uiState.dueDate) {
-            val localCal = Calendar.getInstance().apply { timeInMillis = uiState.dueDate }
-            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                set(Calendar.YEAR, localCal.get(Calendar.YEAR))
-                set(Calendar.MONTH, localCal.get(Calendar.MONTH))
-                set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
-        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialUtcMidnight
+            initialSelectedDateMillis = uiState.datePickerUtcMillis
         )
         DatePickerDialog(
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) },
@@ -120,12 +104,11 @@ fun TaskEditorScreen(
         }
     }
 
-    // TimePicker dialog (Material 3 has no TimePickerDialog, so we wrap in AlertDialog)
+    // TimePicker dialog — initial hour/minute are pre-computed by the ViewModel.
     if (uiState.showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = uiState.dueDate }
         val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
+            initialHour = uiState.timePickerHour,
+            initialMinute = uiState.timePickerMinute,
             is24Hour = true
         )
         AlertDialog(

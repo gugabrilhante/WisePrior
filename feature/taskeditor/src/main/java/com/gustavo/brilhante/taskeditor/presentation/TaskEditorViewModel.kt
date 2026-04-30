@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,7 +64,7 @@ class TaskEditorViewModel @Inject constructor(
     fun loadTask(id: Long) {
         if (id <= 0L) {
             _uiState.update { current ->
-                TaskEditorUiState(availableTags = current.availableTags)
+                TaskEditorUiState(availableTags = current.availableTags).withFormattedDates()
             }
             editingTaskId = -1L
             return
@@ -138,34 +136,14 @@ class TaskEditorViewModel @Inject constructor(
                 _uiState.update { it.copy(priority = event.priority) }
             is TaskEditorEvent.DueDateChanged ->
                 _uiState.update { state ->
-                    val prevCal = Calendar.getInstance().apply { timeInMillis = state.dueDate }
-                    val hour = prevCal.get(Calendar.HOUR_OF_DAY)
-                    val minute = prevCal.get(Calendar.MINUTE)
-                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                        timeInMillis = event.dateMillis
-                    }
-                    val newCal = Calendar.getInstance().apply {
-                        set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
-                        set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
-                        set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
-                        set(Calendar.HOUR_OF_DAY, hour)
-                        set(Calendar.MINUTE, minute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    state.copy(dueDate = newCal.timeInMillis, showDatePicker = false)
+                    val newDueDate = dateFormatter.updateDate(state.dueDate, event.dateMillis)
+                    state.copy(dueDate = newDueDate, showDatePicker = false)
                         .withFormattedDates()
                 }
             is TaskEditorEvent.TimeChanged ->
                 _uiState.update { state ->
-                    val cal = Calendar.getInstance().apply {
-                        timeInMillis = state.dueDate
-                        set(Calendar.HOUR_OF_DAY, event.hour)
-                        set(Calendar.MINUTE, event.minute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    state.copy(dueDate = cal.timeInMillis, showTimePicker = false)
+                    val newDueDate = dateFormatter.updateTime(state.dueDate, event.hour, event.minute)
+                    state.copy(dueDate = newDueDate, showTimePicker = false)
                         .withFormattedDates()
                 }
             is TaskEditorEvent.RecurrenceChanged ->
@@ -182,10 +160,18 @@ class TaskEditorViewModel @Inject constructor(
         }
     }
 
-    private fun TaskEditorUiState.withFormattedDates(): TaskEditorUiState = copy(
-        formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
-        formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null
-    )
+    // Centralises all date-derived values so the composable never needs Calendar.
+    // The UTC-midnight conversion is a Material3 DatePicker requirement: it displays
+    // dates in UTC, so we must strip local timezone before passing the initial value.
+    private fun TaskEditorUiState.withFormattedDates(): TaskEditorUiState {
+        return copy(
+            formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
+            formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null,
+            datePickerUtcMillis = dateFormatter.toUtcMidnight(dueDate),
+            timePickerHour = dateFormatter.getHour(dueDate),
+            timePickerMinute = dateFormatter.getMinute(dueDate),
+        )
+    }
 
     private fun save() {
         val state = _uiState.value
