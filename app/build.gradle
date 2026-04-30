@@ -16,11 +16,15 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "com.gustavo.brilhante.wiseprior.HiltTestRunner"
         vectorDrawables { useSupportLibrary true }
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage true
+            enableAndroidTestCoverage true
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -66,7 +70,19 @@ dependencies {
     implementation libs.kotlinx.serialization.json
 
     testImplementation libs.junit
+    androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.androidx.espresso.core
     androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.hilt.android.testing
+    androidTestImplementation libs.androidx.test.runner
+    // Expose core:storage and core:notifications so @TestInstallIn can reference
+    // their Hilt modules (which are impl-scoped transitive deps, not visible to KSP).
+    androidTestImplementation project(':core:storage')
+    androidTestImplementation project(':core:notifications')
+    // Room runtime needed to build Room.inMemoryDatabaseBuilder in TestDatabaseModule
+    androidTestImplementation libs.androidx.room.runtime
+    androidTestImplementation libs.androidx.work.testing
+    kspAndroidTest libs.hilt.compiler
 }

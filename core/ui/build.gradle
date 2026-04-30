@@ -6,7 +6,11 @@ plugins {
 android {
     namespace 'com.gustavo.brilhante.ui'
     compileSdk 36
-    defaultConfig { minSdk 24 }
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
     buildFeatures { compose true }
 }
 
@@ -26,4 +30,6 @@ dependencies {
     debugImplementation libs.androidx.compose.ui.tooling
 
     testImplementation libs.junit
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
 }
