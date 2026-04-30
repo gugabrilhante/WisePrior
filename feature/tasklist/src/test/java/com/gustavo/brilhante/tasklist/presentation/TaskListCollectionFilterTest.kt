@@ -14,10 +14,15 @@ import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import io.mockk.every
 import io.mockk.mockk
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -27,6 +32,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskListCollectionFilterTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -39,10 +45,12 @@ class TaskListCollectionFilterTest {
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
+    // Fixed date for deterministic testing: April 30, 2026 at noon UTC (current date)
+    private val fixedClock = Clock.fixed(Instant.parse("2026-04-30T12:00:00Z"), ZoneOffset.UTC)
+    private val todayMillis: Long = fixedClock.millis()
     // pastMillis is Sep 9 2001 — never matches "today" in any timezone
-    private val todayMillis = System.currentTimeMillis()
     private val pastMillis  = 1_000_000_000_000L
 
     private val taskNoDate  = Task(id = 1, title = "No date")
@@ -79,8 +87,9 @@ class TaskListCollectionFilterTest {
     // ── Collection.All ────────────────────────────────────────────────────────
 
     @Test
-    fun `given all tasks, when All selected, then all tasks are shown`() = runTest {
+    fun `given all tasks, when All selected, then all tasks are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(allTasks, awaitItem().tasks)
@@ -90,9 +99,11 @@ class TaskListCollectionFilterTest {
     // ── Collection.Today ──────────────────────────────────────────────────────
 
     @Test
-    fun `given tasks with mixed due dates, when Today selected, then only tasks due today are shown`() = runTest {
+    fun `given tasks with mixed due dates, when Today selected, then only tasks due today are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Today)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(listOf(taskToday), awaitItem().tasks)
@@ -100,9 +111,11 @@ class TaskListCollectionFilterTest {
     }
 
     @Test
-    fun `given no task due today, when Today selected, then shows empty list`() = runTest {
+    fun `given no task due today, when Today selected, then shows empty list`() = runTest(testDispatcher) {
         val viewModel = buildViewModel(listOf(taskNoDate, taskPast))
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Today)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(emptyList<Task>(), awaitItem().tasks)
@@ -112,9 +125,11 @@ class TaskListCollectionFilterTest {
     // ── Collection.Scheduled ─────────────────────────────────────────────────
 
     @Test
-    fun `given tasks with and without due dates, when Scheduled selected, then only tasks with any due date are shown`() = runTest {
+    fun `given tasks with and without due dates, when Scheduled selected, then only tasks with any due date are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Scheduled)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             val tasks = awaitItem().tasks
@@ -127,9 +142,11 @@ class TaskListCollectionFilterTest {
     // ── Collection.Flagged ────────────────────────────────────────────────────
 
     @Test
-    fun `given mixed tasks, when Flagged selected, then only flagged tasks are shown`() = runTest {
+    fun `given mixed tasks, when Flagged selected, then only flagged tasks are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Flagged)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(listOf(taskFlagged), awaitItem().tasks)
@@ -139,9 +156,11 @@ class TaskListCollectionFilterTest {
     // ── Collection.Completed ─────────────────────────────────────────────────
 
     @Test
-    fun `given mixed tasks, when Completed selected, then only completed tasks are shown`() = runTest {
+    fun `given mixed tasks, when Completed selected, then only completed tasks are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Completed)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(listOf(taskDone), awaitItem().tasks)
@@ -151,9 +170,11 @@ class TaskListCollectionFilterTest {
     // ── Collection.ByTag ─────────────────────────────────────────────────────
 
     @Test
-    fun `given tasks with tags, when ByTag selected, then only tasks carrying that tag are shown`() = runTest {
+    fun `given tasks with tags, when ByTag selected, then only tasks carrying that tag are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.ByTag(42L))
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(listOf(taskTagged), awaitItem().tasks)
@@ -161,9 +182,11 @@ class TaskListCollectionFilterTest {
     }
 
     @Test
-    fun `given no tasks with tag, when ByTag selected, then shows empty list`() = runTest {
+    fun `given no tasks with tag, when ByTag selected, then shows empty list`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.ByTag(999L))
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals(emptyList<Task>(), awaitItem().tasks)
@@ -173,9 +196,11 @@ class TaskListCollectionFilterTest {
     // ── selectedCollection reflected in uiState ───────────────────────────────
 
     @Test
-    fun `given a collection, when onCollectionSelected called, then uiState selectedCollection updates`() = runTest {
+    fun `given a collection, when onCollectionSelected called, then uiState selectedCollection updates`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Flagged)
+        advanceUntilIdle()
 
         assertEquals(TaskCollection.Flagged, viewModel.uiState.value.selectedCollection)
     }
@@ -183,8 +208,9 @@ class TaskListCollectionFilterTest {
     // ── CollectionCounts ─────────────────────────────────────────────────────
 
     @Test
-    fun `given all tasks, when state emitted, then collectionCounts reflect unfiltered totals`() = runTest {
+    fun `given all tasks, when state emitted, then collectionCounts reflect unfiltered totals`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             val counts = awaitItem().collectionCounts
@@ -197,9 +223,11 @@ class TaskListCollectionFilterTest {
     }
 
     @Test
-    fun `given filtered collection, when state emitted, then collectionCounts still reflect all tasks`() = runTest {
+    fun `given filtered collection, when state emitted, then collectionCounts still reflect all tasks`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
+        advanceUntilIdle()
         viewModel.onCollectionSelected(TaskCollection.Flagged)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             val state = awaitItem()
@@ -211,13 +239,14 @@ class TaskListCollectionFilterTest {
     // ── TagCounts ─────────────────────────────────────────────────────────────
 
     @Test
-    fun `given tasks with tags, when state emitted, then tagCounts maps tagId to task count`() = runTest {
+    fun `given tasks with tags, when state emitted, then tagCounts maps tagId to task count`() = runTest(testDispatcher) {
         val tasks = listOf(
             Task(id = 1, title = "A", tagIds = listOf(10L, 20L)),
             Task(id = 2, title = "B", tagIds = listOf(10L)),
             Task(id = 3, title = "C", tagIds = listOf(30L))
         )
         val viewModel = buildViewModel(tasks)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             val counts = awaitItem().tagCounts
@@ -230,10 +259,11 @@ class TaskListCollectionFilterTest {
     // ── formattedDueDates ─────────────────────────────────────────────────────
 
     @Test
-    fun `given task with dueDate and no time, when state emitted, then formattedDueDates uses formatShortDate`() = runTest {
+    fun `given task with dueDate and no time, when state emitted, then formattedDueDates uses formatShortDate`() = runTest(testDispatcher) {
         every { dateFormatter.formatShortDate(todayMillis) } returns "Today"
         val tasks = listOf(Task(id = 1, title = "Task", dueDate = todayMillis, hasTime = false))
         val viewModel = buildViewModel(tasks)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals("Today", awaitItem().formattedDueDates[1L])
@@ -241,10 +271,11 @@ class TaskListCollectionFilterTest {
     }
 
     @Test
-    fun `given task with dueDate and time, when state emitted, then formattedDueDates uses formatShortDateTime`() = runTest {
+    fun `given task with dueDate and time, when state emitted, then formattedDueDates uses formatShortDateTime`() = runTest(testDispatcher) {
         every { dateFormatter.formatShortDateTime(todayMillis) } returns "Today 14:00"
         val tasks = listOf(Task(id = 2, title = "Task", dueDate = todayMillis, hasTime = true))
         val viewModel = buildViewModel(tasks)
+        advanceUntilIdle()
 
         viewModel.uiState.test {
             assertEquals("Today 14:00", awaitItem().formattedDueDates[2L])
