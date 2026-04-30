@@ -56,3 +56,5 @@ The following [Agent Skills](https://agentskills.io/) are installed in `.agents/
 | `navigation-3` | `.agents/skills/navigation-3/SKILL.md` | Migrating to Navigation 3, deep links, scenes |
 | `edge-to-edge` | `.agents/skills/edge-to-edge/SKILL.md` | System bars, IME handling, SDK 35/36 |
 | `agp-9-upgrade` | `.agents/skills/agp-9-upgrade/SKILL.md` | AGP upgrade reference (already on AGP 9) |
+
+

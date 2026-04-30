@@ -14,13 +14,10 @@ import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import io.mockk.every
 import io.mockk.mockk
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -47,11 +44,14 @@ class TaskListCollectionFilterTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    // Fixed date for deterministic testing: April 30, 2026 at noon UTC (current date)
-    private val fixedClock = Clock.fixed(Instant.parse("2026-04-30T12:00:00Z"), ZoneOffset.UTC)
-    private val todayMillis: Long = fixedClock.millis()
-    // pastMillis is Sep 9 2001 — never matches "today" in any timezone
-    private val pastMillis  = 1_000_000_000_000L
+    // Noon today — avoids midnight boundary flakiness while still matching isToday()
+    private val todayMillis: Long = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 12)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    private val pastMillis  = 1_000_000_000_000L // Sep 9 2001
 
     private val taskNoDate  = Task(id = 1, title = "No date")
     private val taskPast    = Task(id = 2, title = "Past",      dueDate = pastMillis)

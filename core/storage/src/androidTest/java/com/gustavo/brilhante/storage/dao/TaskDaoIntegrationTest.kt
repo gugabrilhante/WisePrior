@@ -63,7 +63,7 @@ class TaskDaoIntegrationTest {
     // ── getAllTasks ────────────────────────────────────────────────────────────
 
     @Test
-    fun `given empty database, when getAllTasks observed, then emits empty list`() = runTest {
+    fun givenEmptyDatabase_whenGetAllTasksObserved_thenEmitsEmptyList() = runTest {
         dao.getAllTasks().test {
             assertEquals(emptyList<TaskEntity>(), awaitItem())
             cancelAndIgnoreRemainingEvents()
@@ -71,7 +71,7 @@ class TaskDaoIntegrationTest {
     }
 
     @Test
-    fun `given inserted task, when getAllTasks observed, then emits list containing that task`() = runTest {
+    fun givenInsertedTask_whenGetAllTasksObserved_thenEmitsListContainingThatTask() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "Buy milk"))
 
         dao.getAllTasks().test {
@@ -84,7 +84,7 @@ class TaskDaoIntegrationTest {
     }
 
     @Test
-    fun `given tasks with different createdAt, when getAllTasks observed, then ordered by createdAt desc`() = runTest {
+    fun givenTasksWithDifferentCreatedAt_whenGetAllTasksObserved_thenOrderedByCreatedAtDesc() = runTest {
         dao.insertTask(buildEntity(title = "Older", createdAt = 1_000L))
         dao.insertTask(buildEntity(title = "Newer", createdAt = 2_000L))
 
@@ -98,7 +98,7 @@ class TaskDaoIntegrationTest {
     }
 
     @Test
-    fun `given observation started, when task inserted afterwards, then flow emits updated list`() = runTest {
+    fun givenObservationStarted_whenTaskInsertedAfterwards_thenFlowEmitsUpdatedList() = runTest {
         dao.getAllTasks().test {
             assertEquals(emptyList<TaskEntity>(), awaitItem())
 
@@ -114,7 +114,7 @@ class TaskDaoIntegrationTest {
     // ── getTaskById ───────────────────────────────────────────────────────────
 
     @Test
-    fun `given inserted task, when getTaskById called with its id, then returns that task`() = runTest {
+    fun givenInsertedTask_whenGetTaskByIdCalledWithItsId_thenReturnsThatTask() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "Finish report"))
 
         val result = dao.getTaskById(insertedId)
@@ -125,14 +125,14 @@ class TaskDaoIntegrationTest {
     }
 
     @Test
-    fun `given empty database, when getTaskById called, then returns null`() = runTest {
+    fun givenEmptyDatabase_whenGetTaskByIdCalled_thenReturnsNull() = runTest {
         assertNull(dao.getTaskById(99L))
     }
 
     // ── updateTask ────────────────────────────────────────────────────────────
 
     @Test
-    fun `given inserted task, when updated, then getAllTasks reflects the new field values`() = runTest {
+    fun givenInsertedTask_whenUpdated_thenGetAllTasksReflectsTheNewFieldValues() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "Original"))
 
         dao.updateTask(buildEntity(id = insertedId, title = "Updated"))
@@ -146,7 +146,7 @@ class TaskDaoIntegrationTest {
     // ── deleteTask ────────────────────────────────────────────────────────────
 
     @Test
-    fun `given inserted task, when deleted, then getAllTasks emits empty list`() = runTest {
+    fun givenInsertedTask_whenDeleted_thenGetAllTasksEmitsEmptyList() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "To delete"))
 
         dao.deleteTask(buildEntity(id = insertedId, title = "To delete"))
