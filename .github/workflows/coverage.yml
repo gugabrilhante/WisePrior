@@ -34,13 +34,25 @@ jobs:
       - name: Remove local JDK path from gradle.properties
         run: sed -i '/org.gradle.java.home/d' gradle.properties
 
+      # Required for hardware acceleration on Linux runners
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: 34
           target: google_apis
-          arch: x86
-          profile: Nexus 6
+          arch: x86_64
+          profile: pixel_6
+          avd-name: test_avd
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 
       - name: Run unit tests with coverage
