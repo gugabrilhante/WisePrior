@@ -9,7 +9,11 @@ plugins {
 android {
     namespace 'com.gustavo.brilhante.tasklist'
     compileSdk 36
-    defaultConfig { minSdk 24 }
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
     buildFeatures { compose true }
 }
 
@@ -47,5 +51,6 @@ dependencies {
     testImplementation libs.turbine
     testImplementation libs.kotlinx.coroutines.test
     androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.espresso.core
 }
