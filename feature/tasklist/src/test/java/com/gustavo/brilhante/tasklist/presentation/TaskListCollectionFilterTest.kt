@@ -17,6 +17,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -28,6 +29,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskListCollectionFilterTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -42,9 +44,14 @@ class TaskListCollectionFilterTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    // Fixed instant to avoid wall-clock flakiness
-    private val todayMillis = 1_700_000_000_000L
-    private val pastMillis  = 1_000_000_000_000L
+    // Noon today — avoids midnight boundary flakiness while still matching isToday()
+    private val todayMillis: Long = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 12)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    private val pastMillis  = 1_000_000_000_000L // Sep 9 2001
 
     private val taskNoDate  = Task(id = 1, title = "No date")
     private val taskPast    = Task(id = 2, title = "Past",      dueDate = pastMillis)
