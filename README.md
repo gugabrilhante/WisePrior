@@ -66,7 +66,7 @@ The project utilizes **MVVM** for UI logic and **MVI-inspired** state management
 
 ### Module responsibilities
 
-The project is decomposed into specialized modules, each adhering to the **Single Responsibility Principle (SRP)**. This modular boundaries prevent "spaghetti dependencies" and significantly reduce build times via parallel compilation.
+The project is decomposed into specialized modules, each adhering to the **Single Responsibility Principle (SRP)**. These modular boundaries prevent "spaghetti dependencies" and significantly reduce build times via parallel compilation.
 
 | Module | Responsibility |
 |---|---|
@@ -251,7 +251,7 @@ End-to-End tests in the `:app` module exercise the full stack, including Hilt de
 
 ### ⚙️ CI/CD & Coverage
 - **Continuous Integration**: Every PR triggers the full test suite via GitHub Actions.
-- **Quality Gate**: Merges to `main` are blocked unless all Unit and UI tests pass.
+- **Quality Gate**: Merges to `master` are blocked unless all Unit and UI tests pass.
 - **Visibility**: Coverage is tracked via **JaCoCo** and reported through **Codecov** for transparent quality tracking.
 
 ---

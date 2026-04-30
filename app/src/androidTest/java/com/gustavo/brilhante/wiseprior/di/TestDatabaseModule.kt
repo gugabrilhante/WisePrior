@@ -11,7 +11,6 @@ import dagger.Provides
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
-import javax.inject.Singleton
 
 /**
  * Replaces [DatabaseModule] in tests with an in-memory Room database.
@@ -25,7 +24,6 @@ import javax.inject.Singleton
 object TestDatabaseModule {
 
     @Provides
-    @Singleton
     fun provideInMemoryDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()

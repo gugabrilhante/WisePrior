@@ -28,8 +28,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Remove local JDK path from gradle.properties
         run: sed -i '/org.gradle.java.home/d' gradle.properties
+
+      - name: Run instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86
+          profile: Nexus 6
+          script: ./gradlew connectedDebugAndroidTest --stacktrace
 
       - name: Run unit tests with coverage
         run: ./gradlew testDebugUnitTest jacocoFullReport --stacktrace
