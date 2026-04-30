@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Scaffold
@@ -70,10 +70,10 @@ fun TaskManagerScreen(taskViewModel: TaskManagerViewModel) {
 }
 
 @Composable
-fun TaskList(tasks: List<Task>, formattedDates: Map<Int, String>) {
+fun TaskList(tasks: List<Task>, formattedDates: Map<Task, String>) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        itemsIndexed(tasks) { index, task ->
-            TaskCard(task, formattedDates[index] ?: "")
+        items(tasks) { task ->
+            TaskCard(task, formattedDates[task] ?: "")
         }
     }
 }

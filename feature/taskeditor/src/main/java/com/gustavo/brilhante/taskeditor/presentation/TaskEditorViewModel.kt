@@ -48,7 +48,8 @@ class TaskEditorViewModel @Inject constructor(
     private val _navigationEvent = Channel<Unit>(Channel.BUFFERED)
     val navigationEvent = _navigationEvent.receiveAsFlow()
 
-    private var editingTaskId: Long = -1L
+    // Long.MIN_VALUE = "never loaded anything yet"; -1L = "already in new-task draft"
+    private var editingTaskId: Long = Long.MIN_VALUE
 
     init {
         observeAvailableTags()
@@ -64,6 +65,7 @@ class TaskEditorViewModel @Inject constructor(
 
     fun loadTask(id: Long) {
         if (id <= 0L) {
+            if (editingTaskId == -1L) return  // already in new-task draft; don't wipe it
             _uiState.update { current ->
                 TaskEditorUiState(availableTags = current.availableTags).withFormattedDates()
             }

@@ -23,8 +23,8 @@ open class TaskManagerViewModel @Inject constructor(
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks
 
-    val formattedDates: StateFlow<Map<Int, String>> = _tasks.map { list ->
-        list.mapIndexed { index, task -> index to dateFormatter.formatShortDate(task.dueDate) }.toMap()
+    val formattedDates: StateFlow<Map<Task, String>> = _tasks.map { list ->
+        list.associateWith { task -> dateFormatter.formatShortDate(task.dueDate) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     init {

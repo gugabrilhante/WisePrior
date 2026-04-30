@@ -81,6 +81,15 @@ class TaskEditorViewModelTest {
     }
 
     @Test
+    fun `loadTask with negative id called again preserves in-progress draft`() = runTest {
+        viewModel.loadTask(-1L)                                    // first call: initialises blank state
+        viewModel.onEvent(TaskEditorEvent.TitleChanged("draft"))   // user starts typing
+        viewModel.loadTask(-1L)                                    // second call: must NOT wipe draft
+
+        assertEquals("draft", viewModel.uiState.value.title)
+    }
+
+    @Test
     fun `loadTask with valid id populates uiState from task`() = runTest {
         val task = Task(
             id = 10L,

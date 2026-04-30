@@ -50,14 +50,14 @@ class TaskManagerViewModelTest {
 
     @Test
     fun `formattedDates flow reflects task due dates`() = runTest {
-        val tasks = listOf(Task("T1", "D1", 1700000000000L)) // Nov 14, 2023
-        every { repository.getAllTasksFlow() } returns flowOf(tasks)
-        
+        val task = Task("T1", "D1", 1700000000000L) // Nov 14, 2023
+        every { repository.getAllTasksFlow() } returns flowOf(listOf(task))
+
         viewModel = TaskManagerViewModel(repository, dateFormatter)
 
         viewModel.formattedDates.test {
             val dates = awaitItem()
-            assertEquals("Nov 14", dates[0])
+            assertEquals("Nov 14", dates[task])
         }
     }
 }
