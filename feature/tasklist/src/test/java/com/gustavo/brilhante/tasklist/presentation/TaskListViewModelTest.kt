@@ -1,7 +1,7 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -41,7 +41,7 @@ class TaskListViewModelTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = com.gustavo.brilhante.common.DateFormatterImpl()
+    private val dateFormatter: DateFormatter = com.gustavo.brilhante.ui.DateFormatterImpl()
 
     private val testDispatcher = UnconfinedTestDispatcher()
 

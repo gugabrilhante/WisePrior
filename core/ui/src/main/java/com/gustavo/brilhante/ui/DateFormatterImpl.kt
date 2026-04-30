@@ -1,4 +1,4 @@
-package com.gustavo.brilhante.common
+package com.gustavo.brilhante.ui
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -22,16 +22,16 @@ class DateFormatterImpl @Inject constructor() : DateFormatter {
         override fun initialValue() = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
     }
 
-    override fun formatDate(timestamp: Long): String = 
+    override fun formatDate(timestamp: Long): String =
         dateFormat.get()?.format(Date(timestamp)) ?: ""
 
-    override fun formatTime(timestamp: Long): String = 
+    override fun formatTime(timestamp: Long): String =
         timeFormat.get()?.format(Date(timestamp)) ?: ""
 
     override fun formatDateTime(timestamp: Long): String =
         "${formatDate(timestamp)} ${formatTime(timestamp)}"
 
-    override fun formatShortDate(timestamp: Long): String = 
+    override fun formatShortDate(timestamp: Long): String =
         shortDateFormat.get()?.format(Date(timestamp)) ?: ""
 
     override fun formatShortDateTime(timestamp: Long): String =
@@ -57,7 +57,7 @@ class DateFormatterImpl @Inject constructor() : DateFormatter {
         }.timeInMillis
     }
 
-    override fun getYear(timestamp: Long): Int = 
+    override fun getYear(timestamp: Long): Int =
         Calendar.getInstance().apply { timeInMillis = timestamp }.get(Calendar.YEAR)
 
     override fun getMonth(timestamp: Long): Int =

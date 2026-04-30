@@ -37,7 +37,7 @@ import com.gustavo.brilhante.taskmanager.presentation.TaskManagerViewModel
 fun PreviewTaskScreen() {
     val mockViewModel = TaskManagerViewModel(
         MockTaskRepository(),
-        com.gustavo.brilhante.common.DateFormatterImpl()
+        com.gustavo.brilhante.ui.DateFormatterImpl()
     )
     TaskManagerScreen(taskViewModel = mockViewModel)
 }

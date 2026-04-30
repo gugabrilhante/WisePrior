@@ -1,4 +1,4 @@
-package com.gustavo.brilhante.common
+package com.gustavo.brilhante.ui
 
 import dagger.Module
 import dagger.Provides

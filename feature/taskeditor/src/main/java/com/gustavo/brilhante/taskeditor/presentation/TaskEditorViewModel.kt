@@ -2,14 +2,15 @@ package com.gustavo.brilhante.taskeditor.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.model.RecurrenceType
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.ui.DateFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -122,7 +123,7 @@ class TaskEditorViewModel @Inject constructor(
                     it.copy(
                         hasDate = !it.hasDate,
                         hasTime = if (turningOff) false else it.hasTime,
-                        recurrenceType = if (turningOff) com.gustavo.brilhante.model.RecurrenceType.NONE else it.recurrenceType
+                        recurrenceType = if (turningOff) RecurrenceType.NONE else it.recurrenceType
                     ).withFormattedDates()
                 }
             }
@@ -137,14 +138,12 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.DueDateChanged ->
                 _uiState.update { state ->
                     val newDueDate = dateFormatter.updateDate(state.dueDate, event.dateMillis)
-                    state.copy(dueDate = newDueDate, showDatePicker = false)
-                        .withFormattedDates()
+                    state.copy(dueDate = newDueDate, showDatePicker = false).withFormattedDates()
                 }
             is TaskEditorEvent.TimeChanged ->
                 _uiState.update { state ->
                     val newDueDate = dateFormatter.updateTime(state.dueDate, event.hour, event.minute)
-                    state.copy(dueDate = newDueDate, showTimePicker = false)
-                        .withFormattedDates()
+                    state.copy(dueDate = newDueDate, showTimePicker = false).withFormattedDates()
                 }
             is TaskEditorEvent.RecurrenceChanged ->
                 _uiState.update { it.copy(recurrenceType = event.recurrenceType) }

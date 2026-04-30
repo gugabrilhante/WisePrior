@@ -1,4 +1,4 @@
-package com.gustavo.brilhante.common
+package com.gustavo.brilhante.ui
 
 import org.junit.After
 import org.junit.Assert.assertEquals

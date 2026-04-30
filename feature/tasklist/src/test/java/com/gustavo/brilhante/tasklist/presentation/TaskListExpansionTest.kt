@@ -1,6 +1,6 @@
 package com.gustavo.brilhante.tasklist.presentation
 
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase

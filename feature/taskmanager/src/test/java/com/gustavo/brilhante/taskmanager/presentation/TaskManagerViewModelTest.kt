@@ -1,8 +1,8 @@
 package com.gustavo.brilhante.taskmanager.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
-import com.gustavo.brilhante.common.DateFormatterImpl
+import com.gustavo.brilhante.ui.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatterImpl
 import com.gustavo.brilhante.data.models.Task
 import com.gustavo.brilhante.data.repository.TaskRepository
 import io.mockk.every

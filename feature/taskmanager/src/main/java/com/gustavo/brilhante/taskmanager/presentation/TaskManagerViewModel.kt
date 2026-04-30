@@ -2,7 +2,7 @@ package com.gustavo.brilhante.taskmanager.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.data.models.Task
 import com.gustavo.brilhante.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

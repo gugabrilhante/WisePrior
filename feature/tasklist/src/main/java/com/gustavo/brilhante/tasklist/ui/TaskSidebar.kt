@@ -48,6 +48,7 @@ private const val MAX_TAGS = 5
 
 // Public so the app-module UI tests can reference it without hardcoding the string.
 const val SIDEBAR_LIST_TEST_TAG = "sidebar_list"
+const val ADD_TAG_BUTTON_TEST_TAG = "add_tag_button"
 
 @Stable
 private data class SidebarItem(
@@ -209,6 +210,7 @@ fun TaskSidebarContent(
                 colors = NavigationDrawerItemDefaults.colors(),
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
+                    .testTag(ADD_TAG_BUTTON_TEST_TAG)
                     .alpha(if (atLimit) 0.5f else 1f)
                     .semantics { if (atLimit) disabled() }
             )

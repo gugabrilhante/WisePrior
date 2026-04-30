@@ -1,4 +1,4 @@
-package com.gustavo.brilhante.common
+package com.gustavo.brilhante.ui
 
 interface DateFormatter {
     fun formatDate(timestamp: Long): String

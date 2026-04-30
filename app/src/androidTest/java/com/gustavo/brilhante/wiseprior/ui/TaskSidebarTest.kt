@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.rule.GrantPermissionRule
+import com.gustavo.brilhante.tasklist.ui.ADD_TAG_BUTTON_TEST_TAG
 import com.gustavo.brilhante.tasklist.ui.SIDEBAR_LIST_TEST_TAG
 import com.gustavo.brilhante.tasklist.ui.TaskSidebarContent
 import com.gustavo.brilhante.wiseprior.MainActivity
@@ -70,13 +71,13 @@ class TaskSidebarTest {
         // 1. Verify the top item is visible initially
         composeTestRule.onNodeWithText(todayLabel).assertIsDisplayed()
 
-        // 2. Scroll to the bottom item ("New Tag" button)
-        // We use the testTag defined in TaskSidebar.kt for precision.
+        // 2. Scroll to the bottom item (add-tag button). Use testTag so this works
+        // regardless of whether the tag limit label has replaced "New Tag".
         composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
-            .performScrollToNode(hasText(addTagLabel))
+            .performScrollToNode(hasTestTag(ADD_TAG_BUTTON_TEST_TAG))
 
         // 3. Assert the bottom element is now visible
-        composeTestRule.onNodeWithText(addTagLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ADD_TAG_BUTTON_TEST_TAG).assertIsDisplayed()
     }
 
     @Test
@@ -88,9 +89,13 @@ class TaskSidebarTest {
         composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         composeTestRule.waitForIdle()
 
-        // In landscape, check core elements. On many tablets/large screens, 
-        // this might switch to a PermanentNavigationDrawer.
-        composeTestRule.onNodeWithText(allLabel).assertIsDisplayed()
+        // In landscape, check core elements. On many tablets/large screens,
+        // this switches to a PermanentNavigationDrawer. Both the sidebar nav item
+        // and the TopAppBar title can show the same "All" string, so scope the
+        // check to the sidebar list to avoid an ambiguous-node failure.
+        composeTestRule.onNode(
+            hasText(allLabel) and hasAnyAncestor(hasTestTag(SIDEBAR_LIST_TEST_TAG))
+        ).assertIsDisplayed()
         composeTestRule.onNodeWithText(tagHeaderLabel).assertIsDisplayed()
 
         // Rotate back to portrait
@@ -115,7 +120,8 @@ class TaskSidebarTest {
         openDrawerIfClosed()
 
         // performScrollTo() works on any node that is a descendant of a scrollable container.
-        composeTestRule.onNodeWithText(addTagLabel)
+        // Use testTag so this works regardless of whether the label changed to the limit message.
+        composeTestRule.onNodeWithTag(ADD_TAG_BUTTON_TEST_TAG)
             .performScrollTo()
             .assertIsDisplayed()
     }

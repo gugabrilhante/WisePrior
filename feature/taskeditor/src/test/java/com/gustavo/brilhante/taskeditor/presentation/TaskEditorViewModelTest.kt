@@ -1,7 +1,6 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -10,6 +9,7 @@ import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceType
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.ui.DateFormatterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -49,10 +49,10 @@ class TaskEditorViewModelTest {
         originalTimeZone = TimeZone.getDefault()
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         Dispatchers.setMain(testDispatcher)
-        
+
         // Use a real DateFormatterImpl to ensure date manipulation logic is tested
-        val realFormatter = com.gustavo.brilhante.common.DateFormatterImpl()
-        
+        val realFormatter = DateFormatterImpl()
+
         every { getTagsUseCase() } returns flowOf(emptyList())
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
