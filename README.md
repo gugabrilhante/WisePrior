@@ -5,7 +5,7 @@
 [![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
-**Test Coverage: ~90% (JaCoCo + Codecov)**
+**Test Coverage Target: ~90% (JaCoCo + Codecov)**
 
 ---
 
@@ -166,7 +166,7 @@ At WisePrior, the architecture is the foundation of our testing strategy. By dec
 
 The project follows the classic **Test Pyramid** principle: favour many fast, isolated unit tests at the base; a smaller set of integration tests in the middle; and targeted UI tests at the top for critical user flows.
 
-```
+```text
          ▲
         /  \          UI / End-to-End
        / UI \         (Espresso — critical flows)

@@ -3,6 +3,8 @@ package com.gustavo.brilhante.wiseprior.ui
 import android.Manifest
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -111,9 +113,8 @@ class TaskEditorScreenTest {
 
     @Test
     fun savingWithBlankTitle_showsValidationError() {
-        // Do not enter a title — just tap Done.
         composeTestRule.onNodeWithText(doneLabel).performClick()
-        // The editor remains open (navigation did not occur).
+        composeTestRule.onNodeWithText("Title is required").assertIsDisplayed()
         composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
     }
 
@@ -153,9 +154,9 @@ class TaskEditorScreenTest {
 
     @Test
     fun flagToggle_changesState() {
-        composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithText(flagLabel).assertIsOff()
         composeTestRule.onNodeWithText(flagLabel).performClick()
-        composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithText(flagLabel).assertIsOn()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
