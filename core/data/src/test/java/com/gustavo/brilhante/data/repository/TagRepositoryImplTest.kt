@@ -68,6 +68,7 @@ class TagRepositoryImplTest {
         repository.updateTag(tag)
 
         coVerify(exactly = 1) { dataSource.updateTag(any()) }
+        assertEquals(tag.id,    slot.captured.id)
         assertEquals(tag.name,  slot.captured.name)
         assertEquals(tag.color, slot.captured.color)
     }
@@ -80,7 +81,8 @@ class TagRepositoryImplTest {
         repository.deleteTag(tag)
 
         coVerify(exactly = 1) { dataSource.deleteTagTransactional(any()) }
-        assertEquals(tag.id,   slot.captured.id)
-        assertEquals(tag.name, slot.captured.name)
+        assertEquals(tag.id,    slot.captured.id)
+        assertEquals(tag.name,  slot.captured.name)
+        assertEquals(tag.color, slot.captured.color)
     }
 }
