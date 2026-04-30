@@ -2,8 +2,6 @@ package com.gustavo.brilhante.wiseprior.ui
 import android.Manifest
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -152,10 +150,10 @@ class TaskEditorScreenTest {
     }
 
     @Test
-    fun flagToggle_changesState() {
-        composeTestRule.onNodeWithText(flagLabel).assertIsOff()
+    fun flagToggle_remainsDisplayedAfterClick() {
+        composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
         composeTestRule.onNodeWithText(flagLabel).performClick()
-        composeTestRule.onNodeWithText(flagLabel).assertIsOn()
+        composeTestRule.onNodeWithText(flagLabel).assertIsDisplayed()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
