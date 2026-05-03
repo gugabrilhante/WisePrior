@@ -8,7 +8,11 @@ import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +44,8 @@ class TaskListExpansionTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
+    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -48,6 +54,8 @@ class TaskListExpansionTest {
         Dispatchers.setMain(testDispatcher)
         every { getTasksUseCase() } returns flowOf(emptyList())
         every { getTagsUseCase() } returns flowOf(emptyList())
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 
     @After
@@ -58,7 +66,7 @@ class TaskListExpansionTest {
     private fun buildViewModel() = TaskListViewModel(
         getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
         addTagUseCase, updateTagUseCase, deleteTagUseCase,
-        notificationScheduler, dateFormatter
+        notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
     )
 
     @Test

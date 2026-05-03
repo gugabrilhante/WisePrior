@@ -2,7 +2,7 @@ package com.gustavo.brilhante.data.repository
 
 import app.cash.turbine.test
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.datasources.TaskDataSource
 import com.gustavo.brilhante.storage.entity.TaskEntity
@@ -36,7 +36,8 @@ class TaskRepositoryImplTest {
         tagIds = emptyList(),
         isFlagged = false,
         isCompleted = false,
-        recurrenceType = "NONE",
+        recurrenceUnit = "NONE",
+        recurrenceInterval = 1,
         createdAt = 1_000L,
     )
 
@@ -46,7 +47,7 @@ class TaskRepositoryImplTest {
         priority = Priority.NONE,
         tagIds = emptyList(),
         isCompleted = false,
-        recurrenceType = RecurrenceType.NONE,
+        recurrenceRule = RecurrenceRule.NONE,
         createdAt = 1_000L,
     )
 

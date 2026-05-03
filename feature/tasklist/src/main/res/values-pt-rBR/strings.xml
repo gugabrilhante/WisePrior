@@ -44,4 +44,9 @@
     <string name="color_name_pink">Rosa</string>
     <string name="color_name_gray">Cinza</string>
     <string name="color_name_format">Cor %s</string>
+
+    <string name="sort_button_description">Ordenar tarefas</string>
+    <string name="sort_created_newest">Criado (Mais recente)</string>
+    <string name="sort_created_oldest">Criado (Mais antigo)</string>
+    <string name="sort_smart_priority">Prioridade Inteligente</string>
 </resources>

@@ -2,27 +2,20 @@ package com.gustavo.brilhante.notifications
 
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent  // needed for onReceive parameter type
+import android.content.Intent
 import android.util.Log
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 private const val TAG = "AlarmReceiver"
 
-/**
- * Receives exact alarms from [AlarmManager] and:
- *  1. Shows the notification via [NotificationHelper]
- *  2. For recurring tasks, schedules the next occurrence via [AlarmManagerNotificationScheduler]
- *
- * All work is synchronous (AlarmManager scheduling is non-blocking), so [goAsync] is not needed.
- */
 @AndroidEntryPoint
 class AlarmReceiver : BroadcastReceiver() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
 
-    // Inject the concrete class to access scheduleNextOccurrence without exposing it on the interface
     @Inject lateinit var scheduler: AlarmManagerNotificationScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -34,7 +27,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val notes = intent.getStringExtra(EXTRA_TASK_NOTES) ?: ""
         val dueDate = intent.getLongExtra(EXTRA_DUE_DATE, -1L)
         val hasTime = intent.getBooleanExtra(EXTRA_HAS_TIME, false)
-        val recurrenceRaw = intent.getStringExtra(EXTRA_RECURRENCE) ?: RecurrenceType.NONE.name
 
         if (taskId < 0L || dueDate < 0L) {
             Log.w(TAG, "Invalid alarm intent — taskId=$taskId dueDate=$dueDate")
@@ -43,23 +35,22 @@ class AlarmReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "Alarm fired for task $taskId: $title")
 
-        // Step 1: show the notification
         notificationHelper.showNotification(taskId, title, notes)
 
-        // Step 2: reschedule next occurrence for recurring tasks
-        val recurrenceType = runCatching { RecurrenceType.valueOf(recurrenceRaw) }
-            .getOrDefault(RecurrenceType.NONE)
+        val unitRaw = intent.getStringExtra(EXTRA_RECURRENCE_UNIT) ?: RecurrenceUnit.NONE.name
+        val interval = intent.getIntExtra(EXTRA_RECURRENCE_INTERVAL, 1).coerceAtLeast(1)
+        val unit = runCatching { RecurrenceUnit.valueOf(unitRaw) }.getOrDefault(RecurrenceUnit.NONE)
+        val recurrenceRule = RecurrenceRule(unit, interval)
 
-        if (recurrenceType != RecurrenceType.NONE) {
-            // Advance from the ORIGINAL dueDate to keep time-of-day consistent (no drift)
-            val nextDue = AlarmManagerNotificationScheduler.nextOccurrence(dueDate, recurrenceType)
+        if (recurrenceRule.isRecurring) {
+            val nextDue = AlarmManagerNotificationScheduler.nextOccurrence(dueDate, recurrenceRule)
             scheduler.scheduleFromReceiver(
                 taskId = taskId,
                 title = title,
                 notes = notes,
                 dueDate = nextDue,
                 hasTime = hasTime,
-                recurrenceType = recurrenceType
+                recurrenceRule = recurrenceRule
             )
             Log.d(TAG, "Rescheduled recurring task $taskId for $nextDue")
         }

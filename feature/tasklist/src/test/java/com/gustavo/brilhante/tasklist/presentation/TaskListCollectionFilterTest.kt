@@ -10,8 +10,12 @@ import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +45,8 @@ class TaskListCollectionFilterTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk()
+    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -66,6 +72,8 @@ class TaskListCollectionFilterTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        coEvery { sortPreferences.setSortOption(any()) } returns Unit
         every { dateFormatter.isToday(any()) } returns false
         every { dateFormatter.isToday(todayMillis) } returns true
         every { dateFormatter.formatShortDate(any()) } returns "Jan 1"
@@ -82,7 +90,7 @@ class TaskListCollectionFilterTest {
         return TaskListViewModel(
             getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
             addTagUseCase, updateTagUseCase, deleteTagUseCase,
-            notificationScheduler, dateFormatter
+            notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
         )
     }
 

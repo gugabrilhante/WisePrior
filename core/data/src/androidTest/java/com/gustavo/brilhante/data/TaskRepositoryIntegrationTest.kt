@@ -7,7 +7,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.gustavo.brilhante.data.repository.TaskRepositoryImpl
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.database.AppDatabase
 import com.gustavo.brilhante.storage.datasources.TaskDataSource
@@ -61,7 +62,7 @@ class TaskRepositoryIntegrationTest {
         tagIds = emptyList(),
         isFlagged = false,
         isCompleted = false,
-        recurrenceType = RecurrenceType.NONE,
+        recurrenceRule = RecurrenceRule.NONE,
         createdAt = createdAt
     )
 
@@ -160,22 +161,34 @@ class TaskRepositoryIntegrationTest {
 
     @Test
     fun givenTaskWithAllFields_whenAddThenRetrieve_thenAllDomainFieldsSurviveTheRoundTrip() = runTest {
+        val weeklyRule = RecurrenceRule(RecurrenceUnit.WEEKS, 1)
         val original = buildTask(title = "Full task").copy(
             notes = "My notes",
             isUrgent = true,
             priority = Priority.MEDIUM,
             isFlagged = true,
-            recurrenceType = RecurrenceType.WEEKLY
+            recurrenceRule = weeklyRule
         )
         val inserted = addAndGet(original)
 
         val retrieved = repository.getTaskById(inserted.id)!!
 
-        assertEquals("Full task",           retrieved.title)
-        assertEquals("My notes",            retrieved.notes)
-        assertEquals(true,                  retrieved.isUrgent)
-        assertEquals(Priority.MEDIUM,       retrieved.priority)
-        assertEquals(true,                  retrieved.isFlagged)
-        assertEquals(RecurrenceType.WEEKLY, retrieved.recurrenceType)
+        assertEquals("Full task",   retrieved.title)
+        assertEquals("My notes",    retrieved.notes)
+        assertEquals(true,          retrieved.isUrgent)
+        assertEquals(Priority.MEDIUM, retrieved.priority)
+        assertEquals(true,          retrieved.isFlagged)
+        assertEquals(weeklyRule,    retrieved.recurrenceRule)
+    }
+
+    @Test
+    fun givenTaskWithCustomRecurrence_whenAddThenRetrieve_thenRecurrenceRuleSurvives() = runTest {
+        val rule = RecurrenceRule(RecurrenceUnit.HOURS, 8)
+        val original = buildTask(title = "Every 8 hours").copy(recurrenceRule = rule)
+        val inserted = addAndGet(original)
+
+        val retrieved = repository.getTaskById(inserted.id)!!
+
+        assertEquals(rule, retrieved.recurrenceRule)
     }
 }

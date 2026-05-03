@@ -25,10 +25,15 @@
     <string name="editor_label_flag">Sinalizar</string>
 
     <string name="editor_recurrence_repeat">Repetir</string>
+    <string name="editor_recurrence_every">A cada</string>
+    <string name="editor_recurrence_decrease">Diminuir intervalo</string>
+    <string name="editor_recurrence_increase">Aumentar intervalo</string>
+
     <string name="recurrence_none">Nunca</string>
-    <string name="recurrence_daily">Diariamente</string>
-    <string name="recurrence_weekly">Semanalmente</string>
-    <string name="recurrence_monthly">Mensalmente</string>
+    <string name="recurrence_unit_hours">horas</string>
+    <string name="recurrence_unit_days">dias</string>
+    <string name="recurrence_unit_weeks">semanas</string>
+    <string name="recurrence_unit_months">meses</string>
 
     <string name="priority_none">Nenhuma</string>
     <string name="priority_low">Baixa</string>
