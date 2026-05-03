@@ -179,7 +179,11 @@ private fun TaskListContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTask) {
+            FloatingActionButton(
+                onClick = onAddTask,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_task_button_description))
             }
         }
