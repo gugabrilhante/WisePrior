@@ -11,7 +11,7 @@
 
 ## Overview
 
-WisePrior is a production-grade Android task manager designed with a heavy focus on **Scalability**, **Modularization**, and **Quality Engineering**. Inspired by modern productivity tools, it serves as a technical showcase for Clean Architecture and robust background synchronization.
+WisePrior is a production-grade Android task manager designed with a heavy focus on **Scalability**, **Modularization**, and **Quality Engineering**. Inspired by modern productivity tools, it serves as a technical showcase for Clean Architecture and robust background synchronization. Open source and available under the MIT License.
 
 ### Quick Navigation
 - [Architecture & Modularization](#architecture)
@@ -26,11 +26,8 @@ WisePrior is a production-grade Android task manager designed with a heavy focus
 ### Add reminders
 <img src="docs/wise_prior_demo_01.gif" width="33%" alt="Demo 01">   <img src="docs/wise_prior_demo_03.gif" width="33%" alt="Demo 03">
 
-### List reminders - Light Mode
-<img src="docs/wise_prior_demo_05.gif" width="33%" alt="Demo 05"> <img src="docs/wise_prior_demo_06.gif" width="33%" alt="Demo 06">
-
-### List reminders - Dark Mode
-<img src="docs/wise_prior_demo_08.gif" width="33%" alt="Demo 08"> <img src="docs/wise_prior_demo_09.gif" width="33%" alt="Demo 09">
+### List reminders - Light Mode   List reminders - Dark Mode
+<img src="docs/wise_prior_demo_06.gif" width="33%" alt="Demo 06">   <img src="docs/wise_prior_demo_08.gif" width="33%" alt="Demo 08">
 
 ### Filters and Tag manager
 <img src="docs/wise_prior_demo_07.gif" width="33%" alt="Demo 07">
@@ -282,3 +279,9 @@ cd WisePrior
 ## Author
 
 **Gustavo Brilhante** — [gugabrilhante@gmail.com](mailto:gugabrilhante@gmail.com)
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

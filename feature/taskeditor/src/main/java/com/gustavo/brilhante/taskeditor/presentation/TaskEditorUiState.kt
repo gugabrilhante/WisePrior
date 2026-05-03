@@ -23,7 +23,12 @@ data class TaskEditorUiState(
     val titleError: String? = null,
     val isLoading: Boolean = false,
     val showDatePicker: Boolean = false,
-    val showTimePicker: Boolean = false
+    val showTimePicker: Boolean = false,
+    // Pre-computed picker initial values — computed by the ViewModel alongside formatted
+    // date strings so the composable never needs to import java.util.Calendar.
+    val datePickerUtcMillis: Long = 0L,
+    val timePickerHour: Int = 0,
+    val timePickerMinute: Int = 0,
 )
 
 sealed interface TaskEditorEvent {

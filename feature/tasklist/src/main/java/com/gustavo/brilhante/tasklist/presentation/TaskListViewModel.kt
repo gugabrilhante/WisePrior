@@ -2,7 +2,7 @@ package com.gustavo.brilhante.tasklist.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import javax.inject.Inject
 
 private const val MAX_TAGS = 5
@@ -111,6 +110,19 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
+    // ── Card expansion ────────────────────────────────────────────────────────
+
+    fun toggleExpanded(taskId: Long) {
+        _uiState.update { state ->
+            val updated = if (taskId in state.expandedTaskIds) {
+                state.expandedTaskIds - taskId
+            } else {
+                state.expandedTaskIds + taskId
+            }
+            state.copy(expandedTaskIds = updated)
+        }
+    }
+
     // ── Tag editor UI state ───────────────────────────────────────────────────
 
     fun showAddTag() {
@@ -160,7 +172,7 @@ class TaskListViewModel @Inject constructor(
     private fun List<Task>.filterByCollection(collection: TaskCollection): List<Task> =
         when (collection) {
             TaskCollection.All -> this
-            TaskCollection.Today -> filter { task -> task.dueDate?.let { isToday(it) } == true }
+            TaskCollection.Today -> filter { task -> task.dueDate?.let { dateFormatter.isToday(it) } == true }
             TaskCollection.Scheduled -> filter { it.dueDate != null }
             TaskCollection.Flagged -> filter { it.isFlagged }
             TaskCollection.Completed -> filter { it.isCompleted }
@@ -169,7 +181,7 @@ class TaskListViewModel @Inject constructor(
 
     private fun List<Task>.toCounts() = CollectionCounts(
         all = size,
-        today = count { task -> task.dueDate?.let { isToday(it) } == true },
+        today = count { task -> task.dueDate?.let { dateFormatter.isToday(it) } == true },
         scheduled = count { it.dueDate != null },
         flagged = count { it.isFlagged },
         completed = count { it.isCompleted }
@@ -181,12 +193,5 @@ class TaskListViewModel @Inject constructor(
                 put(tagId, (get(tagId) ?: 0) + 1)
             }
         }
-    }
-
-    private fun isToday(timestamp: Long): Boolean {
-        val taskCal = Calendar.getInstance().apply { timeInMillis = timestamp }
-        val now = Calendar.getInstance()
-        return taskCal.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
-                taskCal.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR)
     }
 }

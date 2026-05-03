@@ -1,7 +1,6 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -10,6 +9,7 @@ import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceType
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.ui.DateFormatterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -38,7 +38,6 @@ class TaskEditorViewModelTest {
     private val getTaskByIdUseCase: GetTaskByIdUseCase = mockk()
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private var originalTimeZone: TimeZone? = null
@@ -50,12 +49,14 @@ class TaskEditorViewModelTest {
         originalTimeZone = TimeZone.getDefault()
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         Dispatchers.setMain(testDispatcher)
+
+        // Use a real DateFormatterImpl to ensure date manipulation logic is tested
+        val realFormatter = DateFormatterImpl()
+
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { dateFormatter.formatDate(any()) } returns "Mon, Jan 1, 2024"
-        every { dateFormatter.formatTime(any()) } returns "10:00"
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, dateFormatter
+            getTagsUseCase, notificationScheduler, realFormatter
         )
     }
 
@@ -77,6 +78,15 @@ class TaskEditorViewModelTest {
         assertFalse(state.hasDate)
         assertFalse(state.hasTime)
         assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `loadTask with negative id called again preserves in-progress draft`() = runTest {
+        viewModel.loadTask(-1L)                                    // first call: initialises blank state
+        viewModel.onEvent(TaskEditorEvent.TitleChanged("draft"))   // user starts typing
+        viewModel.loadTask(-1L)                                    // second call: must NOT wipe draft
+
+        assertEquals("draft", viewModel.uiState.value.title)
     }
 
     @Test

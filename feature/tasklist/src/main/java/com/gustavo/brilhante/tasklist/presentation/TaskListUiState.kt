@@ -14,7 +14,9 @@ data class TaskListUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val showTagEditor: Boolean = false,
-    val editingTag: Tag? = null
+    val editingTag: Tag? = null,
+    // Expansion state lives here so it survives config changes and LazyColumn recycling.
+    val expandedTaskIds: Set<Long> = emptySet(),
 )
 
 data class CollectionCounts(

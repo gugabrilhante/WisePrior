@@ -1,7 +1,7 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -40,7 +40,7 @@ class TaskListCollectionFilterTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
+    private val dateFormatter: DateFormatter = mockk()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -66,6 +66,8 @@ class TaskListCollectionFilterTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
+        every { dateFormatter.isToday(any()) } returns false
+        every { dateFormatter.isToday(todayMillis) } returns true
         every { dateFormatter.formatShortDate(any()) } returns "Jan 1"
         every { dateFormatter.formatShortDateTime(any()) } returns "Jan 1 10:00"
     }
