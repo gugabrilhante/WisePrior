@@ -41,33 +41,30 @@ def jacocoExclusions = [
 // This makes each module emit a .exec file when `testDebugUnitTest` runs,
 // which the root-level `jacocoTestReport` task aggregates.
 subprojects {
-    plugins.withId('com.android.library') {
-        android {
-            // Removed enableUnitTestCoverage to avoid double instrumentation conflict with JaCoCo
-        }
+    def configureJacoco = {
+        apply plugin: 'jacoco'
         jacoco {
             toolVersion = '0.8.11'
         }
-        test {
+        tasks.withType(Test).configureEach {
             jacoco {
                 includeNoLocationClasses = true
                 excludes = jacocoExclusions
             }
         }
     }
+
+    plugins.withId('com.android.library') {
+        android {
+            // Removed enableUnitTestCoverage to avoid double instrumentation conflict with JaCoCo
+        }
+        configureJacoco()
+    }
     plugins.withId('com.android.application') {
         android {
             // Removed enableUnitTestCoverage to avoid double instrumentation conflict with JaCoCo
         }
-        jacoco {
-            toolVersion = '0.8.11'
-        }
-        test {
-            jacoco {
-                includeNoLocationClasses = true
-                excludes = jacocoExclusions
-            }
-        }
+        configureJacoco()
     }
 }
 
