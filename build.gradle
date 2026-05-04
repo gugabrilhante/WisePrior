@@ -44,15 +44,17 @@ subprojects {
     def configureJacoco = {
         apply plugin: 'jacoco'
         jacoco {
-            toolVersion = '0.8.11'
+            toolVersion = '0.8.12'
         }
         tasks.withType(Test).configureEach {
             jacoco {
-                includeNoLocationClasses = true
+                includeNoLocationClasses = false
                 excludes = jacocoExclusions
             }
             jvmArgs(
+                "-XX:+EnableDynamicAgentLoading",
                 "-Djdk.attach.allowAttachSelf=true",
+                "-Dobjenesis.ignore.jdk.type.check=true",
                 "--add-opens=java.base/java.lang=ALL-UNNAMED",
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
@@ -66,39 +68,9 @@ subprojects {
     }
 
     plugins.withId('com.android.library') {
-        android {
-            testOptions.unitTests.all {
-                jvmArgs(
-                    "-Djdk.attach.allowAttachSelf=true",
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                    "--add-opens=java.base/java.util=ALL-UNNAMED",
-                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-                    "--add-opens=java.base/java.io=ALL-UNNAMED",
-                    "--add-opens=java.base/java.net=ALL-UNNAMED",
-                    "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
-                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
-                    "--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED"
-                )
-            }
-        }
         configureJacoco()
     }
     plugins.withId('com.android.application') {
-        android {
-            testOptions.unitTests.all {
-                jvmArgs(
-                    "-Djdk.attach.allowAttachSelf=true",
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                    "--add-opens=java.base/java.util=ALL-UNNAMED",
-                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-                    "--add-opens=java.base/java.io=ALL-UNNAMED",
-                    "--add-opens=java.base/java.net=ALL-UNNAMED",
-                    "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
-                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
-                    "--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED"
-                )
-            }
-        }
         configureJacoco()
     }
 }
