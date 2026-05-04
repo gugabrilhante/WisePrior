@@ -51,25 +51,53 @@ subprojects {
                 includeNoLocationClasses = true
                 excludes = jacocoExclusions
             }
-            jvmArgs += [
-                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.util=ALL-UNNAMED',
-                '--add-opens', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.io=ALL-UNNAMED',
-                '--add-opens', 'java.base/java.net=ALL-UNNAMED'
-            ]
+            jvmArgs(
+                "-Djdk.attach.allowAttachSelf=true",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.net=ALL-UNNAMED",
+                "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                "--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED"
+            )
         }
     }
 
     plugins.withId('com.android.library') {
         android {
-            // Removed enableUnitTestCoverage to avoid double instrumentation conflict with JaCoCo
+            testOptions.unitTests.all {
+                jvmArgs(
+                    "-Djdk.attach.allowAttachSelf=true",
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED"
+                )
+            }
         }
         configureJacoco()
     }
     plugins.withId('com.android.application') {
         android {
-            // Removed enableUnitTestCoverage to avoid double instrumentation conflict with JaCoCo
+            testOptions.unitTests.all {
+                jvmArgs(
+                    "-Djdk.attach.allowAttachSelf=true",
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    "--add-opens=java.base/java.util=ALL-UNNAMED",
+                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                    "--add-opens=java.base/java.io=ALL-UNNAMED",
+                    "--add-opens=java.base/java.net=ALL-UNNAMED",
+                    "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED"
+                )
+            }
         }
         configureJacoco()
     }
