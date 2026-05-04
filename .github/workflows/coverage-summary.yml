@@ -1,0 +1,165 @@
+name: Coverage Summary
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  coverage-summary:
+    name: Generate and Upload Coverage Summary
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Remove local JDK path from gradle.properties
+        run: sed -i '/org.gradle.java.home/d' gradle.properties
+
+      - name: Run unit tests and generate JaCoCo report
+        run: ./gradlew testDebugUnitTest jacocoTestReport --stacktrace
+
+      - name: Validate JaCoCo report existence
+        run: |
+          if [ ! -f build/reports/jacoco/jacocoTestReport.xml ]; then
+            echo "Error: JaCoCo report not found at build/reports/jacoco/jacocoTestReport.xml"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: build/reports/jacoco/jacocoTestReport.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Generate coverage-summary.json
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<EOF
+          import os
+          import json
+          import urllib.request
+          import time
+          from datetime import datetime
+
+          def main():
+              token = os.environ.get("CODECOV_TOKEN")
+              repo = os.environ.get("REPO")
+              sha = os.environ.get("COMMIT_SHA")
+              
+              print(f"Querying Codecov API for repo: {repo}, commit: {sha}")
+              
+              # Codecov API v2 endpoint for totals, filtered by commit SHA
+              url = f"https://api.codecov.io/api/v2/github/{repo}/totals/?sha={sha}"
+              headers = {
+                  "Accept": "application/json",
+              }
+              if token:
+                  # Some Codecov API endpoints use the upload token as 'token <TOKEN>'
+                  headers["Authorization"] = f"token {token}"
+              
+              report_data = None
+              # Retrying because Codecov takes some time to process the report after upload
+              for i in range(12): 
+                  print(f"Fetching totals (attempt {i+1}/12)...")
+                  try:
+                      req = urllib.request.Request(url, headers=headers)
+                      with urllib.request.urlopen(req) as response:
+                          if response.status == 200:
+                              data = json.loads(response.read().decode())
+                              # Ensure 'files' data is present
+                              if data.get("files"):
+                                  report_data = data
+                                  break
+                              else:
+                                  print("Report found but file-level data not yet available.")
+                          else:
+                              print(f"Received status {response.status}")
+                  except Exception as e:
+                      print(f"Note: {e}")
+                  
+                  time.sleep(30)
+              
+              if not report_data:
+                  print("Failed to retrieve report data from Codecov after multiple attempts.")
+                  exit(1)
+                  
+              file_list = []
+              for item in report_data.get("files", []):
+                  path = item.get("name")
+                  totals = item.get("totals", {})
+                  # Coverage percentage is typically in 'coverage' or 'c'
+                  coverage = totals.get("coverage", totals.get("c", 0))
+                  if coverage is not None:
+                      file_list.append({"file": path, "coverage": float(coverage)})
+
+              # Filter rules: Only Kotlin production files, excluding specific directories/patterns
+              # Ignore: test/, androidTest/, build/, generated/, di/, preview/, theme/
+              ignored_patterns = ["test/", "androidTest/", "build/", "generated/", "di/", "preview/", "theme/"]
+              
+              def is_valid_file(p):
+                  if not p.endswith(".kt"):
+                      return False
+                  for pattern in ignored_patterns:
+                      if pattern in p:
+                          return False
+                  return True
+
+              filtered_files = [f for f in file_list if is_valid_file(f["file"])]
+              
+              # Sort by ascending coverage
+              filtered_files.sort(key=lambda x: x["coverage"])
+              
+              # Selection logic: All production Kotlin files below 80% coverage.
+              # If fewer than 20 files are found, return the 20 lowest covered files instead.
+              below_80 = [f for f in filtered_files if f["coverage"] < 80]
+              
+              if len(below_80) < 20:
+                  result_files = filtered_files[:20]
+              else:
+                  result_files = below_80
+                  
+              summary = {
+                  "generated_at": datetime.utcnow().isoformat() + "Z",
+                  "branch": "master",
+                  "commit": sha,
+                  "lowest_coverage_files": result_files
+              }
+              
+              with open("coverage-summary.json", "w") as f:
+                  json.dump(summary, f, indent=2)
+              
+              print(f"Successfully generated coverage-summary.json with {len(result_files)} files.")
+
+          if __name__ == "__main__":
+              main()
+          EOF
+
+      - name: Upload coverage-summary.json as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage-summary.json
+          retention-days: 14
