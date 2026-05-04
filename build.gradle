@@ -37,9 +37,6 @@ def jacocoExclusions = [
     '**/*Route*',
 ]
 
-// Enable unit test coverage instrumentation in every Android module's debug build.
-// This makes each module emit a .exec file when `testDebugUnitTest` runs,
-// which the root-level `jacocoTestReport` task aggregates.
 subprojects {
     def configureJacoco = {
         apply plugin: 'jacoco'

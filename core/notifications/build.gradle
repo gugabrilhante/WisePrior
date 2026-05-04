@@ -18,6 +18,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 kotlin.jvmToolchain(17)
@@ -34,6 +37,9 @@ dependencies {
     implementation libs.hilt.work
 
     testImplementation libs.junit
+    testImplementation libs.mockk
+    testImplementation libs.turbine
+    testImplementation libs.kotlinx.coroutines.test
     androidTestImplementation libs.androidx.test.ext.junit
     androidTestImplementation libs.androidx.test.runner
 }
