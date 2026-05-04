@@ -52,6 +52,7 @@ def jacocoExclusions = [
     '**/*Theme*',
     '**/*ColorKt*',
     '**/*TypographyKt*',
+    '**/*TypeKt*',
     '**/*ShapeKt*',
     // Navigation boilerplate
     '**/*Navigation*',
@@ -72,15 +73,24 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
         html.outputLocation.set(file("$buildDir/reports/jacoco/html"))
     }
 
-    // Collect Kotlin class files from every subproject's debug compilation output
+    // AGP 9 instruments classes via transformDebugClassesWithAsm, writing results to
+    // intermediates/classes/debug. JaCoCo requires the original non-instrumented classes,
+    // which are in built_in_kotlinc (Kotlin) and javac (Java/Hilt) output dirs.
     def kotlinClassDirs = subprojects.collect { proj ->
         fileTree(
-            dir: "${proj.buildDir}/intermediates/classes/debug",
+            dir: "${proj.buildDir}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
             excludes: jacocoExclusions
         )
     }
 
-    classDirectories.setFrom(files(kotlinClassDirs))
+    def javaClassDirs = subprojects.collect { proj ->
+        fileTree(
+            dir: "${proj.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
+            excludes: jacocoExclusions
+        )
+    }
+
+    classDirectories.setFrom(files(kotlinClassDirs + javaClassDirs))
 
     sourceDirectories.setFrom(files(subprojects.collect { proj ->
         ["${proj.projectDir}/src/main/java",
