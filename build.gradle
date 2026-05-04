@@ -48,6 +48,11 @@ def jacocoExclusions = [
     '**/*_Impl*',
     // Compose tooling
     '**/ComposableSingletons*',
+    '**/*Preview*',
+    '**/*Theme*',
+    '**/*ColorKt*',
+    '**/*TypographyKt*',
+    '**/*ShapeKt*',
     // Navigation boilerplate
     '**/*Navigation*',
     '**/*Route*',
@@ -64,7 +69,7 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
         xml.required = true
         xml.outputLocation.set(file("$buildDir/reports/jacoco/jacocoTestReport.xml"))
         html.required = true
-        html.outputLocation.set(file("$buildDir/reports/jacoco/html/index.html"))
+        html.outputLocation.set(file("$buildDir/reports/jacoco/html"))
     }
 
     // Collect Kotlin class files from every subproject's debug compilation output
@@ -74,15 +79,8 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
             excludes: jacocoExclusions
         )
     }
-    // Collect Java class files (from kapt / generated sources that use javac)
-    def javaClassDirs = subprojects.collect { proj ->
-        fileTree(
-            dir: "${proj.buildDir}/intermediates/javac/debug/classes",
-            excludes: jacocoExclusions
-        )
-    }
 
-    classDirectories.setFrom(files(kotlinClassDirs + javaClassDirs))
+    classDirectories.setFrom(files(kotlinClassDirs))
 
     sourceDirectories.setFrom(files(subprojects.collect { proj ->
         ["${proj.projectDir}/src/main/java",
