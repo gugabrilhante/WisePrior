@@ -1,8 +1,8 @@
 # WisePrior
 
-[![Build](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml)
-[![Unit Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml)
-[![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
+[![Build](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml)
+[![Unit Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml)
+[![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
 ---
@@ -24,8 +24,10 @@ WisePrior is a production-grade Android task manager designed with a heavy focus
 ### Add reminders
 <img src="docs/wise_prior_demo_01.gif" width="33%" alt="Demo 01">   <img src="docs/wise_prior_demo_03.gif" width="33%" alt="Demo 03">
 
-### List reminders - Light Mode   List reminders - Dark Mode
-<img src="docs/wise_prior_demo_06.gif" width="33%" alt="Demo 06">   <img src="docs/wise_prior_demo_08.gif" width="33%" alt="Demo 08">
+### List reminders — Light Mode | List reminders — Dark Mode
+| List reminders — Light Mode | List reminders — Dark Mode |
+|--------------------------------|-------------------------------|
+| <img src="docs/wise_prior_demo_06.gif" width="100%" alt="List reminders in Light Mode"> | <img src="docs/wise_prior_demo_08.gif" width="100%" alt="List reminders in Dark Mode"> |
 
 ### Filters and Tag manager
 <img src="docs/wise_prior_demo_07.gif" width="33%" alt="Demo 07">

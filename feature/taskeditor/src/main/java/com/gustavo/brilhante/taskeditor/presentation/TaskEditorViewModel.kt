@@ -6,7 +6,7 @@ import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
@@ -50,6 +50,8 @@ class TaskEditorViewModel @Inject constructor(
 
     // Long.MIN_VALUE = "never loaded anything yet"; -1L = "already in new-task draft"
     private var editingTaskId: Long = Long.MIN_VALUE
+    // Preserved so saving an edit doesn't overwrite the original creation timestamp
+    private var originalCreatedAt: Long = System.currentTimeMillis()
 
     init {
         observeAvailableTags()
@@ -65,7 +67,8 @@ class TaskEditorViewModel @Inject constructor(
 
     fun loadTask(id: Long) {
         if (id <= 0L) {
-            if (editingTaskId == -1L) return  // already in new-task draft; don't wipe it
+            if (editingTaskId == -1L) return
+            originalCreatedAt = System.currentTimeMillis()
             _uiState.update { current ->
                 TaskEditorUiState(availableTags = current.availableTags).withFormattedDates()
             }
@@ -77,6 +80,7 @@ class TaskEditorViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             getTaskByIdUseCase(id)?.let { task ->
+                originalCreatedAt = task.createdAt
                 _uiState.update { current ->
                     TaskEditorUiState(
                         title = task.title,
@@ -91,7 +95,7 @@ class TaskEditorViewModel @Inject constructor(
                         availableTags = current.availableTags,
                         isFlagged = task.isFlagged,
                         isCompleted = task.isCompleted,
-                        recurrenceType = task.recurrenceType,
+                        recurrenceRule = task.recurrenceRule,
                         isLoading = false
                     ).withFormattedDates()
                 }
@@ -125,7 +129,7 @@ class TaskEditorViewModel @Inject constructor(
                     it.copy(
                         hasDate = !it.hasDate,
                         hasTime = if (turningOff) false else it.hasTime,
-                        recurrenceType = if (turningOff) RecurrenceType.NONE else it.recurrenceType
+                        recurrenceRule = if (turningOff) RecurrenceRule.NONE else it.recurrenceRule
                     ).withFormattedDates()
                 }
             }
@@ -148,7 +152,7 @@ class TaskEditorViewModel @Inject constructor(
                     state.copy(dueDate = newDueDate, showTimePicker = false).withFormattedDates()
                 }
             is TaskEditorEvent.RecurrenceChanged ->
-                _uiState.update { it.copy(recurrenceType = event.recurrenceType) }
+                _uiState.update { it.copy(recurrenceRule = event.rule) }
             is TaskEditorEvent.ShowDatePicker ->
                 _uiState.update { it.copy(showDatePicker = true) }
             is TaskEditorEvent.HideDatePicker ->
@@ -161,9 +165,6 @@ class TaskEditorViewModel @Inject constructor(
         }
     }
 
-    // Centralises all date-derived values so the composable never needs Calendar.
-    // The UTC-midnight conversion is a Material3 DatePicker requirement: it displays
-    // dates in UTC, so we must strip local timezone before passing the initial value.
     private fun TaskEditorUiState.withFormattedDates(): TaskEditorUiState {
         return copy(
             formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
@@ -181,8 +182,9 @@ class TaskEditorViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            val isEditing = editingTaskId > 0L
             val task = Task(
-                id = if (editingTaskId > 0L) editingTaskId else 0L,
+                id = if (isEditing) editingTaskId else 0L,
                 title = state.title.trim(),
                 notes = state.notes.trim(),
                 url = state.url.trim(),
@@ -193,20 +195,19 @@ class TaskEditorViewModel @Inject constructor(
                 tagIds = state.selectedTagIds.toList(),
                 isFlagged = state.isFlagged,
                 isCompleted = state.isCompleted,
-                recurrenceType = state.recurrenceType
+                recurrenceRule = state.recurrenceRule,
+                createdAt = if (isEditing) originalCreatedAt else System.currentTimeMillis()
             )
 
-            val savedTask = if (editingTaskId > 0L) {
+            if (isEditing) {
                 updateTaskUseCase(task)
                 notificationScheduler.cancel(editingTaskId)
-                task
             } else {
                 addTaskUseCase(task)
-                task
             }
 
-            savedTask.dueDate?.let { due ->
-                if (due > System.currentTimeMillis()) notificationScheduler.schedule(savedTask)
+            task.dueDate?.let { due ->
+                if (due > System.currentTimeMillis()) notificationScheduler.schedule(task)
             }
 
             _navigationEvent.send(Unit)

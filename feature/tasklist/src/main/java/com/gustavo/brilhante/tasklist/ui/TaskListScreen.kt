@@ -15,9 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,7 +42,10 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,6 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.tasklist.R
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
@@ -108,7 +116,8 @@ fun TaskListScreen(
                 onEditTask = onEditTask,
                 onDeleteTask = viewModel::deleteTask,
                 onToggleComplete = viewModel::onTaskCheckedChange,
-                onToggleExpanded = viewModel::toggleExpanded
+                onToggleExpanded = viewModel::toggleExpanded,
+                onSortOptionSelected = viewModel::setSortOption
             )
         }
     } else {
@@ -125,15 +134,15 @@ fun TaskListScreen(
                 onEditTask = onEditTask,
                 onDeleteTask = viewModel::deleteTask,
                 onToggleComplete = viewModel::onTaskCheckedChange,
-                onToggleExpanded = viewModel::toggleExpanded
+                onToggleExpanded = viewModel::toggleExpanded,
+                onSortOptionSelected = viewModel::setSortOption
             )
         }
     }
 
-    // Tag editor dialog — shown on top of either layout
     if (uiState.showTagEditor) {
         TagEditorDialog(
-            title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title) 
+            title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title)
                     else stringResource(R.string.new_tag_title),
             initialName = uiState.editingTag?.name ?: "",
             initialColor = uiState.editingTag?.color ?: tagPalette.first().value,
@@ -155,8 +164,10 @@ private fun TaskListContent(
     onDeleteTask: (Task) -> Unit,
     onToggleComplete: (Task, Boolean) -> Unit,
     onToggleExpanded: (Long) -> Unit,
+    onSortOptionSelected: (TaskSortOption) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var showSortMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -175,11 +186,42 @@ private fun TaskListContent(
                         }
                     }
                 },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Sort,
+                                contentDescription = stringResource(R.string.sort_button_description)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            SortOption.entries.forEach { opt ->
+                                DropdownMenuItem(
+                                    text = { Text(opt.label()) },
+                                    onClick = {
+                                        onSortOptionSelected(opt.sortOption)
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = if (uiState.sortOption == opt.sortOption) {
+                                        { Icon(Icons.Filled.Check, contentDescription = null) }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTask) {
+            FloatingActionButton(
+                onClick = onAddTask,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_task_button_description))
             }
         }
@@ -237,7 +279,22 @@ private fun TaskListContent(
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Sort option helpers ───────────────────────────────────────────────────────
+
+private enum class SortOption(val sortOption: TaskSortOption) {
+    CREATED_DESC(TaskSortOption.CREATED_DESC),
+    CREATED_ASC(TaskSortOption.CREATED_ASC),
+    SMART_PRIORITY(TaskSortOption.SMART_PRIORITY);
+
+    @Composable
+    fun label(): String = when (this) {
+        CREATED_DESC -> stringResource(R.string.sort_created_newest)
+        CREATED_ASC -> stringResource(R.string.sort_created_oldest)
+        SMART_PRIORITY -> stringResource(R.string.sort_smart_priority)
+    }
+}
+
+// ── Collection label helper ───────────────────────────────────────────────────
 
 @Composable
 private fun TaskCollection.label(tags: List<Tag>): String = when (this) {
@@ -248,6 +305,8 @@ private fun TaskCollection.label(tags: List<Tag>): String = when (this) {
     TaskCollection.Completed -> stringResource(R.string.collection_completed)
     is TaskCollection.ByTag -> tags.find { it.id == tagId }?.name ?: stringResource(R.string.collection_tag_fallback)
 }
+
+// ── Swipe-to-delete ───────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -261,7 +320,6 @@ private fun SwipeToDeleteContainer(
 
     LaunchedEffect(currentValue) {
         if (currentValue == SwipeToDismissBoxValue.EndToStart) {
-            // Provide a small delay so the user sees the item fully swiped before removal
             delay(400)
             onDelete()
         }

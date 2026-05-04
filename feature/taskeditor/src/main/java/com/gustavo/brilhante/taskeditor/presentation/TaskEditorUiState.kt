@@ -1,7 +1,7 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.Tag
 
 data class TaskEditorUiState(
@@ -19,13 +19,11 @@ data class TaskEditorUiState(
     val availableTags: List<Tag> = emptyList(),
     val isFlagged: Boolean = false,
     val isCompleted: Boolean = false,
-    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val recurrenceRule: RecurrenceRule = RecurrenceRule.NONE,
     val titleError: String? = null,
     val isLoading: Boolean = false,
     val showDatePicker: Boolean = false,
     val showTimePicker: Boolean = false,
-    // Pre-computed picker initial values — computed by the ViewModel alongside formatted
-    // date strings so the composable never needs to import java.util.Calendar.
     val datePickerUtcMillis: Long = 0L,
     val timePickerHour: Int = 0,
     val timePickerMinute: Int = 0,
@@ -42,7 +40,7 @@ sealed interface TaskEditorEvent {
     data class PriorityChanged(val priority: Priority) : TaskEditorEvent
     data class DueDateChanged(val dateMillis: Long) : TaskEditorEvent
     data class TimeChanged(val hour: Int, val minute: Int) : TaskEditorEvent
-    data class RecurrenceChanged(val recurrenceType: RecurrenceType) : TaskEditorEvent
+    data class RecurrenceChanged(val rule: RecurrenceRule) : TaskEditorEvent
     data object ShowDatePicker : TaskEditorEvent
     data object HideDatePicker : TaskEditorEvent
     data object ShowTimePicker : TaskEditorEvent

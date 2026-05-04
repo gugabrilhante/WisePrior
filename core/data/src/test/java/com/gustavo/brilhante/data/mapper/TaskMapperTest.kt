@@ -1,7 +1,8 @@
 package com.gustavo.brilhante.data.mapper
 
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.entity.TaskEntity
 import org.junit.Assert.assertEquals
@@ -21,7 +22,8 @@ class TaskMapperTest {
         tagIds = listOf(101L, 102L),
         isFlagged = true,
         isCompleted = true,
-        recurrenceType = "WEEKLY",
+        recurrenceUnit = "WEEKS",
+        recurrenceInterval = 1,
         createdAt = 1_699_000_000_000L
     )
 
@@ -37,7 +39,7 @@ class TaskMapperTest {
         tagIds = listOf(101L, 102L),
         isFlagged = true,
         isCompleted = true,
-        recurrenceType = RecurrenceType.WEEKLY,
+        recurrenceRule = RecurrenceRule(RecurrenceUnit.WEEKS, 1),
         createdAt = 1_699_000_000_000L
     )
 
@@ -73,10 +75,10 @@ class TaskMapperTest {
     }
 
     @Test
-    fun `toModel falls back to RecurrenceType NONE for unknown recurrence string`() {
-        val entity = sampleEntity.copy(recurrenceType = "UNKNOWN_RECURRENCE")
+    fun `toModel falls back to RecurrenceUnit NONE for unknown unit string`() {
+        val entity = sampleEntity.copy(recurrenceUnit = "UNKNOWN_UNIT")
         val model = entity.toModel()
-        assertEquals(RecurrenceType.NONE, model.recurrenceType)
+        assertEquals(RecurrenceUnit.NONE, model.recurrenceRule.unit)
     }
 
     @Test
@@ -87,6 +89,21 @@ class TaskMapperTest {
     }
 
     @Test
+    fun `toEntity stores recurrenceUnit as its name`() {
+        val task = sampleTask.copy(recurrenceRule = RecurrenceRule(RecurrenceUnit.MONTHS, 3))
+        val entity = task.toEntity()
+        assertEquals("MONTHS", entity.recurrenceUnit)
+        assertEquals(3, entity.recurrenceInterval)
+    }
+
+    @Test
+    fun `toModel coerces interval to at least 1`() {
+        val entity = sampleEntity.copy(recurrenceInterval = 0)
+        val model = entity.toModel()
+        assertEquals(1, model.recurrenceRule.interval)
+    }
+
+    @Test
     fun `toEntity stores priority as its name`() {
         val task = sampleTask.copy(priority = Priority.MEDIUM)
         val entity = task.toEntity()
@@ -94,9 +111,9 @@ class TaskMapperTest {
     }
 
     @Test
-    fun `toEntity stores recurrenceType as its name`() {
-        val task = sampleTask.copy(recurrenceType = RecurrenceType.MONTHLY)
-        val entity = task.toEntity()
-        assertEquals("MONTHLY", entity.recurrenceType)
+    fun `toModel maps custom interval correctly`() {
+        val entity = sampleEntity.copy(recurrenceUnit = "HOURS", recurrenceInterval = 8)
+        val model = entity.toModel()
+        assertEquals(RecurrenceRule(RecurrenceUnit.HOURS, 8), model.recurrenceRule)
     }
 }

@@ -25,10 +25,15 @@
     <string name="editor_label_flag">Flag</string>
 
     <string name="editor_recurrence_repeat">Repeat</string>
+    <string name="editor_recurrence_every">Every</string>
+    <string name="editor_recurrence_decrease">Decrease interval</string>
+    <string name="editor_recurrence_increase">Increase interval</string>
+
     <string name="recurrence_none">None</string>
-    <string name="recurrence_daily">Daily</string>
-    <string name="recurrence_weekly">Weekly</string>
-    <string name="recurrence_monthly">Monthly</string>
+    <string name="recurrence_unit_hours">hours</string>
+    <string name="recurrence_unit_days">days</string>
+    <string name="recurrence_unit_weeks">weeks</string>
+    <string name="recurrence_unit_months">months</string>
 
     <string name="priority_none">None</string>
     <string name="priority_low">Low</string>

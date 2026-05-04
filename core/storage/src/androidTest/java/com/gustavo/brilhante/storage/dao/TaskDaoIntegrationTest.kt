@@ -56,7 +56,8 @@ class TaskDaoIntegrationTest {
         tagIds = emptyList(),
         isFlagged = false,
         isCompleted = false,
-        recurrenceType = "NONE",
+        recurrenceUnit = "NONE",
+        recurrenceInterval = 1,
         createdAt = createdAt
     )
 

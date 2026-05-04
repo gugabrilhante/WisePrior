@@ -11,21 +11,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue40,
+    primary = Green40,
+    onPrimary = OnGreen40,
+    primaryContainer = GreenContainer40,
+    onPrimaryContainer = OnGreenContainer40,
     secondary = BlueGrey40,
     tertiary = Teal40
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue80,
-    secondary = BlueGrey80,
-    tertiary = Teal80
+    primary = Green80,
+    onPrimary = OnGreen80,
+    primaryContainer = GreenContainer80,
+    onPrimaryContainer = OnGreenContainer80,
+    secondary = NeutralBlue80,
+    onSecondary = OnNeutralBlue80,
+    secondaryContainer = NeutralBlueContainer80,
+    onSecondaryContainer = OnNeutralBlueContainer80,
+    background = SurfaceDark,
+    surface = SurfaceDark,
+    surfaceVariant = SurfaceVariantDark,
+    surfaceContainerLowest = SurfaceContainerLowestDark,
+    surfaceContainerLow = SurfaceContainerLowDark,
+    surfaceContainer = SurfaceContainerDark,
+    surfaceContainerHigh = SurfaceContainerHighDark,
+    surfaceContainerHighest = SurfaceContainerHighestDark,
+    onBackground = OnSurfaceDark,
+    onSurface = OnSurfaceDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark,
+    outlineVariant = OutlineVariantDark,
 )
 
 @Composable
 fun WisePriorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // Dynamic color overrides the designed palette on Android 12+; disabled so
+    // the custom dark theme and green accent always apply consistently.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

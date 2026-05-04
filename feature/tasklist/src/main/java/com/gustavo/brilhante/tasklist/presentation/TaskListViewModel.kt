@@ -2,18 +2,21 @@ package com.gustavo.brilhante.tasklist.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
-import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
+import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import com.gustavo.brilhante.ui.DateFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +39,9 @@ class TaskListViewModel @Inject constructor(
     private val updateTagUseCase: UpdateTagUseCase,
     private val deleteTagUseCase: DeleteTagUseCase,
     private val notificationScheduler: NotificationScheduler,
-    private val dateFormatter: DateFormatter
+    private val dateFormatter: DateFormatter,
+    private val sortPreferences: SortPreferencesDataStore,
+    private val calculateTaskPriority: CalculateTaskPriorityUseCase
 ) : ViewModel() {
 
     private val _selectedCollection = MutableStateFlow<TaskCollection>(TaskCollection.All)
@@ -53,11 +58,14 @@ class TaskListViewModel @Inject constructor(
             combine(
                 getTasksUseCase(),
                 _selectedCollection,
-                getTagsUseCase()
-            ) { tasks, collection, tags -> Triple(tasks, collection, tags) }
+                getTagsUseCase(),
+                sortPreferences.sortOption
+            ) { tasks, collection, tags, sortOption ->
+                Quad(tasks, collection, tags, sortOption)
+            }
                 .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
-                .collect { (tasks, collection, tags) ->
-                    val filteredTasks = tasks.filterByCollection(collection)
+                .collect { (tasks, collection, tags, sortOption) ->
+                    val filteredTasks = tasks.filterByCollection(collection).sortedWith(sortOption)
                     val formattedDueDates = filteredTasks.mapNotNull { task ->
                         task.dueDate?.let { dueDate ->
                             val formatted = if (task.hasTime) dateFormatter.formatShortDateTime(dueDate)
@@ -73,7 +81,8 @@ class TaskListViewModel @Inject constructor(
                             collectionCounts = tasks.toCounts(),
                             tags = tags,
                             tagCounts = tasks.toTagCounts(),
-                            isLoading = false
+                            isLoading = false,
+                            sortOption = sortOption
                         )
                     }
                 }
@@ -84,6 +93,14 @@ class TaskListViewModel @Inject constructor(
 
     fun onCollectionSelected(collection: TaskCollection) {
         _selectedCollection.value = collection
+    }
+
+    // ── Sort option ───────────────────────────────────────────────────────────
+
+    fun setSortOption(option: TaskSortOption) {
+        viewModelScope.launch {
+            sortPreferences.setSortOption(option)
+        }
     }
 
     // ── Task actions ──────────────────────────────────────────────────────────
@@ -159,7 +176,6 @@ class TaskListViewModel @Inject constructor(
     fun deleteTag(tag: Tag) {
         viewModelScope.launch {
             deleteTagUseCase(tag)
-            // If the user was viewing this tag, fall back to All
             if (_selectedCollection.value == TaskCollection.ByTag(tag.id)) {
                 _selectedCollection.value = TaskCollection.All
             }
@@ -167,7 +183,7 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    // ── Filtering ─────────────────────────────────────────────────────────────
+    // ── Filtering & sorting ───────────────────────────────────────────────────
 
     private fun List<Task>.filterByCollection(collection: TaskCollection): List<Task> =
         when (collection) {
@@ -178,6 +194,12 @@ class TaskListViewModel @Inject constructor(
             TaskCollection.Completed -> filter { it.isCompleted }
             is TaskCollection.ByTag -> filter { task -> task.tagIds.contains(collection.tagId) }
         }
+
+    private fun List<Task>.sortedWith(option: TaskSortOption): List<Task> = when (option) {
+        TaskSortOption.CREATED_ASC -> sortedBy { it.createdAt }
+        TaskSortOption.CREATED_DESC -> sortedByDescending { it.createdAt }
+        TaskSortOption.SMART_PRIORITY -> sortedByDescending { calculateTaskPriority(it) }
+    }
 
     private fun List<Task>.toCounts() = CollectionCounts(
         all = size,
@@ -195,3 +217,10 @@ class TaskListViewModel @Inject constructor(
         }
     }
 }
+
+// Minimal tuple to avoid Pair/Triple nesting for 4 values in combine
+private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+private operator fun <A, B, C, D> Quad<A, B, C, D>.component1() = first
+private operator fun <A, B, C, D> Quad<A, B, C, D>.component2() = second
+private operator fun <A, B, C, D> Quad<A, B, C, D>.component3() = third
+private operator fun <A, B, C, D> Quad<A, B, C, D>.component4() = fourth

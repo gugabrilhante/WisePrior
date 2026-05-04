@@ -77,6 +77,7 @@ dependencies {
     androidTestImplementation libs.androidx.compose.ui.test.junit4
     androidTestImplementation libs.hilt.android.testing
     androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.datastore.preferences
     // Expose core:storage and core:notifications so @TestInstallIn can reference
     // their Hilt modules (which are impl-scoped transitive deps, not visible to KSP).
     androidTestImplementation project(':core:storage')
