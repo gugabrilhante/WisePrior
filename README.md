@@ -1,8 +1,8 @@
 # WisePrior
 
-[![Build](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml)
-[![Unit Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml)
-[![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
+[![Build](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/build.yml)
+[![Unit Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/unit_test.yml)
+[![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
 **Test Coverage Target: ~90% (JaCoCo + Codecov)**
