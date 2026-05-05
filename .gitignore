@@ -38,3 +38,4 @@ local.properties
 
 # AI assistant local state (machine-specific, not project-relevant)
 .claude/
+.idea/
