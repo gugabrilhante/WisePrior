@@ -3,14 +3,12 @@ package com.gustavo.brilhante.notifications
 import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
-import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkAll
-import io.mockk.verify
-import org.junit.After
+import androidx.work.WorkQuery
+import androidx.work.testing.WorkManagerTestInitHelper
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,38 +20,42 @@ import org.robolectric.annotation.Config
 class BootReceiverTest {
 
     private lateinit var context: Context
-    private val workManager: WorkManager = mockk(relaxed = true)
     private val receiver = BootReceiver()
 
     @Before
     fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        mockkStatic(WorkManager::class)
-        every { WorkManager.getInstance(any()) } returns workManager
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
+        WorkManagerTestInitHelper.initializeTestWorkManager(context)
     }
 
     @Test
     fun `given boot intent, when onReceive called, then enqueues RescheduleNotificationsWorker`() {
-        val intent = mockk<Intent>()
-        every { intent.action } returns Intent.ACTION_BOOT_COMPLETED
+        receiver.onReceive(context, Intent(Intent.ACTION_BOOT_COMPLETED))
 
-        receiver.onReceive(context, intent)
+        val workInfos = WorkManager.getInstance(context)
+            .getWorkInfos(
+                WorkQuery.Builder
+                    .fromTags(listOf(RescheduleNotificationsWorker::class.java.name))
+                    .build()
+            )
+            .get()
 
-        verify(exactly = 1) { workManager.enqueue(any<OneTimeWorkRequest>()) }
+        assertTrue(workInfos.isNotEmpty())
+        assertEquals(WorkInfo.State.ENQUEUED, workInfos.first().state)
     }
 
     @Test
     fun `given other intent, when onReceive called, then does nothing`() {
-        val intent = mockk<Intent>()
-        every { intent.action } returns Intent.ACTION_SEND
+        receiver.onReceive(context, Intent(Intent.ACTION_SEND))
 
-        receiver.onReceive(context, intent)
+        val workInfos = WorkManager.getInstance(context)
+            .getWorkInfos(
+                WorkQuery.Builder
+                    .fromTags(listOf(RescheduleNotificationsWorker::class.java.name))
+                    .build()
+            )
+            .get()
 
-        verify(exactly = 0) { workManager.enqueue(any<OneTimeWorkRequest>()) }
+        assertTrue(workInfos.isEmpty())
     }
 }
