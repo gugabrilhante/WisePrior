@@ -3,10 +3,13 @@ name: Unit Tests
 on:
   pull_request:
     branches: [ master ]
+  push:
+    branches: [ master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel in-progress runs for PRs (same branch, new push); never cancel master pushes
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -39,3 +42,22 @@ jobs:
           name: unit-test-reports
           path: '**/build/reports/tests/'
           retention-days: 7
+
+      # ── Codecov (future) ────────────────────────────────────────────────────
+      # Prerequisites before enabling:
+      #   1. Enable JaCoCo in each module's build.gradle.kts:
+      #        testOptions { unitTests.isIncludeAndroidResources = true }
+      #        android { buildTypes { debug { enableAndroidTestCoverage = true } } }
+      #   2. Add CODECOV_TOKEN to GitHub repository secrets.
+      #   3. Remove `continue-on-error: true` below once the token is set.
+      #
+      # Codecov automatically distinguishes PR patch coverage from the full
+      # baseline uploaded on push-to-master — no extra flags required.
+      - name: Upload coverage to Codecov
+        if: always()
+        continue-on-error: true
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: '**/build/reports/jacoco/**/*.xml'
+          fail_ci_if_error: false

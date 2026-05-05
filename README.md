@@ -5,7 +5,6 @@
 [![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
-**Test Coverage Target: ~60% (JaCoCo + Codecov)**
 
 ---
 
@@ -23,17 +22,14 @@ WisePrior is a production-grade Android task manager designed with a heavy focus
 
 ## Demo
 
-### Add reminders — Demo 01 | Add reminders — Demo 03
 | Add reminders — Demo 01 | Add reminders — Demo 03 |
 |--------------------------|--------------------------|
 | <img src="docs/wise_prior_demo_01.gif" width="100%" alt="Add reminders demo 01"> | <img src="docs/wise_prior_demo_03.gif" width="100%" alt="Add reminders demo 03"> |
 
-### List reminders — Light Mode | List reminders — Dark Mode
 | List reminders — Light Mode | List reminders — Dark Mode |
 |--------------------------------|-------------------------------|
 | <img src="docs/wise_prior_demo_06.gif" width="100%" alt="List reminders in Light Mode"> | <img src="docs/wise_prior_demo_08.gif" width="100%" alt="List reminders in Dark Mode"> |
 
-### Filters and Tag manager
 | Filters and Tag manager |
 |--------------------------|
 | <img src="docs/wise_prior_demo_07.gif" width="100%" alt="Filters and Tag manager"> |
