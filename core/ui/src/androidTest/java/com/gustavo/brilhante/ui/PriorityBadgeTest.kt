@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.gustavo.brilhante.model.Priority
 import org.junit.Rule
@@ -12,17 +13,12 @@ class PriorityBadgeTest {
     @Test
     fun priorityBadge_renders() {
         composeTestRule.setContent {
-            PriorityBadge(priority = Priority.HIGH)
-        }
-        // Minimal test to ensure no crashes during rendering of all priority types
-        composeTestRule.setContent {
-            PriorityBadge(priority = Priority.MEDIUM)
-        }
-        composeTestRule.setContent {
-            PriorityBadge(priority = Priority.LOW)
-        }
-        composeTestRule.setContent {
-            PriorityBadge(priority = Priority.NONE)
+            Column {
+                PriorityBadge(priority = Priority.HIGH)
+                PriorityBadge(priority = Priority.MEDIUM)
+                PriorityBadge(priority = Priority.LOW)
+                PriorityBadge(priority = Priority.NONE)
+            }
         }
     }
 }
