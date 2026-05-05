@@ -2,7 +2,7 @@ package com.gustavo.brilhante.ui
 
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.gustavo.brilhante.model.Tag
 import org.junit.Rule
@@ -13,12 +13,12 @@ class TagChipTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun tagChip_rendersName() {
+    fun tagChip_renders() {
         val tag = Tag(id = 1, name = "Urgent", color = 0xFFFF0000)
         composeTestRule.setContent {
             TagChip(tag = tag, isSelected = false)
         }
-        composeTestRule.onNodeWithText("Urgent").assertExists()
+        composeTestRule.onNodeWithTag(TestTags.CHIP_TAG_ITEM).assertExists()
     }
 
     @Test
@@ -28,7 +28,7 @@ class TagChipTest {
         composeTestRule.setContent {
             TagChip(tag = tag, isSelected = false, onClick = { clicked = true })
         }
-        composeTestRule.onNodeWithText("Urgent").performClick()
+        composeTestRule.onNodeWithTag(TestTags.CHIP_TAG_ITEM).performClick()
         assert(clicked)
     }
 
@@ -38,6 +38,6 @@ class TagChipTest {
         composeTestRule.setContent {
             TagChip(tag = tag, isSelected = true)
         }
-        composeTestRule.onNodeWithText("Urgent").assertIsSelected()
+        composeTestRule.onNodeWithTag(TestTags.CHIP_TAG_ITEM).assertIsSelected()
     }
 }

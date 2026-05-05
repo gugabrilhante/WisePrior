@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -68,9 +69,11 @@ fun TagChip(
             disabledSelectedContainerColor = tagColor,
             disabledLeadingIconColor = foregroundColor,
         ),
-        modifier = modifier.semantics {
-            selected = isVisuallySelected
-            role = Role.Checkbox
-        }
+        modifier = modifier
+            .testTag(TestTags.CHIP_TAG_ITEM)
+            .semantics {
+                selected = isVisuallySelected
+                role = Role.Checkbox
+            }
     )
 }

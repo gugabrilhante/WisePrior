@@ -29,8 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import com.gustavo.brilhante.ui.TestTags
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -67,6 +69,7 @@ fun TagEditorDialog(
     var selectedColor by rememberSaveable { mutableLongStateOf(initialColor) }
 
     AlertDialog(
+        modifier = Modifier.testTag(TestTags.DIALOG_TAG_EDITOR),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -76,7 +79,7 @@ fun TagEditorDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.tag_name_label)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TAG_EDITOR_NAME)
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -124,7 +127,8 @@ fun TagEditorDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name.trim(), selectedColor) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_SAVE)
             ) {
                 Text(stringResource(R.string.save_button))
             }
@@ -132,15 +136,21 @@ fun TagEditorDialog(
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_DELETE)
+                    ) {
                         Text(
                             text = stringResource(R.string.delete_button),
                             color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
-                TextButton(onClick = onDismiss) { 
-                    Text(stringResource(R.string.cancel_button)) 
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_CANCEL)
+                ) {
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         }
