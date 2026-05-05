@@ -2,6 +2,7 @@ package com.gustavo.brilhante.notifications
 
 import android.content.Context
 import android.content.Intent
+import androidx.test.core.app.ApplicationProvider
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import io.mockk.every
@@ -12,18 +13,21 @@ import io.mockk.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [35])
 class BootReceiverTest {
 
-    private val context: Context = mockk(relaxed = true)
+    private lateinit var context: Context
     private val workManager: WorkManager = mockk(relaxed = true)
     private val receiver = BootReceiver()
 
     @Before
     fun setup() {
-        every { context.applicationContext } returns context
-        every { context.getApplicationContext() } returns context
-        
+        context = ApplicationProvider.getApplicationContext()
         mockkStatic(WorkManager::class)
         every { WorkManager.getInstance(any()) } returns workManager
     }

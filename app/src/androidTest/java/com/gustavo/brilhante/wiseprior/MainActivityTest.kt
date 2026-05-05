@@ -1,8 +1,10 @@
 package com.gustavo.brilhante.wiseprior
 
+import android.Manifest
 import android.content.Intent
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
 import com.gustavo.brilhante.notifications.EXTRA_TASK_ID
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -15,10 +17,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
 
+    // Pre-grant notification permission so the system dialog never appears,
+    // which would prevent the activity from reaching DESTROYED during teardown.
     @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
+    val permissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
 
     @get:Rule(order = 1)
+    val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 2)
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Before
