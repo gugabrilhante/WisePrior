@@ -10,6 +10,11 @@ android {
         targetSdk 36
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    buildTypes {
+        debug {
+            enableUnitTestCoverage true
+        }
+    }
 }
 
 kotlin.jvmToolchain(17)
