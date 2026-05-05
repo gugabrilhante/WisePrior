@@ -59,12 +59,16 @@ class TaskListCollectionFilterTest {
     }.timeInMillis
     private val pastMillis  = 1_000_000_000_000L // Sep 9 2001
 
-    private val taskNoDate  = Task(id = 1, title = "No date")
-    private val taskPast    = Task(id = 2, title = "Past",      dueDate = pastMillis)
-    private val taskToday   = Task(id = 3, title = "Today",     dueDate = todayMillis)
-    private val taskFlagged = Task(id = 4, title = "Flagged",   isFlagged = true)
-    private val taskDone    = Task(id = 5, title = "Completed", isCompleted = true)
-    private val taskTagged  = Task(id = 6, title = "Tagged",    tagIds = listOf(42L))
+    // createdAt is pinned in descending order so CREATED_DESC sort produces the same
+    // sequence as allTasks regardless of wall-clock speed (avoids CI flakiness where
+    // all six tasks would otherwise get the same System.currentTimeMillis() value
+    // locally but distinct values on CI, causing the sort to reverse the list).
+    private val taskNoDate  = Task(id = 1, title = "No date",    createdAt = 6_000L)
+    private val taskPast    = Task(id = 2, title = "Past",        dueDate = pastMillis,  createdAt = 5_000L)
+    private val taskToday   = Task(id = 3, title = "Today",       dueDate = todayMillis, createdAt = 4_000L)
+    private val taskFlagged = Task(id = 4, title = "Flagged",     isFlagged = true,      createdAt = 3_000L)
+    private val taskDone    = Task(id = 5, title = "Completed",   isCompleted = true,    createdAt = 2_000L)
+    private val taskTagged  = Task(id = 6, title = "Tagged",      tagIds = listOf(42L),  createdAt = 1_000L)
 
     private val allTasks = listOf(taskNoDate, taskPast, taskToday, taskFlagged, taskDone, taskTagged)
 
