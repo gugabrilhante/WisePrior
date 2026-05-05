@@ -92,10 +92,10 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
         html.outputLocation.set(file("$buildDir/reports/jacoco/jacocoTestReport/html"))
     }
 
-    // Collect original non-instrumented Kotlin class files
+    // Collect original non-instrumented Kotlin class files (AGP 9 path)
     def kotlinClassDirs = subprojects.collect { proj ->
         fileTree(
-            dir: "${proj.buildDir}/tmp/kotlin-classes/debug",
+            dir: "${proj.buildDir}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
             excludes: jacocoExclusions
         )
     }
