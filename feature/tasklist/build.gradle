@@ -9,7 +9,11 @@ plugins {
 android {
     namespace 'com.gustavo.brilhante.tasklist'
     compileSdk 36
-    defaultConfig { minSdk 24 }
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
     buildFeatures { compose true }
 }
 
@@ -41,11 +45,13 @@ dependencies {
 
     implementation libs.androidx.navigation3.runtime
     implementation libs.kotlinx.serialization.json
+    implementation "androidx.datastore:datastore-preferences:1.1.4"
 
     testImplementation libs.junit
     testImplementation libs.mockk
     testImplementation libs.turbine
     testImplementation libs.kotlinx.coroutines.test
     androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.espresso.core
 }

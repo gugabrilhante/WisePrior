@@ -1,7 +1,7 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
+import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -10,17 +10,18 @@ import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -43,15 +44,20 @@ class TaskListCollectionFilterTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
+    private val dateFormatter: DateFormatter = mockk()
+    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
 
     private val testDispatcher = StandardTestDispatcher()
 
-    // Fixed date for deterministic testing: April 30, 2026 at noon UTC (current date)
-    private val fixedClock = Clock.fixed(Instant.parse("2026-04-30T12:00:00Z"), ZoneOffset.UTC)
-    private val todayMillis: Long = fixedClock.millis()
-    // pastMillis is Sep 9 2001 — never matches "today" in any timezone
-    private val pastMillis  = 1_000_000_000_000L
+    // Noon today — avoids midnight boundary flakiness while still matching isToday()
+    private val todayMillis: Long = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.HOUR_OF_DAY, 12)
+        set(java.util.Calendar.MINUTE, 0)
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    private val pastMillis  = 1_000_000_000_000L // Sep 9 2001
 
     private val taskNoDate  = Task(id = 1, title = "No date")
     private val taskPast    = Task(id = 2, title = "Past",      dueDate = pastMillis)
@@ -66,6 +72,10 @@ class TaskListCollectionFilterTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        coEvery { sortPreferences.setSortOption(any()) } returns Unit
+        every { dateFormatter.isToday(any()) } returns false
+        every { dateFormatter.isToday(todayMillis) } returns true
         every { dateFormatter.formatShortDate(any()) } returns "Jan 1"
         every { dateFormatter.formatShortDateTime(any()) } returns "Jan 1 10:00"
     }
@@ -80,7 +90,7 @@ class TaskListCollectionFilterTest {
         return TaskListViewModel(
             getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
             addTagUseCase, updateTagUseCase, deleteTagUseCase,
-            notificationScheduler, dateFormatter
+            notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
         )
     }
 

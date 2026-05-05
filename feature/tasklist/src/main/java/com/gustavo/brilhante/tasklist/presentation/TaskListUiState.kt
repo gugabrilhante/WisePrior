@@ -2,6 +2,7 @@ package com.gustavo.brilhante.tasklist.presentation
 
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 
 data class TaskListUiState(
@@ -14,7 +15,9 @@ data class TaskListUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val showTagEditor: Boolean = false,
-    val editingTag: Tag? = null
+    val editingTag: Tag? = null,
+    val expandedTaskIds: Set<Long> = emptySet(),
+    val sortOption: TaskSortOption = TaskSortOption.CREATED_DESC,
 )
 
 data class CollectionCounts(
@@ -30,7 +33,7 @@ data class CollectionCounts(
         TaskCollection.Scheduled -> scheduled
         TaskCollection.Flagged -> flagged
         TaskCollection.Completed -> completed
-        is TaskCollection.ByTag -> 0 // tag counts live in TaskListUiState.tagCounts
+        is TaskCollection.ByTag -> 0
     }
 }
 

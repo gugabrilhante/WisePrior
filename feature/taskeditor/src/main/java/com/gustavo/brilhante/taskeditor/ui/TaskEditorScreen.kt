@@ -4,28 +4,37 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -33,6 +42,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -42,7 +52,9 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,14 +64,13 @@ import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
 import com.gustavo.brilhante.ui.TagChip
 import com.gustavo.brilhante.ui.ToggleRow
-import java.util.Calendar
-import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -71,35 +82,17 @@ fun TaskEditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Load task or reset state on screen entry
     LaunchedEffect(taskId) {
         viewModel.loadTask(taskId ?: -1L)
     }
 
-    // ✅ FIX: Channel-based one-shot navigation — no boolean flag in UiState,
-    // no LaunchedEffect(boolean) risk. Collects exactly once per emission.
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { onBack() }
     }
 
-    // DatePicker dialog
     if (uiState.showDatePicker) {
-        // Convert local dueDate to UTC midnight so the picker highlights the correct day
-        // regardless of timezone (DatePicker works in UTC midnight values).
-        val initialUtcMidnight = remember(uiState.dueDate) {
-            val localCal = Calendar.getInstance().apply { timeInMillis = uiState.dueDate }
-            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                set(Calendar.YEAR, localCal.get(Calendar.YEAR))
-                set(Calendar.MONTH, localCal.get(Calendar.MONTH))
-                set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
-        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialUtcMidnight
+            initialSelectedDateMillis = uiState.datePickerUtcMillis
         )
         DatePickerDialog(
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) },
@@ -120,12 +113,10 @@ fun TaskEditorScreen(
         }
     }
 
-    // TimePicker dialog (Material 3 has no TimePickerDialog, so we wrap in AlertDialog)
     if (uiState.showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = uiState.dueDate }
         val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
+            initialHour = uiState.timePickerHour,
+            initialMinute = uiState.timePickerMinute,
             is24Hour = true
         )
         AlertDialog(
@@ -242,12 +233,11 @@ fun TaskEditorScreen(
                             } else null
                         )
 
-                        // Recurrence
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         RecurrenceSelector(
-                            selected = uiState.recurrenceType,
-                            onSelect = { viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(it)) },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            rule = uiState.recurrenceRule,
+                            onRuleChange = { viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(it)) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -368,40 +358,138 @@ fun TaskEditorScreen(
     }
 }
 
+// ── Recurrence selector ───────────────────────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecurrenceSelector(
-    selected: RecurrenceType,
-    onSelect: (RecurrenceType) -> Unit,
+    rule: RecurrenceRule,
+    onRuleChange: (RecurrenceRule) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.editor_recurrence_repeat),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        val options = RecurrenceType.entries
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            options.forEachIndexed { index, type ->
-                SegmentedButton(
-                    selected = selected == type,
-                    onClick = { onSelect(type) },
-                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    label = {
-                        Text(
-                            when (type) {
-                                RecurrenceType.NONE -> stringResource(R.string.recurrence_none)
-                                RecurrenceType.DAILY -> stringResource(R.string.recurrence_daily)
-                                RecurrenceType.WEEKLY -> stringResource(R.string.recurrence_weekly)
-                                RecurrenceType.MONTHLY -> stringResource(R.string.recurrence_monthly)
-                            },
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
+        // Toggle row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Repeat,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.editor_recurrence_repeat),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            Switch(
+                checked = rule.isRecurring,
+                onCheckedChange = { enabled ->
+                    onRuleChange(
+                        if (enabled) RecurrenceRule(RecurrenceUnit.DAYS, 1)
+                        else RecurrenceRule.NONE
+                    )
+                }
+            )
+        }
+
+        if (rule.isRecurring) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.editor_recurrence_every),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(4.dp))
+                // Decrement button
+                IconButton(
+                    onClick = {
+                        if (rule.interval > 1) onRuleChange(rule.copy(interval = rule.interval - 1))
+                    },
+                    enabled = rule.interval > 1
+                ) {
+                    Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.editor_recurrence_decrease))
+                }
+                Text(
+                    text = rule.interval.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.width(32.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                // Increment button
+                IconButton(
+                    onClick = { onRuleChange(rule.copy(interval = rule.interval + 1)) }
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_recurrence_increase))
+                }
+                Spacer(Modifier.width(4.dp))
+                RecurrenceUnitDropdown(
+                    selected = rule.unit,
+                    onSelect = { onRuleChange(rule.copy(unit = it)) }
                 )
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecurrenceUnitDropdown(
+    selected: RecurrenceUnit,
+    onSelect: (RecurrenceUnit) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val units = RecurrenceUnit.entries.filter { it != RecurrenceUnit.NONE }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selected.label(),
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .width(140.dp),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            units.forEach { unit ->
+                DropdownMenuItem(
+                    text = { Text(unit.label()) },
+                    onClick = { onSelect(unit); expanded = false },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecurrenceUnit.label(): String = when (this) {
+    RecurrenceUnit.NONE -> ""
+    RecurrenceUnit.HOURS -> stringResource(R.string.recurrence_unit_hours)
+    RecurrenceUnit.DAYS -> stringResource(R.string.recurrence_unit_days)
+    RecurrenceUnit.WEEKS -> stringResource(R.string.recurrence_unit_weeks)
+    RecurrenceUnit.MONTHS -> stringResource(R.string.recurrence_unit_months)
 }

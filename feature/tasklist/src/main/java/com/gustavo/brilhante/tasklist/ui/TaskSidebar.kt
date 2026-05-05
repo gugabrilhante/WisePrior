@@ -2,12 +2,14 @@ package com.gustavo.brilhante.tasklist.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
@@ -42,6 +45,10 @@ import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.tasklist.presentation.CollectionCounts
 
 private const val MAX_TAGS = 5
+
+// Public so the app-module UI tests can reference it without hardcoding the string.
+const val SIDEBAR_LIST_TEST_TAG = "sidebar_list"
+const val ADD_TAG_BUTTON_TEST_TAG = "add_tag_button"
 
 @Stable
 private data class SidebarItem(
@@ -69,22 +76,38 @@ fun TaskSidebarContent(
     onEditTag: (Tag) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Spacer(Modifier.height(16.dp))
+    // LazyColumn provides native vertical scrolling so every item (including tags near
+    // the bottom) is reachable on any screen size or orientation. A plain Column would
+    // clip content that overflows the drawer height, making those items inaccessible.
+    // This is especially important for the 'New Tag' button and tags at the end of the list.
+    LazyColumn(
+        modifier = modifier
+            .fillMaxHeight()
+            .testTag(SIDEBAR_LIST_TEST_TAG)
+    ) {
+        item(key = "header_spacer") {
+            Spacer(Modifier.height(16.dp))
+        }
 
-        val itemModifier = Modifier.padding(horizontal = 12.dp)
+        item(key = "title") {
+            Text(
+                text = stringResource(R.string.app_name_sidebar),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
+            )
+        }
 
-        Text(
-            text = stringResource(R.string.app_name_sidebar),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
-        )
+        item(key = "divider_top") {
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-        // ── Default collections ───────────────────────────────────────────────────
-        defaultCollections.forEach { item ->
+        // ── Default collections ───────────────────────────────────────────────
+        items(
+            items = defaultCollections,
+            // labelResId is unique per collection and stable across recompositions
+            key = { it.labelResId }
+        ) { item ->
             val count = counts.forCollection(item.collection)
             NavigationDrawerItem(
                 icon = { Icon(item.icon, contentDescription = null) },
@@ -101,21 +124,25 @@ fun TaskSidebarContent(
                 selected = selectedCollection == item.collection,
                 onClick = { onCollectionSelected(item.collection) },
                 colors = NavigationDrawerItemDefaults.colors(),
-                modifier = itemModifier
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
 
-        // ── Tags section ──────────────────────────────────────────────────────────
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        // ── Tags section ──────────────────────────────────────────────────────
+        item(key = "divider_tags") {
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
 
-        Text(
-            text = stringResource(R.string.sidebar_tags_header),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
-        )
+        item(key = "tags_header") {
+            Text(
+                text = stringResource(R.string.sidebar_tags_header),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
+            )
+        }
 
-        tags.forEach { tag ->
+        items(items = tags, key = { "tag_${it.id}" }) { tag ->
             val tagTaskCount = tagCounts[tag.id] ?: 0
             val isSelected = selectedCollection == TaskCollection.ByTag(tag.id)
 
@@ -129,9 +156,7 @@ fun TaskSidebarContent(
                 },
                 label = { Text(tag.name) },
                 badge = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         if (tagTaskCount > 0) {
                             Text(
                                 text = tagTaskCount.toString(),
@@ -156,35 +181,39 @@ fun TaskSidebarContent(
                 selected = isSelected,
                 onClick = { onCollectionSelected(TaskCollection.ByTag(tag.id)) },
                 colors = NavigationDrawerItemDefaults.colors(),
-                modifier = itemModifier
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
 
-        // ── Add tag button ────────────────────────────────────────────────────────
-        val atLimit = tags.size >= MAX_TAGS
-        NavigationDrawerItem(
-            icon = {
-                Icon(
-                    Icons.Rounded.Add,
-                    contentDescription = null,
-                    tint = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.primary
-                )
-            },
-            label = {
-                Text(
-                    text = if (atLimit) pluralStringResource(R.plurals.tag_limit_message, MAX_TAGS, MAX_TAGS)
-                           else stringResource(R.string.add_tag_label),
-                    color = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.primary
-                )
-            },
-            selected = false,
-            onClick = { if (!atLimit) onAddTag() },
-            colors = NavigationDrawerItemDefaults.colors(),
-            modifier = itemModifier
-                .alpha(if (atLimit) 0.5f else 1f)
-                .semantics { if (atLimit) disabled() }
-        )
+        // ── Add tag button ────────────────────────────────────────────────────
+        item(key = "add_tag") {
+            val atLimit = tags.size >= MAX_TAGS
+            NavigationDrawerItem(
+                icon = {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = null,
+                        tint = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.primary
+                    )
+                },
+                label = {
+                    Text(
+                        text = if (atLimit) pluralStringResource(R.plurals.tag_limit_message, MAX_TAGS, MAX_TAGS)
+                               else stringResource(R.string.add_tag_label),
+                        color = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.primary
+                    )
+                },
+                selected = false,
+                onClick = { if (!atLimit) onAddTag() },
+                colors = NavigationDrawerItemDefaults.colors(),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .testTag(ADD_TAG_BUTTON_TEST_TAG)
+                    .alpha(if (atLimit) 0.5f else 1f)
+                    .semantics { if (atLimit) disabled() }
+            )
+        }
     }
 }

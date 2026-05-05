@@ -30,7 +30,7 @@ jobs:
         run: sed -i '/org.gradle.java.home/d' gradle.properties
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Upload test reports
         if: always()

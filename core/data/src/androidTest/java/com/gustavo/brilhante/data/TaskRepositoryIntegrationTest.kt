@@ -7,7 +7,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.gustavo.brilhante.data.repository.TaskRepositoryImpl
 import com.gustavo.brilhante.model.Priority
-import com.gustavo.brilhante.model.RecurrenceType
+import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.database.AppDatabase
 import com.gustavo.brilhante.storage.datasources.TaskDataSource
@@ -61,7 +62,7 @@ class TaskRepositoryIntegrationTest {
         tagIds = emptyList(),
         isFlagged = false,
         isCompleted = false,
-        recurrenceType = RecurrenceType.NONE,
+        recurrenceRule = RecurrenceRule.NONE,
         createdAt = createdAt
     )
 
@@ -79,7 +80,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → getTasks ────────────────────────────────────────────────────────
 
     @Test
-    fun `given new task, when addTask then getTasks observed, then task appears in flow`() = runTest {
+    fun givenNewTask_whenAddTaskThenGetTasksObserved_thenTaskAppearsInFlow() = runTest {
         repository.addTask(buildTask(title = "Buy groceries"))
 
         repository.getTasks().test {
@@ -91,7 +92,7 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    fun `given multiple tasks added, when getTasks observed, then all tasks appear ordered by createdAt desc`() = runTest {
+    fun givenMultipleTasksAdded_whenGetTasksObserved_thenAllTasksAppearOrderedByCreatedAtDesc() = runTest {
         repository.addTask(buildTask(title = "Task A", createdAt = 1_000L))
         repository.addTask(buildTask(title = "Task B", createdAt = 2_000L))
         repository.addTask(buildTask(title = "Task C", createdAt = 3_000L))
@@ -109,7 +110,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → getTaskById ─────────────────────────────────────────────────────
 
     @Test
-    fun `given added task, when getTaskById called with its id, then returns task matching original`() = runTest {
+    fun givenAddedTask_whenGetTaskByIdCalledWithItsId_thenReturnsTaskMatchingOriginal() = runTest {
         val inserted = addAndGet(buildTask(title = "Read book"))
 
         val retrieved = repository.getTaskById(inserted.id)
@@ -120,14 +121,14 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    fun `given empty repository, when getTaskById called, then returns null`() = runTest {
+    fun givenEmptyRepository_whenGetTaskByIdCalled_thenReturnsNull() = runTest {
         assertNull(repository.getTaskById(999L))
     }
 
     // ── add → update → getTasks ───────────────────────────────────────────────
 
     @Test
-    fun `given added task, when updateTask then getTasks observed, then flow reflects updated fields`() = runTest {
+    fun givenAddedTask_whenUpdateTaskThenGetTasksObserved_thenFlowReflectsUpdatedFields() = runTest {
         val inserted = addAndGet(buildTask(title = "Original title"))
         val updated = inserted.copy(title = "Updated title", priority = Priority.HIGH)
 
@@ -145,7 +146,7 @@ class TaskRepositoryIntegrationTest {
     // ── add → delete → getTasks ───────────────────────────────────────────────
 
     @Test
-    fun `given added task, when deleteTask then getTasks observed, then flow is empty`() = runTest {
+    fun givenAddedTask_whenDeleteTaskThenGetTasksObserved_thenFlowIsEmpty() = runTest {
         val inserted = addAndGet(buildTask(title = "To delete"))
 
         repository.deleteTask(inserted)
@@ -159,23 +160,35 @@ class TaskRepositoryIntegrationTest {
     // ── domain model round-trip ───────────────────────────────────────────────
 
     @Test
-    fun `given task with all fields, when add then retrieve, then all domain fields survive the round-trip`() = runTest {
+    fun givenTaskWithAllFields_whenAddThenRetrieve_thenAllDomainFieldsSurviveTheRoundTrip() = runTest {
+        val weeklyRule = RecurrenceRule(RecurrenceUnit.WEEKS, 1)
         val original = buildTask(title = "Full task").copy(
             notes = "My notes",
             isUrgent = true,
             priority = Priority.MEDIUM,
             isFlagged = true,
-            recurrenceType = RecurrenceType.WEEKLY
+            recurrenceRule = weeklyRule
         )
         val inserted = addAndGet(original)
 
         val retrieved = repository.getTaskById(inserted.id)!!
 
-        assertEquals("Full task",           retrieved.title)
-        assertEquals("My notes",            retrieved.notes)
-        assertEquals(true,                  retrieved.isUrgent)
-        assertEquals(Priority.MEDIUM,       retrieved.priority)
-        assertEquals(true,                  retrieved.isFlagged)
-        assertEquals(RecurrenceType.WEEKLY, retrieved.recurrenceType)
+        assertEquals("Full task",   retrieved.title)
+        assertEquals("My notes",    retrieved.notes)
+        assertEquals(true,          retrieved.isUrgent)
+        assertEquals(Priority.MEDIUM, retrieved.priority)
+        assertEquals(true,          retrieved.isFlagged)
+        assertEquals(weeklyRule,    retrieved.recurrenceRule)
+    }
+
+    @Test
+    fun givenTaskWithCustomRecurrence_whenAddThenRetrieve_thenRecurrenceRuleSurvives() = runTest {
+        val rule = RecurrenceRule(RecurrenceUnit.HOURS, 8)
+        val original = buildTask(title = "Every 8 hours").copy(recurrenceRule = rule)
+        val inserted = addAndGet(original)
+
+        val retrieved = repository.getTaskById(inserted.id)!!
+
+        assertEquals(rule, retrieved.recurrenceRule)
     }
 }

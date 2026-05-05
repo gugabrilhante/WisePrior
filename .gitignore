@@ -24,6 +24,8 @@ local.properties
 /.idea/planningMode.xml
 /.idea/migrations.xml
 /.idea/runConfigurations.xml
+/.idea/androidTestResultsUserPreferences.xml
+/.idea/misc.xml
 /.idea/inspectionProfiles/
 
 # macOS

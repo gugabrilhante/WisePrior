@@ -5,11 +5,17 @@ plugins {
 android {
     namespace 'com.gustavo.brilhante.model'
     compileSdk 36
-    defaultConfig { minSdk 24 }
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
 }
 
 kotlin.jvmToolchain(17)
 
 dependencies {
     testImplementation libs.junit
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
 }

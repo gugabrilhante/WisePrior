@@ -11,7 +11,7 @@ import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.entity.TagEntity
 import com.gustavo.brilhante.storage.entity.TaskEntity
 
-@Database(entities = [TaskEntity::class, TagEntity::class], version = 6, exportSchema = true)
+@Database(entities = [TaskEntity::class, TagEntity::class], version = 7, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
@@ -171,6 +171,55 @@ abstract class AppDatabase : RoomDatabase() {
                     }
                 }
                 tasksCursor.close()
+
+                database.execSQL("DROP TABLE `tasks`")
+                database.execSQL("ALTER TABLE `tasks_new` RENAME TO `tasks`")
+            }
+        }
+
+        // Replaces `recurrenceType TEXT` with `recurrenceUnit TEXT` + `recurrenceInterval INTEGER`.
+        // Converts old enum names: DAILY→DAYS, WEEKLY→WEEKS, MONTHLY→MONTHS, NONE→NONE.
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE `tasks_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `notes` TEXT NOT NULL,
+                        `url` TEXT NOT NULL,
+                        `dueDate` INTEGER,
+                        `hasTime` INTEGER NOT NULL,
+                        `isUrgent` INTEGER NOT NULL,
+                        `priority` TEXT NOT NULL,
+                        `tagIds` TEXT NOT NULL,
+                        `isFlagged` INTEGER NOT NULL,
+                        `isCompleted` INTEGER NOT NULL,
+                        `recurrenceUnit` TEXT NOT NULL,
+                        `recurrenceInterval` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+
+                database.execSQL(
+                    """
+                    INSERT INTO tasks_new
+                        (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds,
+                         isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+                    SELECT id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds,
+                           isFlagged, isCompleted,
+                           CASE recurrenceType
+                               WHEN 'DAILY'   THEN 'DAYS'
+                               WHEN 'WEEKLY'  THEN 'WEEKS'
+                               WHEN 'MONTHLY' THEN 'MONTHS'
+                               ELSE 'NONE'
+                           END,
+                           1,
+                           createdAt
+                    FROM tasks
+                    """.trimIndent()
+                )
 
                 database.execSQL("DROP TABLE `tasks`")
                 database.execSQL("ALTER TABLE `tasks_new` RENAME TO `tasks`")

@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,19 +31,21 @@ import androidx.compose.ui.unit.sp
 import com.gustavo.brilhante.data.models.Task
 import com.gustavo.brilhante.data.repository.MockTaskRepository
 import com.gustavo.brilhante.taskmanager.presentation.TaskManagerViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Preview
 @Composable
 fun PreviewTaskScreen() {
-    TaskManagerScreen(taskViewModel = TaskManagerViewModel(MockTaskRepository()))
+    val mockViewModel = TaskManagerViewModel(
+        MockTaskRepository(),
+        com.gustavo.brilhante.ui.DateFormatterImpl()
+    )
+    TaskManagerScreen(taskViewModel = mockViewModel)
 }
 
 @Composable
 fun TaskManagerScreen(taskViewModel: TaskManagerViewModel) {
     val tasks by taskViewModel.tasks.collectAsState()
+    val formattedDates by taskViewModel.formattedDates.collectAsState()
 
     Scaffold(
         topBar = {
@@ -59,7 +62,7 @@ fun TaskManagerScreen(taskViewModel: TaskManagerViewModel) {
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            TaskList(tasks = tasks)
+            TaskList(tasks = tasks, formattedDates = formattedDates)
             Spacer(modifier = Modifier.height(16.dp))
             AddTaskForm(onAddTask = { taskViewModel.addTask(it) })
         }
@@ -67,16 +70,16 @@ fun TaskManagerScreen(taskViewModel: TaskManagerViewModel) {
 }
 
 @Composable
-fun TaskList(tasks: List<Task>) {
+fun TaskList(tasks: List<Task>, formattedDates: Map<Task, String>) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(tasks) { task ->
-            TaskCard(task)
+            TaskCard(task, formattedDates[task] ?: "")
         }
     }
 }
 
 @Composable
-fun TaskCard(task: Task) {
+fun TaskCard(task: Task, formattedDate: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -90,7 +93,7 @@ fun TaskCard(task: Task) {
             Text(text = task.description, fontSize = 14.sp, color = Color.DarkGray)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Prazo: ${formatDate(task.dueDate)}",
+                text = "Prazo: $formattedDate",
                 fontSize = 12.sp,
                 color = Color.Gray
             )
@@ -100,8 +103,8 @@ fun TaskCard(task: Task) {
 
 @Composable
 fun AddTaskForm(onAddTask: (Task) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
     val dueDate = System.currentTimeMillis()
 
     Card(
@@ -139,10 +142,5 @@ fun AddTaskForm(onAddTask: (Task) -> Unit) {
             }
         }
     }
-}
-
-fun formatDate(timeMillis: Long): String {
-    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return sdf.format(Date(timeMillis))
 }
 

@@ -44,4 +44,9 @@
     <string name="color_name_pink">Pink</string>
     <string name="color_name_gray">Gray</string>
     <string name="color_name_format">Color %s</string>
+
+    <string name="sort_button_description">Sort tasks</string>
+    <string name="sort_created_newest">Created (Newest first)</string>
+    <string name="sort_created_oldest">Created (Oldest first)</string>
+    <string name="sort_smart_priority">Smart Priority</string>
 </resources>

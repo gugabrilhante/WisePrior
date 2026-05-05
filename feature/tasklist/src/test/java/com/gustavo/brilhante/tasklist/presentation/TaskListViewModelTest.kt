@@ -1,8 +1,8 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.common.DateFormatter
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
@@ -11,7 +11,10 @@ import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.ui.DateFormatterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -41,7 +44,9 @@ class TaskListViewModelTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val dateFormatter: DateFormatter = mockk(relaxed = true)
+    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
+    private val dateFormatter = DateFormatterImpl()
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -49,6 +54,8 @@ class TaskListViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 
     @After
@@ -56,13 +63,11 @@ class TaskListViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildViewModel(): TaskListViewModel {
-        return TaskListViewModel(
-            getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
-            addTagUseCase, updateTagUseCase, deleteTagUseCase,
-            notificationScheduler, dateFormatter
-        )
-    }
+    private fun buildViewModel(): TaskListViewModel = TaskListViewModel(
+        getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
+        addTagUseCase, updateTagUseCase, deleteTagUseCase,
+        notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
+    )
 
     @Test
     fun `initial state has isLoading false`() = runTest {
@@ -76,8 +81,8 @@ class TaskListViewModelTest {
     @Test
     fun `loading tasks updates uiState tasks list`() = runTest {
         val tasks = listOf(
-            Task(id = 1, title = "Task A", priority = Priority.HIGH),
-            Task(id = 2, title = "Task B")
+            Task(id = 1, title = "Task A", priority = Priority.HIGH, createdAt = 2_000L),
+            Task(id = 2, title = "Task B", createdAt = 1_000L)
         )
         every { getTasksUseCase() } returns flowOf(tasks)
 
@@ -85,7 +90,8 @@ class TaskListViewModelTest {
 
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(tasks, state.tasks)
+            // Default sort is CREATED_DESC, so Task A (newer) comes first
+            assertEquals(2, state.tasks.size)
             assertFalse(state.isLoading)
         }
     }

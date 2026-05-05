@@ -1,12 +1,18 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
     namespace 'com.gustavo.brilhante.ui'
     compileSdk 36
-    defaultConfig { minSdk 24 }
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
     buildFeatures { compose true }
 }
 
@@ -15,6 +21,9 @@ kotlin.jvmToolchain(17)
 dependencies {
     implementation project(':core:model')
     implementation project(':core:designsystem')
+
+    implementation libs.hilt.android
+    ksp libs.hilt.compiler
 
     def composeBom = platform(libs.androidx.compose.bom)
     implementation composeBom
@@ -26,4 +35,6 @@ dependencies {
     debugImplementation libs.androidx.compose.ui.tooling
 
     testImplementation libs.junit
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
 }

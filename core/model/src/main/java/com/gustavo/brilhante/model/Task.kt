@@ -12,6 +12,6 @@ data class Task(
     val tagIds: List<Long> = emptyList(),
     val isFlagged: Boolean = false,
     val isCompleted: Boolean = false,
-    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
+    val recurrenceRule: RecurrenceRule = RecurrenceRule.NONE,
     val createdAt: Long = System.currentTimeMillis()
 )
