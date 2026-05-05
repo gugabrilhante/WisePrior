@@ -8,8 +8,8 @@ class TaskTest {
 
     @Test
     fun `test task equality and copy`() {
-        val task1 = Task(id = 1, title = "Test Task")
-        val task2 = Task(id = 1, title = "Test Task")
+        val task1 = Task(id = 1, title = "Test Task", createdAt = 0L)
+        val task2 = Task(id = 1, title = "Test Task", createdAt = 0L)
         val task3 = task1.copy(title = "Updated Task")
 
         assertEquals(task1, task2)
