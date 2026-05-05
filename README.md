@@ -5,7 +5,7 @@
 [![UI Tests](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml/badge.svg?branch=master)](https://github.com/gugabrilhante/WisePrior/actions/workflows/ui_test.yml)
 [![codecov](https://codecov.io/gh/gugabrilhante/WisePrior/branch/master/graph/badge.svg)](https://codecov.io/gh/gugabrilhante/WisePrior)
 
-**Test Coverage Target: ~70% (JaCoCo + Codecov)**
+**Test Coverage Target: ~60% (JaCoCo + Codecov)**
 
 ---
 
