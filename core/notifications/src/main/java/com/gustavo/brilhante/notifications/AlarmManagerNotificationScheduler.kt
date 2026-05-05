@@ -22,7 +22,7 @@ class AlarmManagerNotificationScheduler @Inject constructor(
 ) : NotificationScheduler {
 
     private val alarmManager: AlarmManager =
-        context.getSystemService(AlarmManager::class.java)
+        context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     override fun schedule(task: Task) {
         val rawDue = task.dueDate ?: return

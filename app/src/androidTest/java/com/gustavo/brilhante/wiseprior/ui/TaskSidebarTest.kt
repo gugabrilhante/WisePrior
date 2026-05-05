@@ -96,6 +96,8 @@ class TaskSidebarTest {
         composeTestRule.onNode(
             hasText(allLabel) and hasAnyAncestor(hasTestTag(SIDEBAR_LIST_TEST_TAG))
         ).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
+            .performScrollToNode(hasText(tagHeaderLabel))
         composeTestRule.onNodeWithText(tagHeaderLabel).assertIsDisplayed()
 
         // Rotate back to portrait

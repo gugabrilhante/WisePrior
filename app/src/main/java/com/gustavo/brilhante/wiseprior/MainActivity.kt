@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
      * Called when the app is already running and a notification is tapped.
      * Updates [pendingTaskId] so the Composable reacts and navigates.
      */
-    override fun onNewIntent(intent: Intent) {
+    public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingTaskId = intent.getTaskId()
