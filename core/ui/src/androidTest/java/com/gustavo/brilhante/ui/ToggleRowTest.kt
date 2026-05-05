@@ -1,12 +1,13 @@
 package com.gustavo.brilhante.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRole
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.semantics.Role
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,7 +27,8 @@ class ToggleRowTest {
         }
         
         composeTestRule.onNodeWithText("Enable feature").assertExists()
-        composeTestRule.onRole(Role.Switch).assertIsOff().performClick()
+        composeTestRule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .assertIsOff().performClick()
         
         assert(checkedValue)
     }
@@ -40,6 +42,7 @@ class ToggleRowTest {
                 onCheckedChange = {}
             )
         }
-        composeTestRule.onRole(Role.Switch).assertIsOn()
+        composeTestRule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .assertIsOn()
     }
 }
