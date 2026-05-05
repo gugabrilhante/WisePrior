@@ -2,39 +2,27 @@ package com.gustavo.brilhante.notifications
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import androidx.work.OneTimeWorkRequest
+import androidx.test.core.app.ApplicationProvider
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkAll
-import io.mockk.verify
-import org.junit.After
+import androidx.work.testing.WorkManagerTestInitHelper
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [35])
 class BootReceiverTest {
 
-    private val context: Context = mockk(relaxed = true)
-    private val workManager: WorkManager = mockk(relaxed = true)
+    private lateinit var context: Context
     private val receiver = BootReceiver()
 
     @Before
     fun setup() {
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        
-        mockkStatic(WorkManager::class)
-        every { WorkManager.getInstance(any()) } returns workManager
-        
-        every { context.applicationContext } returns context
-        every { context.getApplicationContext() } returns context
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
+        context = ApplicationProvider.getApplicationContext()
+        WorkManagerTestInitHelper.initializeTestWorkManager(context)
     }
 
     @Test
@@ -43,7 +31,17 @@ class BootReceiverTest {
 
         receiver.onReceive(context, intent)
 
-        verify { workManager.enqueue(any<OneTimeWorkRequest>()) }
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        val workManager = WorkManager.getInstance(context)
+        val workInfos = workManager.getWorkInfosByTag(RescheduleNotificationsWorker::class.java.name).get()
+        // WorkManager tag for classes is often the class name
+        // Let's check by Tag or just all work
+        val allWork = workManager.getWorkInfosForUniqueWork("reschedule").get() // if it was unique
+        
+        // Check if any work is enqueued
+        val allInfos = workManager.getWorkInfos(androidx.work.WorkQuery.Builder.fromStates(listOf(WorkInfo.State.ENQUEUED)).build()).get()
+        assert(allInfos.isNotEmpty())
     }
 
     @Test
@@ -52,6 +50,8 @@ class BootReceiverTest {
 
         receiver.onReceive(context, intent)
 
-        verify(exactly = 0) { workManager.enqueue(any<OneTimeWorkRequest>()) }
+        val workManager = WorkManager.getInstance(context)
+        val allInfos = workManager.getWorkInfos(androidx.work.WorkQuery.Builder.fromStates(listOf(WorkInfo.State.ENQUEUED)).build()).get()
+        assert(allInfos.isEmpty())
     }
 }

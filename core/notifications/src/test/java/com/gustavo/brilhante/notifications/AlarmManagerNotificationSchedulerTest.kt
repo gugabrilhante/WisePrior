@@ -1,49 +1,27 @@
 package com.gustavo.brilhante.notifications
 
 import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.util.Log
 import com.gustavo.brilhante.model.Task
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkConstructor
-import io.mockk.mockkStatic
-import io.mockk.unmockkAll
-import io.mockk.verify
-import org.junit.After
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [35])
 class AlarmManagerNotificationSchedulerTest {
 
-    private val context: Context = mockk(relaxed = true) {
-        every { applicationContext } returns this@mockk
-    }
-    private val alarmManager: AlarmManager = mockk(relaxed = true)
+    private lateinit var context: Context
     private lateinit var scheduler: AlarmManagerNotificationScheduler
 
     @Before
     fun setup() {
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.w(any<String>(), any<String>()) } returns 0
-
-        every { context.getSystemService(AlarmManager::class.java) } returns alarmManager
-        every { context.applicationContext } returns context
-
-        mockkStatic(PendingIntent::class)
-        every { PendingIntent.getBroadcast(any(), any(), any(), any()) } returns mockk(relaxed = true)
-        
-        mockkConstructor(Intent::class)
-
+        context = ApplicationProvider.getApplicationContext()
         scheduler = AlarmManagerNotificationScheduler(context)
-    }
-
-    @After
-    fun tearDown() {
-        unmockkAll()
     }
 
     @Test
@@ -51,17 +29,12 @@ class AlarmManagerNotificationSchedulerTest {
         val futureTime = System.currentTimeMillis() + 100000
         val task = Task(id = 1, title = "Test Task", dueDate = futureTime)
 
-        every { alarmManager.canScheduleExactAlarms() } returns true
-
         scheduler.schedule(task)
 
-        verify {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                futureTime,
-                any()
-            )
-        }
+        val shadowAlarmManager = shadowOf(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+        val nextAlarm = shadowAlarmManager.nextScheduledAlarm
+        assert(nextAlarm != null)
+        assert(nextAlarm?.triggerAtTime == futureTime)
     }
 
     @Test
@@ -71,23 +44,19 @@ class AlarmManagerNotificationSchedulerTest {
 
         scheduler.schedule(task)
 
-        verify(exactly = 0) {
-            alarmManager.setExactAndAllowWhileIdle(any(), any(), any())
-            alarmManager.setAndAllowWhileIdle(any(), any(), any())
-        }
+        val shadowAlarmManager = shadowOf(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+        assert(shadowAlarmManager.nextScheduledAlarm == null)
     }
 
     @Test
     fun `given taskId, when cancel called, then cancels alarm`() {
         val taskId = 1L
-        val mockPendingIntent: PendingIntent = mockk(relaxed = true)
-        every { PendingIntent.getBroadcast(any(), any(), any(), any()) } returns mockPendingIntent
-
+        val task = Task(id = taskId, title = "Test", dueDate = System.currentTimeMillis() + 10000)
+        scheduler.schedule(task)
+        
         scheduler.cancel(taskId)
 
-        verify {
-            alarmManager.cancel(mockPendingIntent)
-            mockPendingIntent.cancel()
-        }
+        val shadowAlarmManager = shadowOf(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+        assert(shadowAlarmManager.nextScheduledAlarm == null)
     }
 }
