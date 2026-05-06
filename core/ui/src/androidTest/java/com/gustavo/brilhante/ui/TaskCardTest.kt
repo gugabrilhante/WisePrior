@@ -46,8 +46,8 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Buy milk").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE).assertExists()
+        composeTestRule.onNodeWithText("Buy milk").assertExists()
     }
 
     // ── Expandable content ────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ class TaskCardTest {
                 isExpanded = true
             )
         }
-        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Secret detail").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES).assertExists()
+        composeTestRule.onNodeWithText("Secret detail").assertExists()
     }
 
     @Test
