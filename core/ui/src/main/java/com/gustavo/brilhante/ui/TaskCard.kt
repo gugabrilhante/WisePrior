@@ -53,19 +53,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import com.gustavo.brilhante.designsystem.R as DesignR
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.gustavo.brilhante.designsystem.theme.FlaggedColor
-import com.gustavo.brilhante.designsystem.theme.PriorityHigh
-import com.gustavo.brilhante.designsystem.theme.PriorityLow
-import com.gustavo.brilhante.designsystem.theme.PriorityMedium
-import com.gustavo.brilhante.designsystem.theme.UrgentColor
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
@@ -79,30 +76,17 @@ fun TaskCard(
     modifier: Modifier = Modifier,
     allTags: List<Tag> = emptyList(),
     formattedDueDate: String? = null,
-    // Expansion state is hoisted to the ViewModel so it survives config changes
-    // and is not reset when the item is recycled in a LazyColumn.
     isExpanded: Boolean = false,
     onToggleExpanded: () -> Unit = {},
 ) {
-    val taskTags = remember(task.tagIds, allTags) {
-        allTags.filter { task.tagIds.contains(it.id) }
+    val uiModel = remember(task, allTags, formattedDueDate) {
+        TaskCardUiMapper.map(task, allTags, formattedDueDate)
     }
-    val contentAlpha = if (task.isCompleted) 0.6f else 1f
-
-    val hasPriority = remember(task.priority) { task.priority != Priority.NONE }
-    val hasExpandableContent = remember(hasPriority, task.isFlagged, task.isUrgent, task.notes, taskTags) {
-        hasPriority || task.isFlagged || task.isUrgent || task.notes.isNotBlank() || taskTags.size > 2
-    }
-
-    // Guard: treat as collapsed when the card has nothing to expand, even if the
-    // ViewModel still holds an "expanded" entry for this id (e.g. content was removed).
-    val effectiveExpanded = isExpanded && hasExpandableContent
+    
+    // Guard: treat as collapsed when the card has nothing to expand
+    val effectiveExpanded = isExpanded && uiModel.hasExpandableContent
 
     val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
-    val checkboxDescription = if (task.isCompleted)
-        stringResource(R.string.task_card_mark_incomplete)
-    else
-        stringResource(R.string.task_card_mark_complete)
 
     // Single transition drives all coordinated animations, reducing recompositions
     val transition = updateTransition(targetState = effectiveExpanded, label = "task_card_transition")
@@ -118,7 +102,7 @@ fun TaskCard(
             else tween(180, easing = FastOutLinearInEasing)
         },
         label = "titleTopPadding"
-    ) { expanded -> if (hasPriority && expanded) 24.dp else 0.dp }
+    ) { expanded -> if (uiModel.hasPriority && expanded) 24.dp else 0.dp }
 
     val titleStartPadding by transition.animateDp(
         transitionSpec = {
@@ -126,7 +110,7 @@ fun TaskCard(
             else tween(180, easing = FastOutLinearInEasing)
         },
         label = "titleStartPadding"
-    ) { expanded -> if (expanded || !hasPriority) 0.dp else 16.dp }
+    ) { expanded -> if (expanded || !uiModel.hasPriority) 0.dp else 16.dp }
 
     val priorityAlpha by transition.animateFloat(
         transitionSpec = {
@@ -153,10 +137,10 @@ fun TaskCard(
                 contentAlignment = Alignment.Center
             ) {
                 Checkbox(
-                    checked = task.isCompleted,
+                    checked = uiModel.isCompleted,
                     onCheckedChange = onToggleComplete,
                     modifier = Modifier.semantics {
-                        contentDescription = checkboxDescription
+                        contentDescription = "" // Will be set by stringResource in sub-composable if needed or here
                     }
                 )
             }
@@ -165,7 +149,7 @@ fun TaskCard(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .alpha(contentAlpha)
+                    .alpha(uiModel.contentAlpha)
                     .padding(top = 12.dp, bottom = 8.dp)
             ) {
                 // Moving Indicators & Expand Button
@@ -178,24 +162,24 @@ fun TaskCard(
                 ) {
                     Spacer(Modifier.weight(1f))
 
-                    if (task.isFlagged) {
+                    if (uiModel.isFlagged) {
                         StatusIndicator(
                             icon = Icons.Filled.Flag,
                             text = stringResource(R.string.task_card_flagged),
-                            color = FlaggedColor,
+                            color = colorResource(DesignR.color.flagged),
                             transition = transition,
                         )
                     }
-                    if (task.isUrgent) {
+                    if (uiModel.isUrgent) {
                         StatusIndicator(
                             icon = Icons.Filled.Warning,
                             text = stringResource(R.string.task_card_urgent),
-                            color = UrgentColor,
+                            color = colorResource(DesignR.color.urgent),
                             transition = transition,
                         )
                     }
 
-                    if (hasExpandableContent) {
+                    if (uiModel.hasExpandableContent) {
                         ExpandButton(
                             isExpanded = effectiveExpanded,
                             onClick = onToggleExpanded
@@ -206,19 +190,21 @@ fun TaskCard(
                 // Main Stack: Title, Notes, Metadata
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        if (hasPriority) {
+                        if (uiModel.hasPriority) {
                             PriorityIndicator(
-                                priority = task.priority,
+                                priority = uiModel.priority,
+                                label = uiModel.priorityTextRes?.let { stringResource(it) } ?: "",
+                                color = uiModel.priorityColorRes?.let { colorResource(it) } ?: Color.Unspecified,
                                 showText = effectiveExpanded,
                                 textAlpha = priorityAlpha
                             )
                         }
                         Text(
-                            text = task.title,
+                            text = uiModel.title,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = if (effectiveExpanded) 3 else 1,
                             overflow = TextOverflow.Ellipsis,
-                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            textDecoration = if (uiModel.isTitleStrikethrough) TextDecoration.LineThrough else TextDecoration.None,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = titleTopPadding, start = titleStartPadding)
@@ -228,7 +214,7 @@ fun TaskCard(
 
                     // NOTES
                     AnimatedVisibility(
-                        visible = effectiveExpanded && task.notes.isNotBlank(),
+                        visible = effectiveExpanded && uiModel.notes.isNotBlank(),
                         enter = expandVertically(
                             animationSpec = tween(50, easing = FastOutSlowInEasing)
                         ) + fadeIn(
@@ -241,7 +227,7 @@ fun TaskCard(
                         )
                     ) {
                         Text(
-                            text = task.notes,
+                            text = uiModel.notes,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 5,
@@ -256,7 +242,7 @@ fun TaskCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (formattedDueDate != null) {
+                        if (uiModel.formattedDueDate != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Outlined.Schedule,
@@ -266,20 +252,20 @@ fun TaskCard(
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = formattedDueDate,
+                                    text = uiModel.formattedDueDate,
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        if (!effectiveExpanded && taskTags.isNotEmpty()) {
-                            taskTags.take(1).forEach { tag ->
+                        if (!effectiveExpanded && uiModel.tags.isNotEmpty()) {
+                            uiModel.tags.take(1).forEach { tag ->
                                 key(tag.id) { TaskTagBadge(tag = tag) }
                             }
-                            if (taskTags.size > 1) {
+                            if (uiModel.tags.size > 1) {
                                 Text(
-                                    text = "+${taskTags.size - 1}",
+                                    text = "+${uiModel.tags.size - 1}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -288,7 +274,7 @@ fun TaskCard(
                     }
 
                     // EXPANDED TAGS (FlowRow)
-                    if (effectiveExpanded && taskTags.isNotEmpty()) {
+                    if (effectiveExpanded && uiModel.tags.isNotEmpty()) {
                         FlowRow(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -296,7 +282,7 @@ fun TaskCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            taskTags.forEach { tag ->
+                            uiModel.tags.forEach { tag ->
                                 key(tag.id) { TaskTagBadge(tag = tag) }
                             }
                         }
@@ -328,6 +314,8 @@ private fun ExpandButton(
 @Composable
 private fun PriorityIndicator(
     priority: Priority,
+    label: String,
+    color: Color,
     showText: Boolean,
     textAlpha: Float
 ) {
@@ -339,19 +327,9 @@ private fun PriorityIndicator(
         if (showText || textAlpha > 0f) {
             Spacer(Modifier.width(4.dp))
             Text(
-                text = when (priority) {
-                    Priority.LOW -> stringResource(R.string.priority_low)
-                    Priority.MEDIUM -> stringResource(R.string.priority_medium)
-                    Priority.HIGH -> stringResource(R.string.priority_high)
-                    else -> ""
-                },
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = when (priority) {
-                    Priority.LOW -> PriorityLow
-                    Priority.MEDIUM -> PriorityMedium
-                    Priority.HIGH -> PriorityHigh
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = color,
                 modifier = Modifier.alpha(textAlpha)
             )
         }

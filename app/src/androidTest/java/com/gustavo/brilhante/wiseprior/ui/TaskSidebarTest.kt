@@ -98,6 +98,44 @@ class TaskSidebarTest {
             .assertIsDisplayed()
     }
 
+    @Test
+    fun tagEditorDialog_showsDeleteButton_whenEditingExistingTag() {
+        createTag("DeletableTag")
+        openDrawerIfClosed()
+
+        val editTagCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.edit_tag_description
+        )
+        composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
+            .performScrollToNode(hasContentDescription(editTagCd))
+        composeTestRule.onNode(hasContentDescription(editTagCd)).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(TestTags.BTN_TAG_EDITOR_DELETE).assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag(TestTags.BTN_TAG_EDITOR_CANCEL).performClick()
+        composeTestRule.waitForIdle()
+    }
+
+    @Test
+    fun sidebar_collectionBadge_visible_whenTaskExists() {
+        createTaskInList("Badge Test Task")
+        openDrawerIfClosed()
+
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_ITEM_ALL).assertIsDisplayed()
+    }
+
+    @Test
+    fun sidebar_tagTaskCountBadge_visible_whenTaskHasTag() {
+        createTag("CountedTag")
+        createTaskInList("Task With Tag", selectFirstTag = true)
+        openDrawerIfClosed()
+
+        composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
+            .performScrollToNode(hasTestTag(TestTags.SIDEBAR_TAGS_HEADER))
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_TAGS_HEADER).assertIsDisplayed()
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun openDrawerIfClosed() {
@@ -120,6 +158,24 @@ class TaskSidebarTest {
 
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasTestTag(TestTags.DIALOG_TAG_EDITOR))
+                .fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    private fun createTaskInList(title: String, selectFirstTag: Boolean = false) {
+        val addReminderCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.add_task_button_description
+        )
+        composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(title)
+        if (selectFirstTag) {
+            composeTestRule.onNodeWithTag(TestTags.CHIP_TAG_ITEM).performClick()
+            composeTestRule.waitForIdle()
+        }
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasTestTag(TestTags.SCREEN_TASK_EDITOR))
                 .fetchSemanticsNodes().isEmpty()
         }
     }

@@ -61,6 +61,8 @@ object TestTags {
 
     // Recurrence
     const val DROPDOWN_RECURRENCE_UNIT = "dropdown_recurrence_unit"
+    const val BTN_TASK_EDITOR_RECURRENCE_DECREMENT = "btn_task_editor_recurrence_decrement"
+    const val BTN_TASK_EDITOR_RECURRENCE_INCREMENT = "btn_task_editor_recurrence_increment"
 
     // Sidebar — already declared as string constants in TaskSidebar.kt; mirrored here
     // so tests can import from a single location.

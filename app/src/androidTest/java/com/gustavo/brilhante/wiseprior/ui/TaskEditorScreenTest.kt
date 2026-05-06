@@ -138,6 +138,87 @@ class TaskEditorScreenTest {
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_FLAGGED).assertIsDisplayed()
     }
 
+    @Test
+    fun urgentToggle_isVisibleAndClickable() {
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).performClick()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).assertIsDisplayed()
+    }
+
+    @Test
+    fun dateToggle_offByDefault() {
+        // Time toggle and recurrence should NOT be visible before enabling date
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).assertDoesNotExist()
+    }
+
+    @Test
+    fun dateToggle_click_showsTimeToggle() {
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).assertIsDisplayed()
+    }
+
+    @Test
+    fun dateToggle_click_showsRecurrenceToggle() {
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_RECURRENCE).assertIsDisplayed()
+    }
+
+    @Test
+    fun recurrenceToggle_click_showsIntervalControls() {
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_RECURRENCE).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_INCREMENT).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_DECREMENT).assertIsDisplayed()
+    }
+
+    @Test
+    fun recurrenceIncrement_increasesInterval() {
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_RECURRENCE).performClick()
+        composeTestRule.waitForIdle()
+
+        // Default interval is 1, increment → 2
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_INCREMENT).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("2").assertIsDisplayed()
+    }
+
+    @Test
+    fun tagsSection_withNoTags_showsNoTagsMessage() {
+        val noTagsMsg = composeTestRule.activity.getString(
+            com.gustavo.brilhante.taskeditor.R.string.no_tags_created
+        )
+        composeTestRule.onNodeWithText(noTagsMsg).assertIsDisplayed()
+    }
+
+    @Test
+    fun urlSection_isVisible() {
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_URL).assertIsDisplayed()
+    }
+
+    @Test
+    fun urlField_acceptsInput() {
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_URL)
+            .performTextInput("https://example.com")
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("https://example.com").assertIsDisplayed()
+    }
+
+    @Test
+    fun backButton_navigatesBack() {
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_BACK).performClick()
+        val emptyTitle = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.empty_tasks_title
+        )
+        waitUntilDisplayed(emptyTitle)
+        composeTestRule.onNodeWithText(emptyTitle).assertIsDisplayed()
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun waitUntilDisplayed(text: String) {

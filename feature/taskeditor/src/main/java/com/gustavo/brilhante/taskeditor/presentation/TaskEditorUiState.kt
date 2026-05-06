@@ -2,7 +2,9 @@ package com.gustavo.brilhante.taskeditor.presentation
 
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Tag
+import com.gustavo.brilhante.ui.UiText
 
 data class TaskEditorUiState(
     val title: String = "",
@@ -27,6 +29,22 @@ data class TaskEditorUiState(
     val datePickerUtcMillis: Long = 0L,
     val timePickerHour: Int = 0,
     val timePickerMinute: Int = 0,
+    val screenTitle: UiText = UiText.DynamicString(""),
+    val priorityOptions: List<PriorityOptionUiModel> = emptyList(),
+    val recurrenceUnitOptions: List<RecurrenceUnitOptionUiModel> = emptyList(),
+    val canDecrementInterval: Boolean = false,
+)
+
+data class PriorityOptionUiModel(
+    val priority: Priority,
+    val label: UiText,
+    val isSelected: Boolean,
+    val testTag: String
+)
+
+data class RecurrenceUnitOptionUiModel(
+    val unit: RecurrenceUnit,
+    val label: UiText
 )
 
 sealed interface TaskEditorEvent {
@@ -41,6 +59,11 @@ sealed interface TaskEditorEvent {
     data class DueDateChanged(val dateMillis: Long) : TaskEditorEvent
     data class TimeChanged(val hour: Int, val minute: Int) : TaskEditorEvent
     data class RecurrenceChanged(val rule: RecurrenceRule) : TaskEditorEvent
+    data object ToggleRecurrence : TaskEditorEvent
+    data object IncrementInterval : TaskEditorEvent
+    data object DecrementInterval : TaskEditorEvent
+    data class RecurrenceUnitSelected(val unit: RecurrenceUnit) : TaskEditorEvent
+    data class TagClicked(val tagId: Long) : TaskEditorEvent
     data object ShowDatePicker : TaskEditorEvent
     data object HideDatePicker : TaskEditorEvent
     data object ShowTimePicker : TaskEditorEvent

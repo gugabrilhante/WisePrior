@@ -65,6 +65,9 @@ import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 import com.gustavo.brilhante.tasklist.presentation.TaskListViewModel
 import com.gustavo.brilhante.ui.EmptyState
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.colorResource
+import com.gustavo.brilhante.ui.TagPalette
 import com.gustavo.brilhante.ui.TaskCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,10 +96,7 @@ fun TaskListScreen(
 
     val sidebarContent: @Composable () -> Unit = {
         TaskSidebarContent(
-            selectedCollection = uiState.selectedCollection,
-            counts = uiState.collectionCounts,
-            tags = uiState.tags,
-            tagCounts = uiState.tagCounts,
+            uiState = uiState,
             onCollectionSelected = onCollectionSelected,
             onAddTag = viewModel::showAddTag,
             onEditTag = viewModel::showEditTag
@@ -147,7 +147,7 @@ fun TaskListScreen(
             title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title)
                     else stringResource(R.string.new_tag_title),
             initialName = uiState.editingTag?.name ?: "",
-            initialColor = uiState.editingTag?.color ?: tagPalette.first().value,
+            initialColor = uiState.editingTag?.color ?: colorResource(TagPalette.colors.first().colorResId).toArgb().toLong() and 0xFFFFFFFFL,
             onSave = { name, color -> viewModel.saveTag(name, color) },
             onDismiss = viewModel::dismissTagEditor,
             onDelete = uiState.editingTag?.let { tag -> { viewModel.deleteTag(tag) } }
@@ -177,7 +177,7 @@ private fun TaskListContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.selectedCollection.label(uiState.tags),
+                        text = uiState.screenTitle.asString(),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -200,14 +200,14 @@ private fun TaskListContent(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false }
                         ) {
-                            SortOption.entries.forEach { opt ->
+                            uiState.sortOptions.forEach { opt ->
                                 DropdownMenuItem(
-                                    text = { Text(opt.label()) },
+                                    text = { Text(opt.label.asString()) },
                                     onClick = {
-                                        onSortOptionSelected(opt.sortOption)
+                                        onSortOptionSelected(opt.option)
                                         showSortMenu = false
                                     },
-                                    leadingIcon = if (uiState.sortOption == opt.sortOption) {
+                                    leadingIcon = if (opt.isSelected) {
                                         { Icon(Icons.Filled.Check, contentDescription = null) }
                                     } else null
                                 )
@@ -235,7 +235,7 @@ private fun TaskListContent(
                 .padding(paddingValues)
         ) {
             AnimatedVisibility(
-                visible = uiState.tasks.isEmpty() && !uiState.isLoading,
+                visible = uiState.showEmptyState,
                 enter = fadeIn(), exit = fadeOut()
             ) {
                 EmptyState(
@@ -280,33 +280,6 @@ private fun TaskListContent(
             }
         }
     }
-}
-
-// ── Sort option helpers ───────────────────────────────────────────────────────
-
-private enum class SortOption(val sortOption: TaskSortOption) {
-    CREATED_DESC(TaskSortOption.CREATED_DESC),
-    CREATED_ASC(TaskSortOption.CREATED_ASC),
-    SMART_PRIORITY(TaskSortOption.SMART_PRIORITY);
-
-    @Composable
-    fun label(): String = when (this) {
-        CREATED_DESC -> stringResource(R.string.sort_created_newest)
-        CREATED_ASC -> stringResource(R.string.sort_created_oldest)
-        SMART_PRIORITY -> stringResource(R.string.sort_smart_priority)
-    }
-}
-
-// ── Collection label helper ───────────────────────────────────────────────────
-
-@Composable
-private fun TaskCollection.label(tags: List<Tag>): String = when (this) {
-    TaskCollection.All -> stringResource(R.string.collection_all)
-    TaskCollection.Today -> stringResource(R.string.collection_today)
-    TaskCollection.Scheduled -> stringResource(R.string.collection_scheduled)
-    TaskCollection.Flagged -> stringResource(R.string.collection_flagged)
-    TaskCollection.Completed -> stringResource(R.string.collection_completed)
-    is TaskCollection.ByTag -> tags.find { it.id == tagId }?.name ?: stringResource(R.string.collection_tag_fallback)
 }
 
 // ── Swipe-to-delete ───────────────────────────────────────────────────────────

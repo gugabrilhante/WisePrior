@@ -17,6 +17,8 @@ import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.ui.DateFormatter
+import com.gustavo.brilhante.ui.UiText
+import com.gustavo.brilhante.tasklist.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,6 +75,38 @@ class TaskListViewModel @Inject constructor(
                             task.id to formatted
                         }
                     }.toMap()
+
+                    val screenTitle = when (collection) {
+                        TaskCollection.All -> UiText.StringResource(R.string.collection_all)
+                        TaskCollection.Today -> UiText.StringResource(R.string.collection_today)
+                        TaskCollection.Scheduled -> UiText.StringResource(R.string.collection_scheduled)
+                        TaskCollection.Flagged -> UiText.StringResource(R.string.collection_flagged)
+                        TaskCollection.Completed -> UiText.StringResource(R.string.collection_completed)
+                        is TaskCollection.ByTag -> {
+                            val tagName = tags.find { it.id == collection.tagId }?.name
+                            if (tagName != null) UiText.DynamicString(tagName)
+                            else UiText.StringResource(R.string.collection_tag_fallback)
+                        }
+                    }
+
+                    val sortOptions = listOf(
+                        SortOptionUiModel(
+                            TaskSortOption.CREATED_DESC,
+                            UiText.StringResource(R.string.sort_created_newest),
+                            sortOption == TaskSortOption.CREATED_DESC
+                        ),
+                        SortOptionUiModel(
+                            TaskSortOption.CREATED_ASC,
+                            UiText.StringResource(R.string.sort_created_oldest),
+                            sortOption == TaskSortOption.CREATED_ASC
+                        ),
+                        SortOptionUiModel(
+                            TaskSortOption.SMART_PRIORITY,
+                            UiText.StringResource(R.string.sort_smart_priority),
+                            sortOption == TaskSortOption.SMART_PRIORITY
+                        )
+                    )
+
                     _uiState.update {
                         it.copy(
                             tasks = filteredTasks,
@@ -82,7 +116,13 @@ class TaskListViewModel @Inject constructor(
                             tags = tags,
                             tagCounts = tasks.toTagCounts(),
                             isLoading = false,
-                            sortOption = sortOption
+                            sortOption = sortOption,
+                            screenTitle = screenTitle,
+                            sortOptions = sortOptions,
+                            showEmptyState = filteredTasks.isEmpty() && !it.isLoading,
+                            canAddTag = tags.size < MAX_TAGS,
+                            addTagLabel = if (tags.size < MAX_TAGS) UiText.StringResource(R.string.add_tag_label)
+                                          else UiText.PluralResource(R.plurals.tag_limit_message, MAX_TAGS, MAX_TAGS)
                         )
                     }
                 }
