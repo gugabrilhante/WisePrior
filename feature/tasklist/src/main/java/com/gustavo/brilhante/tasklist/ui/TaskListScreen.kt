@@ -51,8 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.gustavo.brilhante.ui.TestTags
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.model.Tag
@@ -219,6 +221,7 @@ private fun TaskListContent(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddTask,
+                modifier = Modifier.testTag(TestTags.BTN_TASK_LIST_ADD),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             ) {

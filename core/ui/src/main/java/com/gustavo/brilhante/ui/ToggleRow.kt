@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -19,11 +20,13 @@ fun ToggleRow(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     supportingText: String? = null,
-    onRowClick: (() -> Unit)? = null
+    onRowClick: (() -> Unit)? = null,
+    testTag: String? = null
 ) {
     val rowModifier = modifier
         .padding(horizontal = 4.dp)
         .then(if (onRowClick != null) Modifier.clickable(onClick = onRowClick) else Modifier)
+        .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
 
     ListItem(
         headlineContent = { Text(label) },

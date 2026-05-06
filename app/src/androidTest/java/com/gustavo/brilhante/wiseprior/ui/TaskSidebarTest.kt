@@ -7,7 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.rule.GrantPermissionRule
 import com.gustavo.brilhante.tasklist.ui.ADD_TAG_BUTTON_TEST_TAG
 import com.gustavo.brilhante.tasklist.ui.SIDEBAR_LIST_TEST_TAG
-import com.gustavo.brilhante.tasklist.ui.TaskSidebarContent
+import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.wiseprior.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -37,75 +37,49 @@ class TaskSidebarTest {
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     private lateinit var menuButtonCd: String
-    private lateinit var addTagLabel: String
-    private lateinit var todayLabel: String
-    private lateinit var allLabel: String
-    private lateinit var tagHeaderLabel: String
-    private lateinit var tagNameLabel: String
-    private lateinit var saveButtonLabel: String
 
     @Before
     fun setUp() {
         hiltRule.inject()
-        composeTestRule.activity.run {
-            menuButtonCd = getString(com.gustavo.brilhante.tasklist.R.string.menu_button_description)
-            addTagLabel = getString(com.gustavo.brilhante.tasklist.R.string.add_tag_label)
-            todayLabel = getString(com.gustavo.brilhante.tasklist.R.string.sidebar_today)
-            allLabel = getString(com.gustavo.brilhante.tasklist.R.string.sidebar_all)
-            tagHeaderLabel = getString(com.gustavo.brilhante.tasklist.R.string.sidebar_tags_header)
-            tagNameLabel = getString(com.gustavo.brilhante.tasklist.R.string.tag_name_label)
-            saveButtonLabel = getString(com.gustavo.brilhante.tasklist.R.string.save_button)
-        }
+        menuButtonCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.menu_button_description
+        )
     }
 
     @Test
     fun sidebar_isScrollable_whenTagsOverflow() {
-        // Create multiple tags to ensure the sidebar list exceeds the screen height
-        // (especially in landscape or on smaller devices).
-        repeat(5) { i ->
-            createTag("Tag $i")
-        }
+        repeat(5) { i -> createTag("Tag $i") }
 
         openDrawerIfClosed()
 
-        // 1. Verify the top item is visible initially
-        composeTestRule.onNodeWithText(todayLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_ITEM_TODAY).assertIsDisplayed()
 
-        // 2. Scroll to the bottom item (add-tag button). Use testTag so this works
-        // regardless of whether the tag limit label has replaced "New Tag".
         composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
             .performScrollToNode(hasTestTag(ADD_TAG_BUTTON_TEST_TAG))
 
-        // 3. Assert the bottom element is now visible
         composeTestRule.onNodeWithTag(ADD_TAG_BUTTON_TEST_TAG).assertIsDisplayed()
     }
 
     @Test
     fun sidebar_remainsVisible_afterRotation() {
         openDrawerIfClosed()
-        composeTestRule.onNodeWithText(todayLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_ITEM_TODAY).assertIsDisplayed()
 
-        // Rotate to landscape
         composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         composeTestRule.waitForIdle()
 
-        // In landscape, check core elements. On many tablets/large screens,
-        // this switches to a PermanentNavigationDrawer. Both the sidebar nav item
-        // and the TopAppBar title can show the same "All" string, so scope the
-        // check to the sidebar list to avoid an ambiguous-node failure.
         composeTestRule.onNode(
-            hasText(allLabel) and hasAnyAncestor(hasTestTag(SIDEBAR_LIST_TEST_TAG))
+            hasTestTag(TestTags.SIDEBAR_ITEM_ALL) and hasAnyAncestor(hasTestTag(SIDEBAR_LIST_TEST_TAG))
         ).assertIsDisplayed()
         composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG)
-            .performScrollToNode(hasText(tagHeaderLabel))
-        composeTestRule.onNodeWithText(tagHeaderLabel).assertIsDisplayed()
+            .performScrollToNode(hasTestTag(TestTags.SIDEBAR_TAGS_HEADER))
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_TAGS_HEADER).assertIsDisplayed()
 
-        // Rotate back to portrait
         composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         composeTestRule.waitForIdle()
 
         openDrawerIfClosed()
-        composeTestRule.onNodeWithText(todayLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SIDEBAR_ITEM_TODAY).assertIsDisplayed()
     }
 
     /**
@@ -115,14 +89,10 @@ class TaskSidebarTest {
      */
     @Test
     fun sidebar_reachesBottomItem_regressionTest() {
-        repeat(5) { i ->
-            createTag("Regression Tag $i")
-        }
+        repeat(5) { i -> createTag("Regression Tag $i") }
 
         openDrawerIfClosed()
 
-        // performScrollTo() works on any node that is a descendant of a scrollable container.
-        // Use testTag so this works regardless of whether the label changed to the limit message.
         composeTestRule.onNodeWithTag(ADD_TAG_BUTTON_TEST_TAG)
             .performScrollTo()
             .assertIsDisplayed()
@@ -131,13 +101,9 @@ class TaskSidebarTest {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun openDrawerIfClosed() {
-        // In portrait mode, the Drawer starts closed and the Menu button is visible.
-        // In landscape (expanded width), PermanentNavigationDrawer is used and there is NO Menu button.
         val menuButtonNodes = composeTestRule.onAllNodes(hasContentDescription(menuButtonCd))
-        
         if (menuButtonNodes.fetchSemanticsNodes().isNotEmpty()) {
             menuButtonNodes[0].performClick()
-            // Wait for drawer to open animation
             composeTestRule.waitForIdle()
         }
     }
@@ -145,16 +111,16 @@ class TaskSidebarTest {
     private fun createTag(name: String) {
         openDrawerIfClosed()
 
-        // Click "New Tag" - might need to scroll if already many tags
-        composeTestRule.onNodeWithText(addTagLabel)
+        composeTestRule.onNodeWithTag(ADD_TAG_BUTTON_TEST_TAG)
             .performScrollTo()
             .performClick()
 
-        // Fill dialog
-        composeTestRule.onNodeWithText(tagNameLabel).performTextInput(name)
-        composeTestRule.onNodeWithText(saveButtonLabel).performClick()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TAG_EDITOR_NAME).performTextInput(name)
+        composeTestRule.onNodeWithTag(TestTags.BTN_TAG_EDITOR_SAVE).performClick()
 
-        // Wait for dialog dismissal
-        composeTestRule.onNodeWithText(saveButtonLabel).assertDoesNotExist()
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasTestTag(TestTags.DIALOG_TAG_EDITOR))
+                .fetchSemanticsNodes().isEmpty()
+        }
     }
 }

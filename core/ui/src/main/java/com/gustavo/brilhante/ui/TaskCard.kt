@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
@@ -137,7 +138,7 @@ fun TaskCard(
 
     ElevatedCard(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().testTag(TestTags.CARD_TASK_ITEM),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -221,6 +222,7 @@ fun TaskCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = titleTopPadding, start = titleStartPadding)
+                                .testTag(TestTags.TEXT_TASK_TITLE)
                         )
                     }
 
@@ -244,7 +246,7 @@ fun TaskCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(vertical = 2.dp)
+                            modifier = Modifier.padding(vertical = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
                         )
                     }
 

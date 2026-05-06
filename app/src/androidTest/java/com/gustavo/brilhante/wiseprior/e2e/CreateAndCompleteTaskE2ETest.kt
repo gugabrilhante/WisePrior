@@ -6,15 +6,17 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.rule.GrantPermissionRule
+import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.wiseprior.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -46,13 +48,10 @@ class CreateAndCompleteTaskE2ETest {
 
     private lateinit var addReminderCd: String
     private lateinit var emptyStateTitle: String
-    private lateinit var newScreenTitle: String
     private lateinit var editScreenTitle: String
     private lateinit var backCd: String
-    private lateinit var doneLabel: String
     private lateinit var markCompleteCd: String
     private lateinit var markIncompleteCd: String
-    private lateinit var priorityHigh: String
 
     @Before
     fun setUp() {
@@ -60,27 +59,15 @@ class CreateAndCompleteTaskE2ETest {
         composeTestRule.activity.run {
             addReminderCd = getString(com.gustavo.brilhante.tasklist.R.string.add_task_button_description)
             emptyStateTitle = getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
-            newScreenTitle = getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_new)
             editScreenTitle = getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
             backCd = getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
-            doneLabel = getString(com.gustavo.brilhante.taskeditor.R.string.editor_done)
             markCompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
             markIncompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
-            priorityHigh = getString(com.gustavo.brilhante.taskeditor.R.string.priority_high)
         }
     }
 
     /**
      * Full lifecycle: create → verify → edit title & priority → verify changes → complete → verify.
-     *
-     * Step 1: App opens → empty state is shown.
-     * Step 2: Tap FAB → task editor opens for a new task.
-     * Step 3: Enter title "Buy coffee" → tap Done → task appears in list.
-     * Step 4: Tap the task card → task editor opens in edit mode with title pre-filled.
-     * Step 5: Change title to "Buy coffee and milk" and set priority to High → tap Done.
-     * Step 6: Updated title appears in list.
-     * Step 7: Tap the checkbox → task is marked complete.
-     * Step 8: Checkbox switches to the "mark incomplete" content description.
      */
     @Test
     fun fullTaskLifecycle_createEditComplete() {
@@ -88,20 +75,18 @@ class CreateAndCompleteTaskE2ETest {
         val updatedTitle = "Buy coffee and milk"
 
         // ── Step 1: App launches with empty state ─────────────────────────────
-        // isLoading starts as true; wait for Room's first emission to clear it.
         waitUntilDisplayed(emptyStateTitle)
         composeTestRule.onNodeWithText(emptyStateTitle).assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription(addReminderCd).assertIsDisplayed()
 
         // ── Step 2: Open task editor for a new task ───────────────────────────
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
 
         // ── Step 3: Fill in title and save ────────────────────────────────────
-        composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput(originalTitle)
-        composeTestRule.onNodeWithText(doneLabel).performClick()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(originalTitle)
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
 
-        // Wait for Room insert + Flow re-emit to reach the list.
         waitUntilDisplayed(originalTitle)
         composeTestRule.onNodeWithText(originalTitle).assertIsDisplayed()
         composeTestRule.onAllNodes(hasText(emptyStateTitle)).assertCountEquals(0)
@@ -109,15 +94,14 @@ class CreateAndCompleteTaskE2ETest {
         // ── Step 4: Open the task in edit mode ───────────────────────────────
         composeTestRule.onNodeWithText(originalTitle).performClick()
         composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
-        // loadTask() is async; wait for the title field to be populated.
         waitUntilTextFieldHasText(originalTitle)
-        composeTestRule.onNode(hasText(originalTitle).and(hasSetTextAction())).assertIsDisplayed()
+        composeTestRule.onNode(hasTestTag(TestTags.INPUT_TASK_EDITOR_TITLE).and(hasText(originalTitle))).assertIsDisplayed()
 
         // ── Step 5: Change title and set priority ────────────────────────────
-        composeTestRule.onAllNodes(hasSetTextAction())[0].performTextClearance()
-        composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput(updatedTitle)
-        composeTestRule.onNodeWithText(priorityHigh).performClick()
-        composeTestRule.onNodeWithText(doneLabel).performClick()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextClearance()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(updatedTitle)
+        composeTestRule.onNodeWithTag(TestTags.SEGMENT_PRIORITY_HIGH).performClick()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
 
         // ── Step 6: Updated title is visible; original title is gone ─────────
         waitUntilDisplayed(updatedTitle)
@@ -135,16 +119,15 @@ class CreateAndCompleteTaskE2ETest {
 
     /**
      * Validates that saving with an empty title keeps the user on the editor screen.
-     * Regression guard: we must not create a task without a title.
      */
     @Test
     fun emptyTitle_preventsNavigation_andKeepsEditorOpen() {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
 
-        composeTestRule.onNodeWithText(doneLabel).performClick()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
 
-        composeTestRule.onNodeWithText(newScreenTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
     }
 
     /**
@@ -153,10 +136,9 @@ class CreateAndCompleteTaskE2ETest {
     @Test
     fun backWithoutSaving_doesNotCreateTask() {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput("Unsaved task")
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput("Unsaved task")
         composeTestRule.onNodeWithContentDescription(backCd).performClick()
 
-        // Back in the list — wait for the empty state to be visible.
         waitUntilDisplayed(emptyStateTitle)
         composeTestRule.onNodeWithText(emptyStateTitle).assertIsDisplayed()
         composeTestRule.onAllNodes(hasText("Unsaved task")).assertCountEquals(0)
@@ -164,26 +146,19 @@ class CreateAndCompleteTaskE2ETest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Waits until at least one node with the given text exists in the semantic tree. */
     private fun waitUntilDisplayed(text: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    /**
-     * Waits until a text-input field (hasSetTextAction) containing the given text exists.
-     * More specific than [waitUntilDisplayed] — ignores non-editable Text nodes such as
-     * task-card titles that may linger in the back-stack composition.
-     */
     private fun waitUntilTextFieldHasText(text: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
-            composeTestRule.onAllNodes(hasText(text).and(hasSetTextAction()))
+            composeTestRule.onAllNodes(hasTestTag(TestTags.INPUT_TASK_EDITOR_TITLE).and(hasText(text)))
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    /** Waits until at least one node with the given content description exists. */
     private fun waitUntilCdExists(contentDesc: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasContentDescription(contentDesc))

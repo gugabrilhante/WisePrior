@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.gustavo.brilhante.ui.TestTags
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -54,15 +55,16 @@ const val ADD_TAG_BUTTON_TEST_TAG = "add_tag_button"
 private data class SidebarItem(
     val collection: TaskCollection,
     val labelResId: Int,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val testTag: String
 )
 
 private val defaultCollections = listOf(
-    SidebarItem(TaskCollection.Today, R.string.sidebar_today, Icons.Rounded.Today),
-    SidebarItem(TaskCollection.Scheduled, R.string.sidebar_scheduled, Icons.Rounded.CalendarMonth),
-    SidebarItem(TaskCollection.All, R.string.sidebar_all, Icons.Rounded.Inbox),
-    SidebarItem(TaskCollection.Flagged, R.string.sidebar_flagged, Icons.Rounded.Flag),
-    SidebarItem(TaskCollection.Completed, R.string.sidebar_completed, Icons.Rounded.CheckCircle),
+    SidebarItem(TaskCollection.Today, R.string.sidebar_today, Icons.Rounded.Today, TestTags.SIDEBAR_ITEM_TODAY),
+    SidebarItem(TaskCollection.Scheduled, R.string.sidebar_scheduled, Icons.Rounded.CalendarMonth, TestTags.SIDEBAR_ITEM_SCHEDULED),
+    SidebarItem(TaskCollection.All, R.string.sidebar_all, Icons.Rounded.Inbox, TestTags.SIDEBAR_ITEM_ALL),
+    SidebarItem(TaskCollection.Flagged, R.string.sidebar_flagged, Icons.Rounded.Flag, TestTags.SIDEBAR_ITEM_FLAGGED),
+    SidebarItem(TaskCollection.Completed, R.string.sidebar_completed, Icons.Rounded.CheckCircle, TestTags.SIDEBAR_ITEM_COMPLETED),
 )
 
 @Composable
@@ -124,7 +126,7 @@ fun TaskSidebarContent(
                 selected = selectedCollection == item.collection,
                 onClick = { onCollectionSelected(item.collection) },
                 colors = NavigationDrawerItemDefaults.colors(),
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = 12.dp).testTag(item.testTag)
             )
         }
 
@@ -138,7 +140,7 @@ fun TaskSidebarContent(
                 text = stringResource(R.string.sidebar_tags_header),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp).testTag(TestTags.SIDEBAR_TAGS_HEADER)
             )
         }
 
