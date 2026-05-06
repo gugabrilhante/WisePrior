@@ -83,6 +83,8 @@ fun TaskCard(
         TaskCardUiMapper.map(task, allTags, formattedDueDate)
     }
     
+    val checkboxContentDescription = stringResource(uiModel.checkboxDescriptionRes)
+
     // Guard: treat as collapsed when the card has nothing to expand
     val effectiveExpanded = isExpanded && uiModel.hasExpandableContent
 
@@ -140,7 +142,7 @@ fun TaskCard(
                     checked = uiModel.isCompleted,
                     onCheckedChange = onToggleComplete,
                     modifier = Modifier.semantics {
-                        contentDescription = "" // Will be set by stringResource in sub-composable if needed or here
+                        contentDescription = checkboxContentDescription
                     }
                 )
             }

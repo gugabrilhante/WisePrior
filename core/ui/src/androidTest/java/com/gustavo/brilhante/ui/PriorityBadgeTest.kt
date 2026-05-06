@@ -1,10 +1,11 @@
 package com.gustavo.brilhante.ui
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.gustavo.brilhante.model.Priority
 import org.junit.Rule
@@ -12,7 +13,7 @@ import org.junit.Test
 
 class PriorityBadgeTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     // ── All four priority cases (branch coverage) ─────────────────────────────
 

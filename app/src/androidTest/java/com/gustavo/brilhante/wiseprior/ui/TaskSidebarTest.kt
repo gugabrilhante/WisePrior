@@ -160,13 +160,29 @@ class TaskSidebarTest {
             composeTestRule.onAllNodes(hasTestTag(TestTags.DIALOG_TAG_EDITOR))
                 .fetchSemanticsNodes().isEmpty()
         }
+
+        // Close the drawer after creating the tag by clicking on the main content
+        composeTestRule.onNodeWithTag(TestTags.TEXT_EMPTY_STATE).performClick()
+        composeTestRule.waitForIdle()
+
+        // Wait for the drawer to close (menu button should be visible)
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasContentDescription(menuButtonCd)).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun createTaskInList(title: String, selectFirstTag: Boolean = false) {
+        // Ensure we're on the main screen and drawer is closed
+        val emptyTitle = composeTestRule.activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasText(emptyTitle)).fetchSemanticsNodes().isNotEmpty()
+        }
+
         val addReminderCd = composeTestRule.activity.getString(
             com.gustavo.brilhante.tasklist.R.string.add_task_button_description
         )
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(title)
         if (selectFirstTag) {

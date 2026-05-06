@@ -25,7 +25,13 @@ fun ToggleRow(
 ) {
     val rowModifier = modifier
         .padding(horizontal = 4.dp)
-        .then(if (onRowClick != null) Modifier.clickable(onClick = onRowClick) else Modifier)
+        .clickable {
+            if (onRowClick != null) {
+                onRowClick()
+            } else {
+                onCheckedChange(!checked)
+            }
+        }
         .then(testTag?.let { Modifier.testTag(it) } ?: Modifier)
 
     ListItem(

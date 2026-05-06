@@ -13,7 +13,7 @@ data class TaskListUiState(
     val collectionCounts: CollectionCounts = CollectionCounts(),
     val tags: List<Tag> = emptyList(),
     val tagCounts: Map<Long, Int> = emptyMap(),
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val error: String? = null,
     val showTagEditor: Boolean = false,
     val editingTag: Tag? = null,
@@ -21,7 +21,7 @@ data class TaskListUiState(
     val sortOption: TaskSortOption = TaskSortOption.CREATED_DESC,
     val screenTitle: UiText = UiText.DynamicString(""),
     val sortOptions: List<SortOptionUiModel> = emptyList(),
-    val showEmptyState: Boolean = false,
+    val showEmptyState: Boolean = true,
     val canAddTag: Boolean = true,
     val addTagLabel: UiText = UiText.DynamicString(""),
 )
