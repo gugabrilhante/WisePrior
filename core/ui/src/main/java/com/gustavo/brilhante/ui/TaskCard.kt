@@ -1,7 +1,6 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -88,8 +87,6 @@ fun TaskCard(
     // Guard: treat as collapsed when the card has nothing to expand
     val effectiveExpanded = isExpanded && uiModel.hasExpandableContent
 
-    val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
-
     // Single transition drives all coordinated animations, reducing recompositions
     val transition = updateTransition(targetState = effectiveExpanded, label = "task_card_transition")
 
@@ -131,7 +128,6 @@ fun TaskCard(
             verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .padding(end = 8.dp)
-                .animateContentSize(animationSpec = contentSizeAnimSpec)
         ) {
             // LEFT: Checkbox
             Box(
@@ -157,13 +153,10 @@ fun TaskCard(
                 // Moving Indicators & Expand Button
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .align(BiasAlignment(1f, verticalBias)),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Spacer(Modifier.weight(1f))
-
                     if (uiModel.isFlagged) {
                         StatusIndicator(
                             icon = Icons.Filled.Flag,
@@ -190,7 +183,11 @@ fun TaskCard(
                 }
 
                 // Main Stack: Title, Notes, Metadata
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopStart)
+                ) {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         if (uiModel.hasPriority) {
                             PriorityIndicator(
