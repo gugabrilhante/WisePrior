@@ -17,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -33,7 +34,7 @@ import org.junit.Test
  * Expansion is stored in [TaskListUiState.expandedTaskIds] so it survives config
  * changes and is not reset when items are recycled in a LazyColumn.
  */
-@kotlinx.coroutines.ExperimentalCoroutinesApi
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskListExpansionTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
