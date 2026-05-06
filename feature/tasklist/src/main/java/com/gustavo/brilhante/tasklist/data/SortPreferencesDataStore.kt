@@ -19,7 +19,7 @@ class SortPreferencesDataStore @Inject constructor(
     val sortOption: Flow<TaskSortOption> = dataStore.data.map { prefs ->
         prefs[SORT_OPTION_KEY]
             ?.let { runCatching { TaskSortOption.valueOf(it) }.getOrNull() }
-            ?: TaskSortOption.CREATED_DESC
+            ?: TaskSortOption.SMART_PRIORITY
     }
 
     suspend fun setSortOption(option: TaskSortOption) {

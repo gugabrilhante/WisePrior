@@ -18,7 +18,7 @@ data class TaskListUiState(
     val showTagEditor: Boolean = false,
     val editingTag: Tag? = null,
     val expandedTaskIds: Set<Long> = emptySet(),
-    val sortOption: TaskSortOption = TaskSortOption.CREATED_DESC,
+    val sortOption: TaskSortOption = TaskSortOption.SMART_PRIORITY,
     val screenTitle: UiText = UiText.DynamicString(""),
     val sortOptions: List<SortOptionUiModel> = emptyList(),
     val showEmptyState: Boolean = true,

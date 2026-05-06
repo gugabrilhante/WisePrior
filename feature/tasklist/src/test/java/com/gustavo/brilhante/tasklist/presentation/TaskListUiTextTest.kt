@@ -57,7 +57,7 @@ class TaskListUiTextTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTasksUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 
@@ -239,7 +239,7 @@ class TaskListUiTextTest {
     }
 
     @Test
-    fun `given default CREATED_DESC sort, when state emitted, then CREATED_DESC option is selected`() = runTest(testDispatcher) {
+    fun `given default SMART_PRIORITY sort, when state emitted, then SMART_PRIORITY option is selected`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
 
@@ -247,7 +247,7 @@ class TaskListUiTextTest {
             val options = awaitItem().sortOptions
             val selected = options.filter { it.isSelected }
             assertEquals(1, selected.size)
-            assertEquals(TaskSortOption.CREATED_DESC, selected.first().option)
+            assertEquals(TaskSortOption.SMART_PRIORITY, selected.first().option)
         }
     }
 

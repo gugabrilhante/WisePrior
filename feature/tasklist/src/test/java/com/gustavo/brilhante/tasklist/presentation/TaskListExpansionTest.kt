@@ -33,6 +33,7 @@ import org.junit.Test
  * Expansion is stored in [TaskListUiState.expandedTaskIds] so it survives config
  * changes and is not reset when items are recycled in a LazyColumn.
  */
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 class TaskListExpansionTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -54,7 +55,7 @@ class TaskListExpansionTest {
         Dispatchers.setMain(testDispatcher)
         every { getTasksUseCase() } returns flowOf(emptyList())
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 

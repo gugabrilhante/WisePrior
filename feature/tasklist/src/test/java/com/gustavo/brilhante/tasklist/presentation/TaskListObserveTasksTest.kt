@@ -29,7 +29,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -59,7 +58,7 @@ class TaskListObserveTasksTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 
@@ -103,8 +102,8 @@ class TaskListObserveTasksTest {
         val viewModel = buildViewModel()
         advanceUntilIdle()
 
-        // RuntimeException with no message has null message — verify error state is set
-        assertNotNull(viewModel.uiState.value.error.let { it }) // error field is set (possibly null string)
+        // RuntimeException with no message has null message — verify error state is set to "Unknown error"
+        assertEquals("Unknown error", viewModel.uiState.value.error)
     }
 
     @Test

@@ -30,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 class TaskListSortTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -44,7 +45,7 @@ class TaskListSortTest {
     private val calculateTaskPriority = CalculateTaskPriorityUseCase()
     private val dateFormatter = DateFormatterImpl()
 
-    private val sortOptionFlow = MutableStateFlow(TaskSortOption.CREATED_DESC)
+    private val sortOptionFlow = MutableStateFlow(TaskSortOption.SMART_PRIORITY)
 
     private val testDispatcher = UnconfinedTestDispatcher()
 

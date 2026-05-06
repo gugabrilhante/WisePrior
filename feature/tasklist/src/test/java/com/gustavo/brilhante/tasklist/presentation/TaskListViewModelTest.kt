@@ -34,6 +34,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class TaskListViewModelTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -54,7 +55,7 @@ class TaskListViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 
@@ -90,8 +91,9 @@ class TaskListViewModelTest {
 
         viewModel.uiState.test {
             val state = awaitItem()
-            // Default sort is CREATED_DESC, so Task A (newer) comes first
+            // Default sort is SMART_PRIORITY, Task A (High Priority) comes first
             assertEquals(2, state.tasks.size)
+            assertEquals(1L, state.tasks[0].id)
             assertFalse(state.isLoading)
         }
     }

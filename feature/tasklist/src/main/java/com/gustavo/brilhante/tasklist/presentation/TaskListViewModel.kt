@@ -65,7 +65,7 @@ class TaskListViewModel @Inject constructor(
             ) { tasks, collection, tags, sortOption ->
                 Quad(tasks, collection, tags, sortOption)
             }
-                .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
+                .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") } }
                 .collect { (tasks, collection, tags, sortOption) ->
                     val filteredTasks = tasks.filterByCollection(collection).sortedWith(sortOption)
                     val formattedDueDates = filteredTasks.mapNotNull { task ->

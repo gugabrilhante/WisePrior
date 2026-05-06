@@ -76,7 +76,7 @@ class TaskListCollectionFilterTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
         every { dateFormatter.isToday(any()) } returns false
         every { dateFormatter.isToday(todayMillis) } returns true
@@ -106,7 +106,9 @@ class TaskListCollectionFilterTest {
         advanceUntilIdle()
 
         viewModel.uiState.test {
-            assertEquals(allTasks, awaitItem().tasks)
+            val tasks = awaitItem().tasks
+            assertEquals(allTasks.size, tasks.size)
+            assertTrue(tasks.containsAll(allTasks))
         }
     }
 
