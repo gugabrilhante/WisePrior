@@ -1,8 +1,9 @@
 package com.gustavo.brilhante.ui
 
-import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,7 +16,7 @@ import org.junit.Test
 
 class TaskCardTest {
     @get:Rule
-    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+    val composeTestRule = createComposeRule()
 
     // ── Basic rendering ───────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE, useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Buy milk").assertExists()
     }
 
@@ -73,7 +74,7 @@ class TaskCardTest {
                 isExpanded = true
             )
         }
-        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES).assertExists()
+        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES, useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Secret detail").assertExists()
     }
 
@@ -88,7 +89,7 @@ class TaskCardTest {
                 isExpanded = false
             )
         }
-        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_NOTES, useUnmergedTree = true).assertDoesNotExist()
     }
 
     // ── Flag and urgent indicators ────────────────────────────────────────────
@@ -99,7 +100,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onNodeWithContentDescription("Flagged").assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription("Flagged").onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -108,7 +109,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onNodeWithContentDescription("Urgent").assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription("Urgent").onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -117,8 +118,8 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onNodeWithContentDescription("Flagged").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Urgent").assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription("Flagged").onFirst().assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription("Urgent").onFirst().assertIsDisplayed()
     }
 
     // ── Due date ──────────────────────────────────────────────────────────────
