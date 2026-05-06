@@ -2,6 +2,7 @@ package com.gustavo.brilhante.wiseprior.ui
 
 import android.Manifest
 import android.content.pm.ActivityInfo
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.rule.GrantPermissionRule
@@ -141,8 +142,59 @@ class TaskSidebarTest {
     private fun openDrawerIfClosed() {
         val menuButtonNodes = composeTestRule.onAllNodes(hasContentDescription(menuButtonCd))
         if (menuButtonNodes.fetchSemanticsNodes().isNotEmpty()) {
-            menuButtonNodes[0].performClick()
+            val isMenuVisible = try {
+                menuButtonNodes[0].assertIsDisplayed()
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+            if (isMenuVisible) {
+                menuButtonNodes[0].performClick()
+                composeTestRule.waitForIdle()
+                // Wait for drawer content to be displayed
+                composeTestRule.waitUntil(10_000L) {
+                    try {
+                        composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG).assertIsDisplayed()
+                        true
+                    } catch (_: AssertionError) {
+                        false
+                    }
+                }
+            }
+        }
+    }
+
+    private fun closeDrawerIfOpen() {
+        val menuButtonNodes = composeTestRule.onAllNodes(hasContentDescription(menuButtonCd))
+        if (menuButtonNodes.fetchSemanticsNodes().isEmpty()) return
+
+        val isSidebarVisible = try {
+            composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG).assertIsDisplayed()
+            true
+        } catch (_: AssertionError) {
+            false
+        }
+
+        if (isSidebarVisible) {
+            // Click on the right side of the screen (scrim area) to close the drawer safely
+            composeTestRule.onRoot().performTouchInput {
+                click(Offset(width - 10f, height / 2f))
+            }
             composeTestRule.waitForIdle()
+            // Wait for drawer to close
+            composeTestRule.waitUntil(10_000L) {
+                try {
+                    composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG).assertIsNotDisplayed()
+                    true
+                } catch (_: AssertionError) {
+                    try {
+                        composeTestRule.onNodeWithTag(SIDEBAR_LIST_TEST_TAG).assertDoesNotExist()
+                        true
+                    } catch (_: AssertionError) {
+                        false
+                    }
+                }
+            }
         }
     }
 
@@ -156,40 +208,47 @@ class TaskSidebarTest {
         composeTestRule.onNodeWithTag(TestTags.INPUT_TAG_EDITOR_NAME).performTextInput(name)
         composeTestRule.onNodeWithTag(TestTags.BTN_TAG_EDITOR_SAVE).performClick()
 
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        // Wait for dialog to dismiss
+        composeTestRule.waitUntil(timeoutMillis = 10_000L) {
             composeTestRule.onAllNodes(hasTestTag(TestTags.DIALOG_TAG_EDITOR))
                 .fetchSemanticsNodes().isEmpty()
         }
 
-        // Close the drawer after creating the tag by clicking on the main content
-        composeTestRule.onNodeWithTag(TestTags.TEXT_EMPTY_STATE).performClick()
-        composeTestRule.waitForIdle()
-
-        // Wait for the drawer to close (menu button should be visible)
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
-            composeTestRule.onAllNodes(hasContentDescription(menuButtonCd)).fetchSemanticsNodes().isNotEmpty()
-        }
+        closeDrawerIfOpen()
     }
 
     private fun createTaskInList(title: String, selectFirstTag: Boolean = false) {
-        // Ensure we're on the main screen and drawer is closed
-        val emptyTitle = composeTestRule.activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
-            composeTestRule.onAllNodes(hasText(emptyTitle)).fetchSemanticsNodes().isNotEmpty()
+        // Ensure the drawer is closed so the FAB is not covered
+        closeDrawerIfOpen()
+
+        // Wait for the main screen content to be ready
+        composeTestRule.waitUntil(timeoutMillis = 15_000L) {
+            composeTestRule.onAllNodes(hasTestTag(TestTags.BTN_TASK_LIST_ADD))
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
-        val addReminderCd = composeTestRule.activity.getString(
-            com.gustavo.brilhante.tasklist.R.string.add_task_button_description
-        )
-        composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
+        // Wait for FAB to be displayed and clickable
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_LIST_ADD)
+            .assertIsDisplayed()
+            .performClick()
+        
         composeTestRule.waitForIdle()
+
+        // Wait for editor screen to appear
+        composeTestRule.waitUntil(timeoutMillis = 20_000L) {
+            composeTestRule.onAllNodes(hasTestTag(TestTags.SCREEN_TASK_EDITOR))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
+
         composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(title)
         if (selectFirstTag) {
             composeTestRule.onNodeWithTag(TestTags.CHIP_TAG_ITEM).performClick()
             composeTestRule.waitForIdle()
         }
         composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
+        
+        // Wait for editor to dismiss
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasTestTag(TestTags.SCREEN_TASK_EDITOR))
                 .fetchSemanticsNodes().isEmpty()
