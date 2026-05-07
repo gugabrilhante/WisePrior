@@ -2,6 +2,7 @@ package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -47,7 +48,7 @@ class TaskListViewModelTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
     private val dateFormatter = DateFormatterImpl()
 
     private val testDispatcher = UnconfinedTestDispatcher()

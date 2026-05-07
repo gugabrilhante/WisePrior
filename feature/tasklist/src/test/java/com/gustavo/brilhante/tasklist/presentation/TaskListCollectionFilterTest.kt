@@ -10,6 +10,7 @@ import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
@@ -46,7 +47,7 @@ class TaskListCollectionFilterTest {
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk()
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
 
     private val testDispatcher = StandardTestDispatcher()
 
