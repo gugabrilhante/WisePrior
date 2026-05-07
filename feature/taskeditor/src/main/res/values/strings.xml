@@ -35,8 +35,11 @@
     <string name="recurrence_unit_weeks">weeks</string>
     <string name="recurrence_unit_months">months</string>
 
-    <string name="priority_none">None</string>
-    <string name="priority_low">Low</string>
-    <string name="priority_medium">Medium</string>
-    <string name="priority_high">High</string>
+    <string name="none">None</string>
+    <string name="low">Low</string>
+    <string name="medium">Medium</string>
+    <string name="high">High</string>
+    <string name="priority_low">Low priority</string>
+    <string name="priority_medium">Medium priority</string>
+    <string name="priority_high">High priority</string>
 </resources>

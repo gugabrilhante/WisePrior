@@ -56,7 +56,7 @@ class TaskListTagEditorTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { getTasksUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 

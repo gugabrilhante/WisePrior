@@ -14,8 +14,8 @@ android {
         applicationId "com.gustavo.brilhante.wiseprior"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         testInstrumentationRunner "com.gustavo.brilhante.wiseprior.HiltTestRunner"
         vectorDrawables { useSupportLibrary true }
     }
@@ -78,6 +78,8 @@ dependencies {
     androidTestImplementation libs.hilt.android.testing
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.datastore.preferences
+    // Expose test-tag constants and shared UI components to androidTest.
+    androidTestImplementation project(':core:ui')
     // Expose core:storage and core:notifications so @TestInstallIn can reference
     // their Hilt modules (which are impl-scoped transitive deps, not visible to KSP).
     androidTestImplementation project(':core:storage')

@@ -19,6 +19,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -30,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskListSortTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -44,7 +46,7 @@ class TaskListSortTest {
     private val calculateTaskPriority = CalculateTaskPriorityUseCase()
     private val dateFormatter = DateFormatterImpl()
 
-    private val sortOptionFlow = MutableStateFlow(TaskSortOption.CREATED_DESC)
+    private val sortOptionFlow = MutableStateFlow(TaskSortOption.SMART_PRIORITY)
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
