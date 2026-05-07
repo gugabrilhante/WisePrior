@@ -13,8 +13,8 @@ class UpdateTagUseCaseTest {
     private val useCase = UpdateTagUseCase(repository)
 
     @Test
-    fun `given a tag, when invoke called, then delegates to repository updateTag`() = runTest {
-        val tag = Tag(id = 3L, name = "Updated tag", color = 0xFFEF4444L)
+    fun `invoke calls repository updateTag with the given tag`() = runTest {
+        val tag = Tag(id = 2, name = "Personal", color = 0xFF00FF)
 
         useCase(tag)
 
