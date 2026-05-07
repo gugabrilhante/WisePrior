@@ -262,9 +262,14 @@ private fun TaskListContent(
                             task = task,
                             onDelete = { onDeleteTask(task) },
                             modifier = Modifier.animateItem(
+                                fadeInSpec = tween(durationMillis = 300),
                                 placementSpec = spring(
-                                    stiffness = Spring.StiffnessMediumLow,
+                                    stiffness = Spring.StiffnessLow,
                                     dampingRatio = Spring.DampingRatioNoBouncy
+                                ),
+                                fadeOutSpec = tween(
+                                    durationMillis = 200,
+                                    easing = FastOutLinearInEasing
                                 )
                             )
                         ) {

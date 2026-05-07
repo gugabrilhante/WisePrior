@@ -109,9 +109,10 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
         }
     }.flatten()))
 
-    // Collect .exec files from unit tests and .ec files from instrumentation tests
+    // AGP 9.x writes exec files to outputs/unit_test_code_coverage (unit tests)
+    // and outputs/code_coverage (instrumented tests).
     executionData.setFrom(fileTree(rootDir) {
-        include '**/jacoco/*.exec'
-        include '**/code_coverage/**/*.ec'
+        include '**/outputs/unit_test_code_coverage/**/*.exec'
+        include '**/outputs/code_coverage/**/*.ec'
     })
 }
