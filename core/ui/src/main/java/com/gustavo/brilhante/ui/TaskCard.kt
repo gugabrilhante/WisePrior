@@ -1,7 +1,6 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -61,7 +60,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
@@ -84,13 +82,7 @@ fun TaskCard(
     }
     
     val checkboxContentDescription = stringResource(uiModel.checkboxDescriptionRes)
-
-    // Guard: treat as collapsed when the card has nothing to expand
     val effectiveExpanded = isExpanded && uiModel.hasExpandableContent
-
-    val contentSizeAnimSpec = remember { tween<IntSize>(70, easing = FastOutLinearInEasing) }
-
-    // Single transition drives all coordinated animations, reducing recompositions
     val transition = updateTransition(targetState = effectiveExpanded, label = "task_card_transition")
 
     val verticalBias by transition.animateFloat(
@@ -129,9 +121,7 @@ fun TaskCard(
     ) {
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .animateContentSize(animationSpec = contentSizeAnimSpec)
+            modifier = Modifier.padding(end = 8.dp)
         ) {
             // LEFT: Checkbox
             Box(
@@ -147,51 +137,17 @@ fun TaskCard(
                 )
             }
 
-            // CENTER & RIGHT: Main Content Area
-            Box(
+            // MAIN AREA
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .alpha(uiModel.contentAlpha)
                     .padding(top = 12.dp, bottom = 8.dp)
             ) {
-                // Moving Indicators & Expand Button
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(BiasAlignment(1f, verticalBias)),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Spacer(Modifier.weight(1f))
-
-                    if (uiModel.isFlagged) {
-                        StatusIndicator(
-                            icon = Icons.Filled.Flag,
-                            text = stringResource(R.string.task_card_flagged),
-                            color = colorResource(DesignR.color.flagged),
-                            transition = transition,
-                        )
-                    }
-                    if (uiModel.isUrgent) {
-                        StatusIndicator(
-                            icon = Icons.Filled.Warning,
-                            text = stringResource(R.string.task_card_urgent),
-                            color = colorResource(DesignR.color.urgent),
-                            transition = transition,
-                        )
-                    }
-
-                    if (uiModel.hasExpandableContent) {
-                        ExpandButton(
-                            isExpanded = effectiveExpanded,
-                            onClick = onToggleExpanded
-                        )
-                    }
-                }
-
-                // Main Stack: Title, Notes, Metadata
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
+                // Header Area: Title, Priority and Indicators
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    // Title Stack
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         if (uiModel.hasPriority) {
                             PriorityIndicator(
                                 priority = uiModel.priority,
@@ -214,79 +170,111 @@ fun TaskCard(
                         )
                     }
 
-                    // NOTES
-                    AnimatedVisibility(
-                        visible = effectiveExpanded && uiModel.notes.isNotBlank(),
-                        enter = expandVertically(
-                            animationSpec = tween(50, easing = FastOutSlowInEasing)
-                        ) + fadeIn(
-                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                        ),
-                        exit = shrinkVertically(
-                            animationSpec = tween(300, easing = FastOutLinearInEasing)
-                        ) + fadeOut(
-                            animationSpec = tween(150, easing = FastOutLinearInEasing)
-                        )
-                    ) {
-                        Text(
-                            text = uiModel.notes,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 5,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(vertical = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
-                        )
-                    }
-
-                    // METADATA ROW (Date + Tags)
+                    // Indicators
                     Row(
+                        modifier = Modifier
+                            .align(BiasAlignment(1f, verticalBias)),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (uiModel.formattedDueDate != null) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Schedule,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = uiModel.formattedDueDate,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        if (uiModel.isFlagged) {
+                            StatusIndicator(
+                                icon = Icons.Filled.Flag,
+                                text = stringResource(R.string.task_card_flagged),
+                                color = colorResource(DesignR.color.flagged),
+                                transition = transition,
+                            )
+                        }
+                        if (uiModel.isUrgent) {
+                            StatusIndicator(
+                                icon = Icons.Filled.Warning,
+                                text = stringResource(R.string.task_card_urgent),
+                                color = colorResource(DesignR.color.urgent),
+                                transition = transition,
+                            )
                         }
 
-                        if (!effectiveExpanded && uiModel.tags.isNotEmpty()) {
-                            uiModel.tags.take(1).forEach { tag ->
-                                key(tag.id) { TaskTagBadge(tag = tag) }
-                            }
-                            if (uiModel.tags.size > 1) {
-                                Text(
-                                    text = "+${uiModel.tags.size - 1}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        if (uiModel.hasExpandableContent) {
+                            ExpandButton(
+                                isExpanded = effectiveExpanded,
+                                onClick = onToggleExpanded
+                            )
+                        }
+                    }
+                }
+
+                // NOTES
+                AnimatedVisibility(
+                    visible = effectiveExpanded && uiModel.notes.isNotBlank(),
+                    enter = expandVertically(
+                        animationSpec = tween(50, easing = FastOutSlowInEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    ),
+                    exit = shrinkVertically(
+                        animationSpec = tween(300, easing = FastOutLinearInEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(150, easing = FastOutLinearInEasing)
+                    )
+                ) {
+                    Text(
+                        text = uiModel.notes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(vertical = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
+                    )
+                }
+
+                // METADATA
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                ) {
+                    if (uiModel.formattedDueDate != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = uiModel.formattedDueDate,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
-                    // EXPANDED TAGS (FlowRow)
-                    if (effectiveExpanded && uiModel.tags.isNotEmpty()) {
-                        FlowRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            uiModel.tags.forEach { tag ->
-                                key(tag.id) { TaskTagBadge(tag = tag) }
-                            }
+                    if (!effectiveExpanded && uiModel.tags.isNotEmpty()) {
+                        uiModel.tags.take(1).forEach { tag ->
+                            key(tag.id) { TaskTagBadge(tag = tag) }
+                        }
+                        if (uiModel.tags.size > 1) {
+                            Text(
+                                text = "+${uiModel.tags.size - 1}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // FLOW ROW
+                if (effectiveExpanded && uiModel.tags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        uiModel.tags.forEach { tag ->
+                            key(tag.id) { TaskTagBadge(tag = tag) }
                         }
                     }
                 }
