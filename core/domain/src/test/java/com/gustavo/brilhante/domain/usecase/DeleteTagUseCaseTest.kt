@@ -13,8 +13,8 @@ class DeleteTagUseCaseTest {
     private val useCase = DeleteTagUseCase(repository)
 
     @Test
-    fun `given a tag, when invoke called, then delegates to repository deleteTag`() = runTest {
-        val tag = Tag(id = 5L, name = "Outdated tag", color = 0xFFEAB308L)
+    fun `invoke calls repository deleteTag with the given tag`() = runTest {
+        val tag = Tag(id = 1, name = "Work", color = 0)
 
         useCase(tag)
 

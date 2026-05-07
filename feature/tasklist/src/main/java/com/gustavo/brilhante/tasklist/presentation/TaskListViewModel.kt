@@ -122,7 +122,7 @@ class TaskListViewModel @Inject constructor(
                             showEmptyState = filteredTasks.isEmpty() && !it.isLoading,
                             canAddTag = tags.size < MAX_TAGS,
                             addTagLabel = if (tags.size < MAX_TAGS) UiText.StringResource(R.string.add_tag_label)
-                                          else UiText.PluralResource(R.plurals.tag_limit_message, MAX_TAGS, MAX_TAGS)
+                                          else UiText.PluralResource(R.plurals.tag_limit_message, MAX_TAGS, listOf(MAX_TAGS))
                         )
                     }
                 }
