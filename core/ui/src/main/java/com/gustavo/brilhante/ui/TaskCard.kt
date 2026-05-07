@@ -147,28 +147,26 @@ fun TaskCard(
                 // Header Area: Title, Priority and Indicators
                 Box(modifier = Modifier.fillMaxWidth()) {
                     // Title Stack
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        if (uiModel.hasPriority) {
-                            PriorityIndicator(
-                                priority = uiModel.priority,
-                                label = uiModel.priorityTextRes?.let { stringResource(it) } ?: "",
-                                color = uiModel.priorityColorRes?.let { colorResource(it) } ?: Color.Unspecified,
-                                showText = effectiveExpanded,
-                                textAlpha = priorityAlpha
-                            )
-                        }
-                        Text(
-                            text = uiModel.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = if (effectiveExpanded) 3 else 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textDecoration = if (uiModel.isTitleStrikethrough) TextDecoration.LineThrough else TextDecoration.None,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = titleTopPadding, start = titleStartPadding)
-                                .testTag(TestTags.TEXT_TASK_TITLE)
+                    if (uiModel.hasPriority) {
+                        PriorityIndicator(
+                            priority = uiModel.priority,
+                            label = uiModel.priorityTextRes?.let { stringResource(it) } ?: "",
+                            color = uiModel.priorityColorRes?.let { colorResource(it) } ?: Color.Unspecified,
+                            showText = effectiveExpanded,
+                            textAlpha = priorityAlpha
                         )
                     }
+                    Text(
+                        text = uiModel.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = if (effectiveExpanded) 3 else 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textDecoration = if (uiModel.isTitleStrikethrough) TextDecoration.LineThrough else TextDecoration.None,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = titleTopPadding, start = titleStartPadding)
+                            .testTag(TestTags.TEXT_TASK_TITLE)
+                    )
 
                     // Indicators
                     Row(
