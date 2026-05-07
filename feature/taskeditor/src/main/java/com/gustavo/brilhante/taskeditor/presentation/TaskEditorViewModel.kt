@@ -219,10 +219,10 @@ class TaskEditorViewModel @Inject constructor(
                 PriorityOptionUiModel(
                     priority = p,
                     label = UiText.StringResource(when (p) {
-                        Priority.NONE -> R.string.priority_none
-                        Priority.LOW -> R.string.priority_low
-                        Priority.MEDIUM -> R.string.priority_medium
-                        Priority.HIGH -> R.string.priority_high
+                        Priority.NONE -> R.string.none
+                        Priority.LOW -> R.string.low
+                        Priority.MEDIUM -> R.string.medium
+                        Priority.HIGH -> R.string.high
                     }),
                     isSelected = priority == p,
                     testTag = when (p) {

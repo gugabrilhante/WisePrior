@@ -47,6 +47,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
+        // Re-adicionado useUnmergedTree = true pois o Text dentro do Box pode ser mesclado na árvore semântica
         composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE, useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Buy milk").assertExists()
     }
@@ -251,6 +252,7 @@ class TaskCardTest {
     fun taskCard_expanded_withHighPriority_showsPriorityIndicator() {
         // isExpanded=true + hasPriority=true → PriorityIndicator showText=true path
         val task = Task(id = 1, title = "Priority Task", priority = Priority.HIGH, notes = "Detail")
+        val highPriorityLabel = "High priority"
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -259,6 +261,7 @@ class TaskCardTest {
                 isExpanded = true
             )
         }
-        composeTestRule.onNodeWithTag(TestTags.CARD_TASK_ITEM).assertIsDisplayed()
+        composeTestRule.onNodeWithText(highPriorityLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Priority Task").assertIsDisplayed()
     }
 }
