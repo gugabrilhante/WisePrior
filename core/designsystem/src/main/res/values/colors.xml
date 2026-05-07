@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light scheme -->
+    <color name="green_40">#2E7D32</color>
+    <color name="blue_grey_40">#455A64</color>
+    <color name="teal_40">#00897B</color>
+
+    <!-- Dark scheme -->
+    <color name="green_80">#66BB6A</color>
+    <color name="blue_grey_80">#B0BEC5</color>
+    <color name="teal_80">#80CBC4</color>
+
+    <!-- Green tonal roles -->
+    <color name="green_container_40">#C8E6C9</color>
+    <color name="on_green_40">#FFFFFF</color>
+    <color name="on_green_container_40">#1B5E20</color>
+    <color name="green_container_80">#1B5E20</color>
+    <color name="on_green_80">#003A04</color>
+    <color name="on_green_container_80">#C8E6C9</color>
+
+    <!-- Neutral blue-grey secondary -->
+    <color name="neutral_blue_80">#90A4AE</color>
+    <color name="on_neutral_blue_80">#0F2028</color>
+    <color name="neutral_blue_container_80">#1A2F3A</color>
+    <color name="on_neutral_blue_container_80">#B0C8D8</color>
+
+    <!-- Dark surface hierarchy -->
+    <color name="surface_dark">#0D1117</color>
+    <color name="surface_variant_dark">#161B22</color>
+    <color name="surface_container_lowest_dark">#080C10</color>
+    <color name="surface_container_low_dark">#131820</color>
+    <color name="surface_container_dark">#1C2128</color>
+    <color name="surface_container_high_dark">#21262D</color>
+    <color name="surface_container_highest_dark">#2D333B</color>
+    <color name="on_surface_dark">#CDD9E5</color>
+    <color name="on_surface_variant_dark">#8B949E</color>
+    <color name="outline_dark">#30363D</color>
+    <color name="outline_variant_dark">#20252C</color>
+
+    <!-- Priority Colors -->
+    <color name="priority_none">#9E9E9E</color>
+    <color name="priority_low">#42A5F5</color>
+    <color name="priority_medium">#FFA726</color>
+    <color name="priority_high">#EF5350</color>
+
+    <!-- Semantic Colors -->
+    <color name="urgent">#EF5350</color>
+    <color name="flagged">#FFA726</color>
+
+    <!-- Tag Palette Colors -->
+    <color name="tag_red">#EF4444</color>
+    <color name="tag_orange">#F97316</color>
+    <color name="tag_yellow">#EAB308</color>
+    <color name="tag_green">#22C55E</color>
+    <color name="tag_blue">#3B82F6</color>
+    <color name="tag_purple">#8B5CF6</color>
+    <color name="tag_pink">#EC4899</color>
+    <color name="tag_gray">#6B7280</color>
+</resources>

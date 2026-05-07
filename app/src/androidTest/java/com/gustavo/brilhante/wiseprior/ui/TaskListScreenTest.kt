@@ -122,6 +122,42 @@ class TaskListScreenTest {
         composeTestRule.onNodeWithText(editTitle).assertIsDisplayed()
     }
 
+    @Test
+    fun sortButton_isVisible() {
+        val sortCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_button_description
+        )
+        composeTestRule.onNodeWithContentDescription(sortCd).assertIsDisplayed()
+    }
+
+    @Test
+    fun sortDropdown_opensOnClick() {
+        val sortCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_button_description
+        )
+        val newestLabel = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_created_newest
+        )
+        composeTestRule.onNodeWithContentDescription(sortCd).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(newestLabel).assertIsDisplayed()
+    }
+
+    @Test
+    fun existingTask_canBeCheckedAndUnchecked() {
+        val taskTitle = "Toggle me"
+        createTask(taskTitle)
+
+        // Complete
+        composeTestRule.onNodeWithContentDescription(markCompleteCd).performClick()
+        waitUntilCdExists(markIncompleteCd)
+
+        // Uncomplete
+        composeTestRule.onNodeWithContentDescription(markIncompleteCd).performClick()
+        waitUntilCdExists(markCompleteCd)
+        composeTestRule.onNodeWithContentDescription(markCompleteCd).assertIsDisplayed()
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun createTask(title: String) {

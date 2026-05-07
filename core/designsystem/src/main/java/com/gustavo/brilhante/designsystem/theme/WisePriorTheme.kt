@@ -9,39 +9,8 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-
-private val LightColorScheme = lightColorScheme(
-    primary = Green40,
-    onPrimary = OnGreen40,
-    primaryContainer = GreenContainer40,
-    onPrimaryContainer = OnGreenContainer40,
-    secondary = BlueGrey40,
-    tertiary = Teal40
-)
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Green80,
-    onPrimary = OnGreen80,
-    primaryContainer = GreenContainer80,
-    onPrimaryContainer = OnGreenContainer80,
-    secondary = NeutralBlue80,
-    onSecondary = OnNeutralBlue80,
-    secondaryContainer = NeutralBlueContainer80,
-    onSecondaryContainer = OnNeutralBlueContainer80,
-    background = SurfaceDark,
-    surface = SurfaceDark,
-    surfaceVariant = SurfaceVariantDark,
-    surfaceContainerLowest = SurfaceContainerLowestDark,
-    surfaceContainerLow = SurfaceContainerLowDark,
-    surfaceContainer = SurfaceContainerDark,
-    surfaceContainerHigh = SurfaceContainerHighDark,
-    surfaceContainerHighest = SurfaceContainerHighestDark,
-    onBackground = OnSurfaceDark,
-    onSurface = OnSurfaceDark,
-    onSurfaceVariant = OnSurfaceVariantDark,
-    outline = OutlineDark,
-    outlineVariant = OutlineVariantDark,
-)
+import androidx.compose.ui.res.colorResource
+import com.gustavo.brilhante.designsystem.R
 
 @Composable
 fun WisePriorTheme(
@@ -51,13 +20,46 @@ fun WisePriorTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val lightColorScheme = lightColorScheme(
+        primary = colorResource(R.color.green_40),
+        onPrimary = colorResource(R.color.on_green_40),
+        primaryContainer = colorResource(R.color.green_container_40),
+        onPrimaryContainer = colorResource(R.color.on_green_container_40),
+        secondary = colorResource(R.color.blue_grey_40),
+        tertiary = colorResource(R.color.teal_40)
+    )
+
+    val darkColorScheme = darkColorScheme(
+        primary = colorResource(R.color.green_80),
+        onPrimary = colorResource(R.color.on_green_80),
+        primaryContainer = colorResource(R.color.green_container_80),
+        onPrimaryContainer = colorResource(R.color.on_green_container_80),
+        secondary = colorResource(R.color.neutral_blue_80),
+        onSecondary = colorResource(R.color.on_neutral_blue_80),
+        secondaryContainer = colorResource(R.color.neutral_blue_container_80),
+        onSecondaryContainer = colorResource(R.color.on_neutral_blue_container_80),
+        background = colorResource(R.color.surface_dark),
+        surface = colorResource(R.color.surface_dark),
+        surfaceVariant = colorResource(R.color.surface_variant_dark),
+        surfaceContainerLowest = colorResource(R.color.surface_container_lowest_dark),
+        surfaceContainerLow = colorResource(R.color.surface_container_low_dark),
+        surfaceContainer = colorResource(R.color.surface_container_dark),
+        surfaceContainerHigh = colorResource(R.color.surface_container_high_dark),
+        surfaceContainerHighest = colorResource(R.color.surface_container_highest_dark),
+        onBackground = colorResource(R.color.on_surface_dark),
+        onSurface = colorResource(R.color.on_surface_dark),
+        onSurfaceVariant = colorResource(R.color.on_surface_variant_dark),
+        outline = colorResource(R.color.outline_dark),
+        outlineVariant = colorResource(R.color.outline_variant_dark),
+    )
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> darkColorScheme
+        else -> lightColorScheme
     }
 
     MaterialTheme(

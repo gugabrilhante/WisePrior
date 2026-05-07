@@ -65,9 +65,10 @@ import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
+import com.gustavo.brilhante.taskeditor.presentation.PriorityOptionUiModel
+import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUnitOptionUiModel
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
@@ -145,7 +146,7 @@ fun TaskEditorScreen(
         modifier = modifier.testTag(TestTags.SCREEN_TASK_EDITOR),
         topBar = {
             TopAppBar(
-                title = { Text(if (taskId != null) stringResource(R.string.editor_title_edit) else stringResource(R.string.editor_title_new)) },
+                title = { Text(uiState.screenTitle.asString()) },
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
@@ -248,7 +249,9 @@ fun TaskEditorScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         RecurrenceSelector(
                             rule = uiState.recurrenceRule,
-                            onRuleChange = { viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(it)) },
+                            unitOptions = uiState.recurrenceUnitOptions,
+                            canDecrementInterval = uiState.canDecrementInterval,
+                            onEvent = viewModel::onEvent,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
@@ -287,35 +290,18 @@ fun TaskEditorScreen(
             // ── Priority ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_priority), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_PRIORITY))
-            val priorities = Priority.entries
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                priorities.forEachIndexed { index, priority ->
+                uiState.priorityOptions.forEachIndexed { index, option ->
                     SegmentedButton(
-                        selected = uiState.priority == priority,
-                        onClick = { viewModel.onEvent(TaskEditorEvent.PriorityChanged(priority)) },
-                        shape = SegmentedButtonDefaults.itemShape(index, priorities.size),
-                        modifier = Modifier.testTag(
-                            when (priority) {
-                                Priority.NONE -> TestTags.SEGMENT_PRIORITY_NONE
-                                Priority.LOW -> TestTags.SEGMENT_PRIORITY_LOW
-                                Priority.MEDIUM -> TestTags.SEGMENT_PRIORITY_MEDIUM
-                                Priority.HIGH -> TestTags.SEGMENT_PRIORITY_HIGH
-                            }
-                        ),
-                        label = {
-                            Text(
-                                when (priority) {
-                                    Priority.NONE -> stringResource(R.string.priority_none)
-                                    Priority.LOW -> stringResource(R.string.priority_low)
-                                    Priority.MEDIUM -> stringResource(R.string.priority_medium)
-                                    Priority.HIGH -> stringResource(R.string.priority_high)
-                                }
-                            )
-                        }
+                        selected = option.isSelected,
+                        onClick = { viewModel.onEvent(TaskEditorEvent.PriorityChanged(option.priority)) },
+                        shape = SegmentedButtonDefaults.itemShape(index, uiState.priorityOptions.size),
+                        modifier = Modifier.testTag(option.testTag),
+                        label = { Text(option.label.asString()) }
                     )
                 }
             }
@@ -353,10 +339,7 @@ fun TaskEditorScreen(
                         TagChip(
                             tag = tag,
                             isSelected = isSelected,
-                            onClick = {
-                                if (isSelected) viewModel.onTagRemoved(tag.id)
-                                else viewModel.onTagSelected(tag.id)
-                            }
+                            onClick = { viewModel.onEvent(TaskEditorEvent.TagClicked(tag.id)) }
                         )
                     }
                 }
@@ -387,11 +370,12 @@ fun TaskEditorScreen(
 @Composable
 private fun RecurrenceSelector(
     rule: RecurrenceRule,
-    onRuleChange: (RecurrenceRule) -> Unit,
+    unitOptions: List<RecurrenceUnitOptionUiModel>,
+    canDecrementInterval: Boolean,
+    onEvent: (TaskEditorEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        // Toggle row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -413,12 +397,7 @@ private fun RecurrenceSelector(
             }
             Switch(
                 checked = rule.isRecurring,
-                onCheckedChange = { enabled ->
-                    onRuleChange(
-                        if (enabled) RecurrenceRule(RecurrenceUnit.DAYS, 1)
-                        else RecurrenceRule.NONE
-                    )
-                },
+                onCheckedChange = { onEvent(TaskEditorEvent.ToggleRecurrence) },
                 modifier = Modifier.testTag(TestTags.TOGGLE_TASK_RECURRENCE)
             )
         }
@@ -436,12 +415,10 @@ private fun RecurrenceSelector(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.width(4.dp))
-                // Decrement button
                 IconButton(
-                    onClick = {
-                        if (rule.interval > 1) onRuleChange(rule.copy(interval = rule.interval - 1))
-                    },
-                    enabled = rule.interval > 1
+                    onClick = { onEvent(TaskEditorEvent.DecrementInterval) },
+                    enabled = canDecrementInterval,
+                    modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_DECREMENT)
                 ) {
                     Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.editor_recurrence_decrease))
                 }
@@ -451,16 +428,17 @@ private fun RecurrenceSelector(
                     modifier = Modifier.width(32.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-                // Increment button
                 IconButton(
-                    onClick = { onRuleChange(rule.copy(interval = rule.interval + 1)) }
+                    onClick = { onEvent(TaskEditorEvent.IncrementInterval) },
+                    modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_INCREMENT)
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_recurrence_increase))
                 }
                 Spacer(Modifier.width(4.dp))
                 RecurrenceUnitDropdown(
                     selected = rule.unit,
-                    onSelect = { onRuleChange(rule.copy(unit = it)) }
+                    options = unitOptions,
+                    onSelect = { onEvent(TaskEditorEvent.RecurrenceUnitSelected(it)) }
                 )
             }
         }
@@ -471,11 +449,11 @@ private fun RecurrenceSelector(
 @Composable
 private fun RecurrenceUnitDropdown(
     selected: RecurrenceUnit,
+    options: List<RecurrenceUnitOptionUiModel>,
     onSelect: (RecurrenceUnit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val units = RecurrenceUnit.entries.filter { it != RecurrenceUnit.NONE }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -483,7 +461,7 @@ private fun RecurrenceUnitDropdown(
         modifier = modifier.testTag(TestTags.DROPDOWN_RECURRENCE_UNIT)
     ) {
         OutlinedTextField(
-            value = selected.label(),
+            value = options.find { it.unit == selected }?.label?.asString() ?: "",
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -498,22 +476,13 @@ private fun RecurrenceUnitDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            units.forEach { unit ->
+            options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(unit.label()) },
-                    onClick = { onSelect(unit); expanded = false },
+                    text = { Text(option.label.asString()) },
+                    onClick = { onSelect(option.unit); expanded = false },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
     }
-}
-
-@Composable
-private fun RecurrenceUnit.label(): String = when (this) {
-    RecurrenceUnit.NONE -> ""
-    RecurrenceUnit.HOURS -> stringResource(R.string.recurrence_unit_hours)
-    RecurrenceUnit.DAYS -> stringResource(R.string.recurrence_unit_days)
-    RecurrenceUnit.WEEKS -> stringResource(R.string.recurrence_unit_weeks)
-    RecurrenceUnit.MONTHS -> stringResource(R.string.recurrence_unit_months)
 }
