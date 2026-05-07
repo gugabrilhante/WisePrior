@@ -2,6 +2,8 @@ package com.gustavo.brilhante.tasklist.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -253,7 +255,16 @@ private fun TaskListContent(
                         items = uiState.tasks,
                         key = { task -> task.id }
                     ) { task ->
-                        SwipeToDeleteContainer(task = task, onDelete = { onDeleteTask(task) }) {
+                        SwipeToDeleteContainer(
+                            task = task,
+                            onDelete = { onDeleteTask(task) },
+                            modifier = Modifier.animateItem(
+                                placementSpec = spring(
+                                    stiffness = Spring.StiffnessMediumLow,
+                                    dampingRatio = Spring.DampingRatioNoBouncy
+                                )
+                            )
+                        ) {
                             TaskCard(
                                 task = task,
                                 allTags = uiState.tags,
@@ -262,14 +273,7 @@ private fun TaskListContent(
                                 onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
                                 isExpanded = task.id in uiState.expandedTaskIds,
                                 onToggleExpanded = { onToggleExpanded(task.id) },
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                                    .animateItem(
-                                        placementSpec = tween(
-                                            durationMillis = 150,
-                                            easing = FastOutLinearInEasing
-                                        )
-                                    )
+                                modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
                     }
@@ -313,6 +317,7 @@ private fun TaskCollection.label(tags: List<Tag>): String = when (this) {
 private fun SwipeToDeleteContainer(
     task: Task,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     val state = rememberSwipeToDismissBoxState()
@@ -327,6 +332,7 @@ private fun SwipeToDeleteContainer(
 
     SwipeToDismissBox(
         state = state,
+        modifier = modifier,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
             val color = when (state.dismissDirection) {

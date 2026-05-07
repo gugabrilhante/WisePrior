@@ -35,8 +35,11 @@
     <string name="recurrence_unit_weeks">semanas</string>
     <string name="recurrence_unit_months">meses</string>
 
-    <string name="priority_none">Nenhuma</string>
-    <string name="priority_low">Baixa</string>
-    <string name="priority_medium">Média</string>
-    <string name="priority_high">Alta</string>
+    <string name="none">Nenhuma</string>
+    <string name="low">Baixa</string>
+    <string name="medium">Média</string>
+    <string name="high">Alta</string>
+    <string name="priority_low">Baixa prioridade</string>
+    <string name="priority_medium">Média prioridade</string>
+    <string name="priority_high">Alta prioridade</string>
 </resources>

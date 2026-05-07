@@ -287,10 +287,10 @@ fun TaskEditorScreen(
                         label = {
                             Text(
                                 when (priority) {
-                                    Priority.NONE -> stringResource(R.string.priority_none)
-                                    Priority.LOW -> stringResource(R.string.priority_low)
-                                    Priority.MEDIUM -> stringResource(R.string.priority_medium)
-                                    Priority.HIGH -> stringResource(R.string.priority_high)
+                                    Priority.NONE -> stringResource(R.string.none)
+                                    Priority.LOW -> stringResource(R.string.low)
+                                    Priority.MEDIUM -> stringResource(R.string.medium)
+                                    Priority.HIGH -> stringResource(R.string.high)
                                 }
                             )
                         }
