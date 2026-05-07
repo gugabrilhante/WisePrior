@@ -58,14 +58,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
+import com.gustavo.brilhante.taskeditor.presentation.PriorityOptionUiModel
+import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUnitOptionUiModel
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
@@ -95,6 +98,7 @@ fun TaskEditorScreen(
             initialSelectedDateMillis = uiState.datePickerUtcMillis
         )
         DatePickerDialog(
+            modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) },
             confirmButton = {
                 TextButton(onClick = {
@@ -120,6 +124,7 @@ fun TaskEditorScreen(
             is24Hour = true
         )
         AlertDialog(
+            modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideTimePicker) },
             confirmButton = {
                 TextButton(onClick = {
@@ -138,17 +143,23 @@ fun TaskEditorScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(TestTags.SCREEN_TASK_EDITOR),
         topBar = {
             TopAppBar(
-                title = { Text(if (taskId != null) stringResource(R.string.editor_title_edit) else stringResource(R.string.editor_title_new)) },
+                title = { Text(uiState.screenTitle.asString()) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_BACK)
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.editor_back))
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.Save) }) {
+                    TextButton(
+                        onClick = { viewModel.onEvent(TaskEditorEvent.Save) },
+                        modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_DONE)
+                    ) {
                         Text(stringResource(R.string.editor_done), style = MaterialTheme.typography.titleMedium)
                     }
                 }
@@ -177,7 +188,7 @@ fun TaskEditorScreen(
                         placeholder = { Text(stringResource(R.string.editor_placeholder_title)) },
                         isError = uiState.titleError != null,
                         supportingText = uiState.titleError?.let { { Text(it) } },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_TITLE),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent
@@ -189,7 +200,7 @@ fun TaskEditorScreen(
                         value = uiState.notes,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.NotesChanged(it)) },
                         placeholder = { Text(stringResource(R.string.editor_placeholder_notes)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_NOTES),
                         minLines = 3,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color.Transparent,
@@ -200,7 +211,7 @@ fun TaskEditorScreen(
             }
 
             // ── Date & Time ───────────────────────────────────────────────
-            SectionHeader(stringResource(R.string.editor_section_datetime))
+            SectionHeader(stringResource(R.string.editor_section_datetime), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DATETIME))
             Surface(
                 tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.medium,
@@ -217,7 +228,8 @@ fun TaskEditorScreen(
                         supportingText = if (uiState.hasDate) uiState.formattedDate else null,
                         onRowClick = if (uiState.hasDate) {
                             { viewModel.onEvent(TaskEditorEvent.ShowDatePicker) }
-                        } else null
+                        } else null,
+                        testTag = TestTags.TOGGLE_TASK_DATE
                     )
 
                     if (uiState.hasDate) {
@@ -230,13 +242,16 @@ fun TaskEditorScreen(
                             supportingText = if (uiState.hasTime) uiState.formattedTime else null,
                             onRowClick = if (uiState.hasTime) {
                                 { viewModel.onEvent(TaskEditorEvent.ShowTimePicker) }
-                            } else null
+                            } else null,
+                            testTag = TestTags.TOGGLE_TASK_TIME
                         )
 
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         RecurrenceSelector(
                             rule = uiState.recurrenceRule,
-                            onRuleChange = { viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(it)) },
+                            unitOptions = uiState.recurrenceUnitOptions,
+                            canDecrementInterval = uiState.canDecrementInterval,
+                            onEvent = viewModel::onEvent,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
@@ -245,7 +260,7 @@ fun TaskEditorScreen(
 
             // ── Details ───────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_details))
+            SectionHeader(stringResource(R.string.editor_section_details), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DETAILS))
             Surface(
                 tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.medium,
@@ -258,49 +273,42 @@ fun TaskEditorScreen(
                         label = stringResource(R.string.editor_label_urgent),
                         checked = uiState.isUrgent,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleUrgent) },
-                        icon = Icons.Filled.Warning
+                        icon = Icons.Filled.Warning,
+                        testTag = TestTags.TOGGLE_TASK_URGENT
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ToggleRow(
                         label = stringResource(R.string.editor_label_flag),
                         checked = uiState.isFlagged,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleFlagged) },
-                        icon = Icons.Filled.Flag
+                        icon = Icons.Filled.Flag,
+                        testTag = TestTags.TOGGLE_TASK_FLAGGED
                     )
                 }
             }
 
             // ── Priority ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_priority))
-            val priorities = Priority.entries
+            SectionHeader(stringResource(R.string.editor_section_priority), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_PRIORITY))
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                priorities.forEachIndexed { index, priority ->
+                uiState.priorityOptions.forEachIndexed { index, option ->
                     SegmentedButton(
-                        selected = uiState.priority == priority,
-                        onClick = { viewModel.onEvent(TaskEditorEvent.PriorityChanged(priority)) },
-                        shape = SegmentedButtonDefaults.itemShape(index, priorities.size),
-                        label = {
-                            Text(
-                                when (priority) {
-                                    Priority.NONE -> stringResource(R.string.none)
-                                    Priority.LOW -> stringResource(R.string.low)
-                                    Priority.MEDIUM -> stringResource(R.string.medium)
-                                    Priority.HIGH -> stringResource(R.string.high)
-                                }
-                            )
-                        }
+                        selected = option.isSelected,
+                        onClick = { viewModel.onEvent(TaskEditorEvent.PriorityChanged(option.priority)) },
+                        shape = SegmentedButtonDefaults.itemShape(index, uiState.priorityOptions.size),
+                        modifier = Modifier.testTag(option.testTag),
+                        label = { Text(option.label.asString()) }
                     )
                 }
             }
 
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_tags))
+            SectionHeader(stringResource(R.string.editor_section_tags), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_TAGS))
             if (uiState.availableTags.isEmpty() && uiState.selectedTagIds.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -331,10 +339,7 @@ fun TaskEditorScreen(
                         TagChip(
                             tag = tag,
                             isSelected = isSelected,
-                            onClick = {
-                                if (isSelected) viewModel.onTagRemoved(tag.id)
-                                else viewModel.onTagSelected(tag.id)
-                            }
+                            onClick = { viewModel.onEvent(TaskEditorEvent.TagClicked(tag.id)) }
                         )
                     }
                 }
@@ -342,14 +347,15 @@ fun TaskEditorScreen(
 
             // ── URL ───────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_url))
+            SectionHeader(stringResource(R.string.editor_section_url), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_URL))
             OutlinedTextField(
                 value = uiState.url,
                 onValueChange = { viewModel.onEvent(TaskEditorEvent.UrlChanged(it)) },
                 placeholder = { Text(stringResource(R.string.editor_placeholder_url)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .testTag(TestTags.INPUT_TASK_EDITOR_URL),
                 singleLine = true
             )
 
@@ -364,11 +370,12 @@ fun TaskEditorScreen(
 @Composable
 private fun RecurrenceSelector(
     rule: RecurrenceRule,
-    onRuleChange: (RecurrenceRule) -> Unit,
+    unitOptions: List<RecurrenceUnitOptionUiModel>,
+    canDecrementInterval: Boolean,
+    onEvent: (TaskEditorEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        // Toggle row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -390,12 +397,8 @@ private fun RecurrenceSelector(
             }
             Switch(
                 checked = rule.isRecurring,
-                onCheckedChange = { enabled ->
-                    onRuleChange(
-                        if (enabled) RecurrenceRule(RecurrenceUnit.DAYS, 1)
-                        else RecurrenceRule.NONE
-                    )
-                }
+                onCheckedChange = { onEvent(TaskEditorEvent.ToggleRecurrence) },
+                modifier = Modifier.testTag(TestTags.TOGGLE_TASK_RECURRENCE)
             )
         }
 
@@ -412,12 +415,10 @@ private fun RecurrenceSelector(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.width(4.dp))
-                // Decrement button
                 IconButton(
-                    onClick = {
-                        if (rule.interval > 1) onRuleChange(rule.copy(interval = rule.interval - 1))
-                    },
-                    enabled = rule.interval > 1
+                    onClick = { onEvent(TaskEditorEvent.DecrementInterval) },
+                    enabled = canDecrementInterval,
+                    modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_DECREMENT)
                 ) {
                     Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.editor_recurrence_decrease))
                 }
@@ -427,16 +428,17 @@ private fun RecurrenceSelector(
                     modifier = Modifier.width(32.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-                // Increment button
                 IconButton(
-                    onClick = { onRuleChange(rule.copy(interval = rule.interval + 1)) }
+                    onClick = { onEvent(TaskEditorEvent.IncrementInterval) },
+                    modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_INCREMENT)
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_recurrence_increase))
                 }
                 Spacer(Modifier.width(4.dp))
                 RecurrenceUnitDropdown(
                     selected = rule.unit,
-                    onSelect = { onRuleChange(rule.copy(unit = it)) }
+                    options = unitOptions,
+                    onSelect = { onEvent(TaskEditorEvent.RecurrenceUnitSelected(it)) }
                 )
             }
         }
@@ -447,19 +449,19 @@ private fun RecurrenceSelector(
 @Composable
 private fun RecurrenceUnitDropdown(
     selected: RecurrenceUnit,
+    options: List<RecurrenceUnitOptionUiModel>,
     onSelect: (RecurrenceUnit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val units = RecurrenceUnit.entries.filter { it != RecurrenceUnit.NONE }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = modifier
+        modifier = modifier.testTag(TestTags.DROPDOWN_RECURRENCE_UNIT)
     ) {
         OutlinedTextField(
-            value = selected.label(),
+            value = options.find { it.unit == selected }?.label?.asString() ?: "",
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -474,22 +476,13 @@ private fun RecurrenceUnitDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            units.forEach { unit ->
+            options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(unit.label()) },
-                    onClick = { onSelect(unit); expanded = false },
+                    text = { Text(option.label.asString()) },
+                    onClick = { onSelect(option.unit); expanded = false },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
     }
-}
-
-@Composable
-private fun RecurrenceUnit.label(): String = when (this) {
-    RecurrenceUnit.NONE -> ""
-    RecurrenceUnit.HOURS -> stringResource(R.string.recurrence_unit_hours)
-    RecurrenceUnit.DAYS -> stringResource(R.string.recurrence_unit_days)
-    RecurrenceUnit.WEEKS -> stringResource(R.string.recurrence_unit_weeks)
-    RecurrenceUnit.MONTHS -> stringResource(R.string.recurrence_unit_months)
 }

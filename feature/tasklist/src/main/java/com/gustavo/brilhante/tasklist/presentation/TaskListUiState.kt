@@ -4,6 +4,7 @@ import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import com.gustavo.brilhante.ui.UiText
 
 data class TaskListUiState(
     val tasks: List<Task> = emptyList(),
@@ -12,12 +13,23 @@ data class TaskListUiState(
     val collectionCounts: CollectionCounts = CollectionCounts(),
     val tags: List<Tag> = emptyList(),
     val tagCounts: Map<Long, Int> = emptyMap(),
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val error: String? = null,
     val showTagEditor: Boolean = false,
     val editingTag: Tag? = null,
     val expandedTaskIds: Set<Long> = emptySet(),
-    val sortOption: TaskSortOption = TaskSortOption.CREATED_DESC,
+    val sortOption: TaskSortOption = TaskSortOption.SMART_PRIORITY,
+    val screenTitle: UiText = UiText.DynamicString(""),
+    val sortOptions: List<SortOptionUiModel> = emptyList(),
+    val showEmptyState: Boolean = true,
+    val canAddTag: Boolean = true,
+    val addTagLabel: UiText = UiText.DynamicString(""),
+)
+
+data class SortOptionUiModel(
+    val option: TaskSortOption,
+    val label: UiText,
+    val isSelected: Boolean
 )
 
 data class CollectionCounts(

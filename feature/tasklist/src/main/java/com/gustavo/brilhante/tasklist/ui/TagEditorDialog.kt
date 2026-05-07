@@ -29,30 +29,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import com.gustavo.brilhante.ui.TagPalette
+import com.gustavo.brilhante.ui.TestTags
+import com.gustavo.brilhante.ui.R as CoreR
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.tasklist.R
-
-internal data class TagPaletteEntry(
-    val value: Long,
-    @StringRes val nameResId: Int
-)
-
-internal val tagPalette = listOf(
-    TagPaletteEntry(0xFFEF4444L, R.string.color_name_red),
-    TagPaletteEntry(0xFFF97316L, R.string.color_name_orange),
-    TagPaletteEntry(0xFFEAB308L, R.string.color_name_yellow),
-    TagPaletteEntry(0xFF22C55EL, R.string.color_name_green),
-    TagPaletteEntry(0xFF3B82F6L, R.string.color_name_blue),
-    TagPaletteEntry(0xFF8B5CF6L, R.string.color_name_purple),
-    TagPaletteEntry(0xFFEC4899L, R.string.color_name_pink),
-    TagPaletteEntry(0xFF6B7280L, R.string.color_name_gray),
-)
 
 @Composable
 fun TagEditorDialog(
@@ -67,6 +57,7 @@ fun TagEditorDialog(
     var selectedColor by rememberSaveable { mutableLongStateOf(initialColor) }
 
     AlertDialog(
+        modifier = Modifier.testTag(TestTags.DIALOG_TAG_EDITOR),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -76,7 +67,7 @@ fun TagEditorDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.tag_name_label)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TAG_EDITOR_NAME)
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -92,17 +83,18 @@ fun TagEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    tagPalette.forEach { entry ->
-                        val colorValue = entry.value
+                    TagPalette.colors.forEach { entry ->
+                        val color = colorResource(entry.colorResId)
+                        val colorValue = color.toArgb().toLong() and 0xFFFFFFFFL
                         val isSelected = selectedColor == colorValue
                         val colorName = stringResource(entry.nameResId)
-                        val description = stringResource(R.string.color_name_format, colorName)
+                        val description = stringResource(CoreR.string.color_name_format, colorName)
                         
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(Color(colorValue))
+                                .background(color)
                                 .then(
                                     if (isSelected) Modifier.border(
                                         width = 3.dp,
@@ -124,7 +116,8 @@ fun TagEditorDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name.trim(), selectedColor) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_SAVE)
             ) {
                 Text(stringResource(R.string.save_button))
             }
@@ -132,15 +125,21 @@ fun TagEditorDialog(
         dismissButton = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_DELETE)
+                    ) {
                         Text(
                             text = stringResource(R.string.delete_button),
                             color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
-                TextButton(onClick = onDismiss) { 
-                    Text(stringResource(R.string.cancel_button)) 
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag(TestTags.BTN_TAG_EDITOR_CANCEL)
+                ) {
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         }

@@ -36,15 +36,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.gustavo.brilhante.ui.TestTags
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.tasklist.R
 import com.gustavo.brilhante.tasklist.model.TaskCollection
-import com.gustavo.brilhante.tasklist.presentation.CollectionCounts
-
-private const val MAX_TAGS = 5
+import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 
 // Public so the app-module UI tests can reference it without hardcoding the string.
 const val SIDEBAR_LIST_TEST_TAG = "sidebar_list"
@@ -54,32 +53,32 @@ const val ADD_TAG_BUTTON_TEST_TAG = "add_tag_button"
 private data class SidebarItem(
     val collection: TaskCollection,
     val labelResId: Int,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val testTag: String
 )
 
 private val defaultCollections = listOf(
-    SidebarItem(TaskCollection.Today, R.string.sidebar_today, Icons.Rounded.Today),
-    SidebarItem(TaskCollection.Scheduled, R.string.sidebar_scheduled, Icons.Rounded.CalendarMonth),
-    SidebarItem(TaskCollection.All, R.string.sidebar_all, Icons.Rounded.Inbox),
-    SidebarItem(TaskCollection.Flagged, R.string.sidebar_flagged, Icons.Rounded.Flag),
-    SidebarItem(TaskCollection.Completed, R.string.sidebar_completed, Icons.Rounded.CheckCircle),
+    SidebarItem(TaskCollection.Today, R.string.sidebar_today, Icons.Rounded.Today, TestTags.SIDEBAR_ITEM_TODAY),
+    SidebarItem(TaskCollection.Scheduled, R.string.sidebar_scheduled, Icons.Rounded.CalendarMonth, TestTags.SIDEBAR_ITEM_SCHEDULED),
+    SidebarItem(TaskCollection.All, R.string.sidebar_all, Icons.Rounded.Inbox, TestTags.SIDEBAR_ITEM_ALL),
+    SidebarItem(TaskCollection.Flagged, R.string.sidebar_flagged, Icons.Rounded.Flag, TestTags.SIDEBAR_ITEM_FLAGGED),
+    SidebarItem(TaskCollection.Completed, R.string.sidebar_completed, Icons.Rounded.CheckCircle, TestTags.SIDEBAR_ITEM_COMPLETED),
 )
 
 @Composable
 fun TaskSidebarContent(
-    selectedCollection: TaskCollection,
-    counts: CollectionCounts,
-    tags: List<Tag>,
-    tagCounts: Map<Long, Int>,
+    uiState: TaskListUiState,
     onCollectionSelected: (TaskCollection) -> Unit,
     onAddTag: () -> Unit,
     onEditTag: (Tag) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // LazyColumn provides native vertical scrolling so every item (including tags near
-    // the bottom) is reachable on any screen size or orientation. A plain Column would
-    // clip content that overflows the drawer height, making those items inaccessible.
-    // This is especially important for the 'New Tag' button and tags at the end of the list.
+    val counts = uiState.collectionCounts
+    val tags = uiState.tags
+    val tagCounts = uiState.tagCounts
+    val selectedCollection = uiState.selectedCollection
+
+    // LazyColumn provides native vertical scrolling
     LazyColumn(
         modifier = modifier
             .fillMaxHeight()
@@ -124,7 +123,7 @@ fun TaskSidebarContent(
                 selected = selectedCollection == item.collection,
                 onClick = { onCollectionSelected(item.collection) },
                 colors = NavigationDrawerItemDefaults.colors(),
-                modifier = Modifier.padding(horizontal = 12.dp)
+                modifier = Modifier.padding(horizontal = 12.dp).testTag(item.testTag)
             )
         }
 
@@ -138,11 +137,11 @@ fun TaskSidebarContent(
                 text = stringResource(R.string.sidebar_tags_header),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 4.dp).testTag(TestTags.SIDEBAR_TAGS_HEADER)
             )
         }
 
-        items(items = tags, key = { "tag_${it.id}" }) { tag ->
+        items(items = tags, key = { tag -> "tag_${tag.id}" }) { tag ->
             val tagTaskCount = tagCounts[tag.id] ?: 0
             val isSelected = selectedCollection == TaskCollection.ByTag(tag.id)
 
@@ -187,32 +186,31 @@ fun TaskSidebarContent(
 
         // ── Add tag button ────────────────────────────────────────────────────
         item(key = "add_tag") {
-            val atLimit = tags.size >= MAX_TAGS
+            val enabled = uiState.canAddTag
             NavigationDrawerItem(
                 icon = {
                     Icon(
                         Icons.Rounded.Add,
                         contentDescription = null,
-                        tint = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.primary
+                        tint = if (enabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 label = {
                     Text(
-                        text = if (atLimit) pluralStringResource(R.plurals.tag_limit_message, MAX_TAGS, MAX_TAGS)
-                               else stringResource(R.string.add_tag_label),
-                        color = if (atLimit) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.primary
+                        text = uiState.addTagLabel.asString(),
+                        color = if (enabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 selected = false,
-                onClick = { if (!atLimit) onAddTag() },
+                onClick = { if (enabled) onAddTag() },
                 colors = NavigationDrawerItemDefaults.colors(),
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
                     .testTag(ADD_TAG_BUTTON_TEST_TAG)
-                    .alpha(if (atLimit) 0.5f else 1f)
-                    .semantics { if (atLimit) disabled() }
+                    .alpha(if (enabled) 1f else 0.5f)
+                    .semantics { if (!enabled) disabled() }
             )
         }
     }

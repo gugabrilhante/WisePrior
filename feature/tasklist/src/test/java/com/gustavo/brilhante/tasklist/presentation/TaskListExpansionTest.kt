@@ -17,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -33,6 +34,7 @@ import org.junit.Test
  * Expansion is stored in [TaskListUiState.expandedTaskIds] so it survives config
  * changes and is not reset when items are recycled in a LazyColumn.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskListExpansionTest {
 
     private val getTasksUseCase: GetTasksUseCase = mockk()
@@ -54,7 +56,7 @@ class TaskListExpansionTest {
         Dispatchers.setMain(testDispatcher)
         every { getTasksUseCase() } returns flowOf(emptyList())
         every { getTagsUseCase() } returns flowOf(emptyList())
-        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.CREATED_DESC)
+        every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
     }
 

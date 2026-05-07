@@ -5,14 +5,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.rule.GrantPermissionRule
+import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.wiseprior.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -43,7 +44,7 @@ class TaskListScreenTest {
     private lateinit var emptyTitle: String
     private lateinit var newReminderScreenTitle: String
     private lateinit var backCd: String
-    private lateinit var doneLabel: String
+    private lateinit var editTitle: String
     private lateinit var markCompleteCd: String
     private lateinit var markIncompleteCd: String
 
@@ -55,7 +56,7 @@ class TaskListScreenTest {
             emptyTitle = getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
             newReminderScreenTitle = getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_new)
             backCd = getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
-            doneLabel = getString(com.gustavo.brilhante.taskeditor.R.string.editor_done)
+            editTitle = getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
             markCompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
             markIncompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
         }
@@ -63,7 +64,6 @@ class TaskListScreenTest {
 
     @Test
     fun emptyState_isDisplayed_whenNoTasksExist() {
-        // isLoading starts as true; wait for Room's first emission to clear it.
         waitUntilDisplayed(emptyTitle)
         composeTestRule.onNodeWithText(emptyTitle).assertIsDisplayed()
     }
@@ -76,17 +76,16 @@ class TaskListScreenTest {
     @Test
     fun clickingFab_navigatesToTaskEditor() {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onNodeWithText(newReminderScreenTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
     }
 
     @Test
     fun backButtonInEditor_returnsToTaskList() {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onNodeWithText(newReminderScreenTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
 
         composeTestRule.onNodeWithContentDescription(backCd).performClick()
 
-        // Empty state is visible (isLoading resolved while the editor was open).
         waitUntilDisplayed(emptyTitle)
         composeTestRule.onNodeWithText(emptyTitle).assertIsDisplayed()
     }
@@ -95,7 +94,6 @@ class TaskListScreenTest {
     fun savedTask_appearsInList() {
         val taskTitle = "Buy groceries"
         createTask(taskTitle)
-        // createTask already waits; assert for clarity.
         composeTestRule.onNodeWithText(taskTitle).assertIsDisplayed()
     }
 
@@ -103,15 +101,12 @@ class TaskListScreenTest {
     fun checkboxToggle_marksTaskComplete_thenIncomplete() {
         createTask("Pick up package")
 
-        // Starts unchecked.
         composeTestRule.onNodeWithContentDescription(markCompleteCd).assertIsOff()
 
-        // Mark as complete; wait for Room update + Flow re-emit.
         composeTestRule.onNodeWithContentDescription(markCompleteCd).performClick()
         waitUntilCdExists(markIncompleteCd)
         composeTestRule.onNodeWithContentDescription(markIncompleteCd).assertIsOn()
 
-        // Mark as incomplete again.
         composeTestRule.onNodeWithContentDescription(markIncompleteCd).performClick()
         waitUntilCdExists(markCompleteCd)
         composeTestRule.onNodeWithContentDescription(markCompleteCd).assertIsOff()
@@ -120,9 +115,6 @@ class TaskListScreenTest {
     @Test
     fun taskCard_click_navigatesToEditorInEditMode() {
         val taskTitle = "Review PR"
-        val editTitle = composeTestRule.activity.getString(
-            com.gustavo.brilhante.taskeditor.R.string.editor_title_edit
-        )
         createTask(taskTitle)
 
         composeTestRule.onNodeWithText(taskTitle).performClick()
@@ -130,27 +122,57 @@ class TaskListScreenTest {
         composeTestRule.onNodeWithText(editTitle).assertIsDisplayed()
     }
 
+    @Test
+    fun sortButton_isVisible() {
+        val sortCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_button_description
+        )
+        composeTestRule.onNodeWithContentDescription(sortCd).assertIsDisplayed()
+    }
+
+    @Test
+    fun sortDropdown_opensOnClick() {
+        val sortCd = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_button_description
+        )
+        val newestLabel = composeTestRule.activity.getString(
+            com.gustavo.brilhante.tasklist.R.string.sort_created_newest
+        )
+        composeTestRule.onNodeWithContentDescription(sortCd).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(newestLabel).assertIsDisplayed()
+    }
+
+    @Test
+    fun existingTask_canBeCheckedAndUnchecked() {
+        val taskTitle = "Toggle me"
+        createTask(taskTitle)
+
+        // Complete
+        composeTestRule.onNodeWithContentDescription(markCompleteCd).performClick()
+        waitUntilCdExists(markIncompleteCd)
+
+        // Uncomplete
+        composeTestRule.onNodeWithContentDescription(markIncompleteCd).performClick()
+        waitUntilCdExists(markCompleteCd)
+        composeTestRule.onNodeWithContentDescription(markCompleteCd).assertIsDisplayed()
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Creates a task and waits until it appears in the list before returning.
-     * Guards against the race between Room's insert, Flow re-emit, and the assertion.
-     */
     private fun createTask(title: String) {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
-        composeTestRule.onAllNodes(hasSetTextAction())[0].performTextInput(title)
-        composeTestRule.onNodeWithText(doneLabel).performClick()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput(title)
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_DONE).performClick()
         waitUntilDisplayed(title)
     }
 
-    /** Waits until at least one node with the given text exists in the semantic tree. */
     private fun waitUntilDisplayed(text: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    /** Waits until at least one node with the given content description exists. */
     private fun waitUntilCdExists(contentDesc: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000L) {
             composeTestRule.onAllNodes(hasContentDescription(contentDesc))
