@@ -2,6 +2,7 @@ package com.gustavo.brilhante.taskeditor.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -36,10 +37,13 @@ class TaskEditorViewModel @Inject constructor(
     private val getTaskByIdUseCase: GetTaskByIdUseCase,
     private val getTagsUseCase: GetTagsUseCase,
     private val notificationScheduler: NotificationScheduler,
-    private val dateFormatter: DateFormatter
+    private val dateFormatter: DateFormatter,
+    private val clockProvider: ClockProvider
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(TaskEditorUiState())
+    private val _uiState = MutableStateFlow(
+        TaskEditorUiState(dueDate = clockProvider.currentTimeMillis())
+    )
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
 
     val tags: StateFlow<List<Tag>> = uiState
@@ -56,7 +60,7 @@ class TaskEditorViewModel @Inject constructor(
     // Long.MIN_VALUE = "never loaded anything yet"; -1L = "already in new-task draft"
     private var editingTaskId: Long = Long.MIN_VALUE
     // Preserved so saving an edit doesn't overwrite the original creation timestamp
-    private var originalCreatedAt: Long = System.currentTimeMillis()
+    private var originalCreatedAt: Long = clockProvider.currentTimeMillis()
 
     init {
         observeAvailableTags()
@@ -73,9 +77,12 @@ class TaskEditorViewModel @Inject constructor(
     fun loadTask(id: Long) {
         if (id <= 0L) {
             if (editingTaskId == -1L) return
-            originalCreatedAt = System.currentTimeMillis()
+            originalCreatedAt = clockProvider.currentTimeMillis()
             _uiState.update { current ->
-                TaskEditorUiState(availableTags = current.availableTags).withFormattedDates().withStaticOptions(false)
+                TaskEditorUiState(
+                    dueDate = clockProvider.currentTimeMillis(),
+                    availableTags = current.availableTags
+                ).withFormattedDates().withStaticOptions(false)
             }
             editingTaskId = -1L
             return
@@ -93,7 +100,7 @@ class TaskEditorViewModel @Inject constructor(
                         url = task.url,
                         hasDate = task.dueDate != null,
                         hasTime = task.hasTime,
-                        dueDate = task.dueDate ?: System.currentTimeMillis(),
+                        dueDate = task.dueDate ?: clockProvider.currentTimeMillis(),
                         isUrgent = task.isUrgent,
                         priority = task.priority,
                         selectedTagIds = task.tagIds.toSet(),
@@ -262,6 +269,7 @@ class TaskEditorViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val isEditing = editingTaskId > 0L
+            val now = clockProvider.currentTimeMillis()
             val task = Task(
                 id = if (isEditing) editingTaskId else 0L,
                 title = state.title.trim(),
@@ -275,7 +283,7 @@ class TaskEditorViewModel @Inject constructor(
                 isFlagged = state.isFlagged,
                 isCompleted = state.isCompleted,
                 recurrenceRule = state.recurrenceRule,
-                createdAt = if (isEditing) originalCreatedAt else System.currentTimeMillis()
+                createdAt = if (isEditing) originalCreatedAt else now
             )
 
             if (isEditing) {
@@ -286,7 +294,7 @@ class TaskEditorViewModel @Inject constructor(
             }
 
             task.dueDate?.let { due ->
-                if (due > System.currentTimeMillis()) notificationScheduler.schedule(task)
+                if (due > now) notificationScheduler.schedule(task)
             }
 
             _navigationEvent.send(Unit)

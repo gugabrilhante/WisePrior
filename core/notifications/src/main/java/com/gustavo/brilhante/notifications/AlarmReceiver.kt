@@ -3,7 +3,7 @@ package com.gustavo.brilhante.notifications
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import com.gustavo.brilhante.domain.logging.Logger
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
 import dagger.hilt.android.AndroidEntryPoint
@@ -15,8 +15,8 @@ private const val TAG = "AlarmReceiver"
 class AlarmReceiver : BroadcastReceiver() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
-
     @Inject lateinit var scheduler: AlarmManagerNotificationScheduler
+    @Inject lateinit var logger: Logger
 
     override fun onReceive(context: Context, intent: Intent) {
         performReceive(intent)
@@ -25,7 +25,7 @@ class AlarmReceiver : BroadcastReceiver() {
     internal fun performReceive(intent: Intent) {
         val taskId = intent.getLongExtra(EXTRA_TASK_ID, -1L)
         val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: run {
-            Log.w(TAG, "Missing title in alarm intent for task $taskId")
+            logger.w(TAG, "Missing title in alarm intent for task $taskId")
             return
         }
         val notes = intent.getStringExtra(EXTRA_TASK_NOTES) ?: ""
@@ -33,11 +33,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val hasTime = intent.getBooleanExtra(EXTRA_HAS_TIME, false)
 
         if (taskId < 0L || dueDate < 0L) {
-            Log.w(TAG, "Invalid alarm intent — taskId=$taskId dueDate=$dueDate")
+            logger.w(TAG, "Invalid alarm intent — taskId=$taskId dueDate=$dueDate")
             return
         }
 
-        Log.d(TAG, "Alarm fired for task $taskId: $title")
+        logger.d(TAG, "Alarm fired for task $taskId: $title")
 
         notificationHelper.showNotification(taskId, title, notes)
 
@@ -47,7 +47,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val recurrenceRule = RecurrenceRule(unit, interval)
 
         if (recurrenceRule.isRecurring) {
-            val nextDue = AlarmManagerNotificationScheduler.nextOccurrence(dueDate, recurrenceRule)
+            val nextDue = scheduler.nextOccurrence(dueDate, recurrenceRule)
             scheduler.scheduleFromReceiver(
                 taskId = taskId,
                 title = title,
@@ -56,7 +56,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 hasTime = hasTime,
                 recurrenceRule = recurrenceRule
             )
-            Log.d(TAG, "Rescheduled recurring task $taskId for $nextDue")
+            logger.d(TAG, "Rescheduled recurring task $taskId for $nextDue")
         }
     }
 }

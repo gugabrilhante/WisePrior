@@ -21,10 +21,12 @@ class TaskCardUiMapperTest {
         isFlagged: Boolean = false,
         isUrgent: Boolean = false,
         priority: Priority = Priority.NONE,
-        tagIds: List<Long> = emptyList()
+        tagIds: List<Long> = emptyList(),
+        createdAt: Long = 1000L
     ) = Task(
         id = id, title = title, notes = notes, isCompleted = isCompleted,
-        isFlagged = isFlagged, isUrgent = isUrgent, priority = priority, tagIds = tagIds
+        isFlagged = isFlagged, isUrgent = isUrgent, priority = priority, tagIds = tagIds,
+        createdAt = createdAt
     )
 
     private fun tag(id: Long, name: String = "Tag $id") = Tag(id = id, name = name, color = 0L)

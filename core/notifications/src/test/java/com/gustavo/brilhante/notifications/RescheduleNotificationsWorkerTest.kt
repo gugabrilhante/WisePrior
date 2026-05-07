@@ -31,8 +31,8 @@ class RescheduleNotificationsWorkerTest {
     @Test
     fun `given tasks exist, when doWork called, then reschedules all tasks and returns success`() = runTest {
         val tasks = listOf(
-            Task(id = 1, title = "Task 1", priority = Priority.MEDIUM),
-            Task(id = 2, title = "Task 2", priority = Priority.HIGH)
+            Task(id = 1, title = "Task 1", priority = Priority.MEDIUM, createdAt = 1000L),
+            Task(id = 2, title = "Task 2", priority = Priority.HIGH, createdAt = 1000L)
         )
         coEvery { getTasksUseCase() } returns flowOf(tasks)
 

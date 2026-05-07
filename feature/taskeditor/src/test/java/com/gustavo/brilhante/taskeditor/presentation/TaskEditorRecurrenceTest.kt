@@ -1,5 +1,7 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
+import com.gustavo.brilhante.domain.time.CalendarProvider
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -24,6 +26,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
+import java.util.TimeZone
 
 class TaskEditorRecurrenceTest {
 
@@ -32,6 +36,8 @@ class TaskEditorRecurrenceTest {
     private val getTaskByIdUseCase: GetTaskByIdUseCase = mockk()
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
+    private val clockProvider: ClockProvider = mockk()
+    private val calendarProvider: CalendarProvider = mockk()
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var viewModel: TaskEditorViewModel
@@ -39,10 +45,16 @@ class TaskEditorRecurrenceTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1_000_000_000L
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+        
+        val realFormatter = DateFormatterImpl(calendarProvider)
+
         every { getTagsUseCase() } returns flowOf(emptyList())
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, DateFormatterImpl()
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
         viewModel.loadTask(-1L)
     }
@@ -212,10 +224,10 @@ class TaskEditorRecurrenceTest {
 
     @Test
     fun `loadTask with valid id when task not found does not change title`() = runTest {
-        viewModel.onEvent(TaskEditorEvent.TitleChanged("draft"))
+        val realFormatter = DateFormatterImpl(calendarProvider)
         val freshViewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, DateFormatterImpl()
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
         coEvery { getTaskByIdUseCase(99L) } returns null
 
@@ -252,11 +264,12 @@ class TaskEditorRecurrenceTest {
     @Test
     fun `loadTask with recurring rule shows canDecrementInterval correctly`() = runTest {
         val rule = RecurrenceRule(RecurrenceUnit.DAYS, 1)
-        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Task", recurrenceRule = rule)
+        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Task", recurrenceRule = rule, createdAt = 1000L)
 
+        val realFormatter = DateFormatterImpl(calendarProvider)
         val freshViewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, DateFormatterImpl()
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
         freshViewModel.loadTask(10L)
 

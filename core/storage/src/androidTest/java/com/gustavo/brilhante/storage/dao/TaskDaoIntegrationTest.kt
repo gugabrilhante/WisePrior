@@ -43,7 +43,7 @@ class TaskDaoIntegrationTest {
     private fun buildEntity(
         id: Long = 0,
         title: String = "Task",
-        createdAt: Long = System.currentTimeMillis()
+        createdAt: Long = 1000L
     ) = TaskEntity(
         id = id,
         title = title,

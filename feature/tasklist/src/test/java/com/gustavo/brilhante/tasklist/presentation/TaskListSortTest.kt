@@ -1,8 +1,9 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.time.CalendarProvider
 import com.gustavo.brilhante.domain.time.ClockProvider
+import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -31,6 +32,8 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskListSortTest {
@@ -44,8 +47,10 @@ class TaskListSortTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
-    private val dateFormatter = DateFormatterImpl()
+    private val clockProvider: ClockProvider = mockk()
+    private val calendarProvider: CalendarProvider = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
+    private lateinit var dateFormatter: DateFormatterImpl
 
     private val sortOptionFlow = MutableStateFlow(TaskSortOption.SMART_PRIORITY)
 
@@ -54,6 +59,12 @@ class TaskListSortTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1000L
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+        
+        dateFormatter = DateFormatterImpl(calendarProvider)
+
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns sortOptionFlow
         coEvery { sortPreferences.setSortOption(any()) } coAnswers {

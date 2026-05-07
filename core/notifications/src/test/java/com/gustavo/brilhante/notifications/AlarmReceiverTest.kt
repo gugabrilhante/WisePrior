@@ -2,6 +2,7 @@ package com.gustavo.brilhante.notifications
 
 import android.content.Context
 import android.content.Intent
+import com.gustavo.brilhante.domain.logging.Logger
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.mockk
 import io.mockk.verify
@@ -18,9 +19,12 @@ class AlarmReceiverTest {
     private lateinit var context: Context
     private val mockNotificationHelper: NotificationHelper = mockk(relaxed = true)
     private val mockScheduler: AlarmManagerNotificationScheduler = mockk(relaxed = true)
+    private val mockLogger: Logger = mockk(relaxed = true)
+    
     private val receiver = AlarmReceiver().apply {
         notificationHelper = mockNotificationHelper
         scheduler = mockScheduler
+        logger = mockLogger
     }
 
     @Before
@@ -34,7 +38,7 @@ class AlarmReceiverTest {
             putExtra(EXTRA_TASK_ID, 1L)
             putExtra(EXTRA_TASK_TITLE, "Test Task")
             putExtra(EXTRA_TASK_NOTES, "Notes")
-            putExtra(EXTRA_DUE_DATE, System.currentTimeMillis())
+            putExtra(EXTRA_DUE_DATE, 1000L)
         }
 
         receiver.performReceive(intent)

@@ -16,12 +16,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.gustavo.brilhante.designsystem.theme.WisePriorTheme
+import com.gustavo.brilhante.domain.system.AndroidVersionProvider
 import com.gustavo.brilhante.notifications.EXTRA_TASK_ID
 import com.gustavo.brilhante.wiseprior.navigation.WisePriorNavHost
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var versionProvider: AndroidVersionProvider
 
     // taskId to open on start/resume, driven by notification tap
     private var pendingTaskId by mutableStateOf<Long?>(null)
@@ -56,7 +60,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (versionProvider.sdkInt >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
