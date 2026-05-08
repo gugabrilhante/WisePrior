@@ -15,7 +15,7 @@ private const val TAG = "AlarmReceiver"
 class AlarmReceiver : BroadcastReceiver() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
-    @Inject lateinit var scheduler: AlarmManagerNotificationScheduler
+    @Inject lateinit var scheduler: NotificationScheduler
     @Inject lateinit var logger: Logger
 
     override fun onReceive(context: Context, intent: Intent) {

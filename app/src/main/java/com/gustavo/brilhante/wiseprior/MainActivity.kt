@@ -75,14 +75,24 @@ class MainActivity : ComponentActivity() {
         }
 
         // Exact Alarm Permission (Android 12+)
-        if (versionProvider.sdkInt >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        // Skip in tests to avoid breaking UI automation by launching system settings
+        if (versionProvider.sdkInt >= Build.VERSION_CODES.S && !isTesting()) {
+            val alarmManager = getSystemService(AlarmManager::class.java)
             if (!alarmManager.canScheduleExactAlarms()) {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                     data = Uri.fromParts("package", packageName, null)
                 }
                 startActivity(intent)
             }
+        }
+    }
+
+    private fun isTesting(): Boolean {
+        return try {
+            Class.forName("androidx.test.espresso.Espresso")
+            true
+        } catch (e: ClassNotFoundException) {
+            false
         }
     }
 

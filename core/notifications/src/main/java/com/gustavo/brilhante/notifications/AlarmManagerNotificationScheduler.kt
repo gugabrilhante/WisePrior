@@ -83,7 +83,7 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         logger.d(TAG, "Rescheduled $scheduled alarms after reboot")
     }
 
-    fun scheduleFromReceiver(
+    override fun scheduleFromReceiver(
         taskId: Long,
         title: String,
         notes: String,
@@ -140,7 +140,7 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         return next
     }
 
-    fun nextOccurrence(from: Long, rule: RecurrenceRule): Long {
+    override fun nextOccurrence(from: Long, rule: RecurrenceRule): Long {
         if (!rule.isRecurring) return from
         val cal = calendarProvider.getInstance().apply { timeInMillis = from }
         when (rule.unit) {

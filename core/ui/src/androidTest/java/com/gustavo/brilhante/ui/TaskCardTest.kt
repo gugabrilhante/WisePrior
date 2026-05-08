@@ -18,11 +18,13 @@ class TaskCardTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private val defaultCreatedAt = 1000L
+
     // ── Basic rendering ───────────────────────────────────────────────────────
 
     @Test
     fun taskCard_rendersTitleAndPriority() {
-        val task = Task(id = 1, title = "Important Task", priority = Priority.HIGH)
+        val task = Task(id = 1, title = "Important Task", priority = Priority.HIGH, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
@@ -33,7 +35,7 @@ class TaskCardTest {
     @Test
     fun taskCard_triggersOnClickCallback() {
         var clicked = false
-        val task = Task(id = 1, title = "Action Task")
+        val task = Task(id = 1, title = "Action Task", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = { clicked = true }, onToggleComplete = {})
         }
@@ -43,11 +45,10 @@ class TaskCardTest {
 
     @Test
     fun taskCard_titleIsDisplayed() {
-        val task = Task(id = 1, title = "Buy milk")
+        val task = Task(id = 1, title = "Buy milk", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        // Re-adicionado useUnmergedTree = true pois o Text dentro do Box pode ser mesclado na árvore semântica
         composeTestRule.onNodeWithTag(TestTags.TEXT_TASK_TITLE, useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithText("Buy milk").assertExists()
     }
@@ -56,17 +57,16 @@ class TaskCardTest {
 
     @Test
     fun taskCard_withNotes_showsExpandButton() {
-        val task = Task(id = 1, title = "Task", notes = "These are my notes")
+        val task = Task(id = 1, title = "Task", notes = "These are my notes", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        // Expand button should appear since notes make the card expandable
         composeTestRule.onNodeWithContentDescription("Expand").assertIsDisplayed()
     }
 
     @Test
     fun taskCard_expandedWithNotes_showsNotesText() {
-        val task = Task(id = 1, title = "Task", notes = "Secret detail")
+        val task = Task(id = 1, title = "Task", notes = "Secret detail", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -81,7 +81,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_collapsed_doesNotShowNotes() {
-        val task = Task(id = 1, title = "Task", notes = "Hidden notes")
+        val task = Task(id = 1, title = "Task", notes = "Hidden notes", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -97,7 +97,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_flaggedTask_showsFlagIcon() {
-        val task = Task(id = 1, title = "Flagged Task", isFlagged = true)
+        val task = Task(id = 1, title = "Flagged Task", isFlagged = true, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
@@ -106,7 +106,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_urgentTask_showsWarningIcon() {
-        val task = Task(id = 1, title = "Urgent Task", isUrgent = true)
+        val task = Task(id = 1, title = "Urgent Task", isUrgent = true, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
@@ -115,7 +115,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_flaggedAndUrgent_showsBothIndicators() {
-        val task = Task(id = 1, title = "Critical", isFlagged = true, isUrgent = true)
+        val task = Task(id = 1, title = "Critical", isFlagged = true, isUrgent = true, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
@@ -127,7 +127,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_withFormattedDueDate_showsDateText() {
-        val task = Task(id = 1, title = "Dated task", dueDate = 1_700_000_000_000L)
+        val task = Task(id = 1, title = "Dated task", dueDate = 1_700_000_000_000L, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -141,11 +141,10 @@ class TaskCardTest {
 
     @Test
     fun taskCard_withoutDueDate_doesNotShowDateRow() {
-        val task = Task(id = 1, title = "Undated task")
+        val task = Task(id = 1, title = "Undated task", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, formattedDueDate = null)
         }
-        // No date text should be present
         composeTestRule.onNodeWithText("Jan 15").assertDoesNotExist()
     }
 
@@ -154,7 +153,7 @@ class TaskCardTest {
     @Test
     fun taskCard_withTag_showsTagName() {
         val tag = Tag(id = 1L, name = "Work", color = 0xFF3B82F6L)
-        val task = Task(id = 1, title = "Tagged task", tagIds = listOf(1L))
+        val task = Task(id = 1, title = "Tagged task", tagIds = listOf(1L), createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, allTags = listOf(tag))
         }
@@ -168,7 +167,7 @@ class TaskCardTest {
             Tag(id = 2L, name = "Personal", color = 0xFF22C55EL),
             Tag(id = 3L, name = "Urgent", color = 0xFFEF4444L)
         )
-        val task = Task(id = 1, title = "Multi-tag", tagIds = listOf(1L, 2L, 3L))
+        val task = Task(id = 1, title = "Multi-tag", tagIds = listOf(1L, 2L, 3L), createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -178,7 +177,6 @@ class TaskCardTest {
                 isExpanded = false
             )
         }
-        // Collapsed with 3 tags → shows first tag + "+2" overflow
         composeTestRule.onNodeWithText("+2").assertIsDisplayed()
     }
 
@@ -186,7 +184,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_completedTask_cardIsPresent() {
-        val task = Task(id = 1, title = "Done task", isCompleted = true)
+        val task = Task(id = 1, title = "Done task", isCompleted = true, createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
@@ -195,8 +193,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_nonExpandableTask_doesNotShowExpandButton() {
-        // Plain task with no expandable attributes
-        val task = Task(id = 1, title = "Plain task")
+        val task = Task(id = 1, title = "Plain task", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
@@ -208,7 +205,7 @@ class TaskCardTest {
     @Test
     fun taskCard_clickingExpandButton_triggersCallback() {
         var toggled = false
-        val task = Task(id = 1, title = "Task", notes = "Notes to expand")
+        val task = Task(id = 1, title = "Task", notes = "Notes to expand", createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -225,13 +222,12 @@ class TaskCardTest {
 
     @Test
     fun taskCard_expanded_withThreeTags_showsAllTagsInFlowRow() {
-        // 3 tags → hasExpandableContent=true, effectiveExpanded=true → FlowRow path
         val tags = listOf(
             Tag(id = 1L, name = "Alpha", color = 0xFF3B82F6L),
             Tag(id = 2L, name = "Beta", color = 0xFF22C55EL),
             Tag(id = 3L, name = "Gamma", color = 0xFFEF4444L)
         )
-        val task = Task(id = 1, title = "Multi expanded", tagIds = listOf(1L, 2L, 3L))
+        val task = Task(id = 1, title = "Multi expanded", tagIds = listOf(1L, 2L, 3L), createdAt = defaultCreatedAt)
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -250,8 +246,7 @@ class TaskCardTest {
 
     @Test
     fun taskCard_expanded_withHighPriority_showsPriorityIndicator() {
-        // isExpanded=true + hasPriority=true → PriorityIndicator showText=true path
-        val task = Task(id = 1, title = "Priority Task", priority = Priority.HIGH, notes = "Detail")
+        val task = Task(id = 1, title = "Priority Task", priority = Priority.HIGH, notes = "Detail", createdAt = defaultCreatedAt)
         val highPriorityLabel = "High priority"
         composeTestRule.setContent {
             TaskCard(

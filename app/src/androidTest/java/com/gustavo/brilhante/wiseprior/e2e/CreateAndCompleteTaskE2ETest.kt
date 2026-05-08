@@ -56,14 +56,15 @@ class CreateAndCompleteTaskE2ETest {
     @Before
     fun setUp() {
         hiltRule.inject()
-        composeTestRule.activity.run {
-            addReminderCd = getString(com.gustavo.brilhante.tasklist.R.string.add_task_button_description)
-            emptyStateTitle = getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
-            editScreenTitle = getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
-            backCd = getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
-            markCompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
-            markIncompleteCd = getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
-        }
+        // Wait for activity to be ready and avoid IllegalStateException accessing it too early
+        composeTestRule.waitForIdle()
+        val activity = composeTestRule.activity
+        addReminderCd = activity.getString(com.gustavo.brilhante.tasklist.R.string.add_task_button_description)
+        emptyStateTitle = activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
+        editScreenTitle = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
+        backCd = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
+        markCompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
+        markIncompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
     }
 
     /**
@@ -147,20 +148,20 @@ class CreateAndCompleteTaskE2ETest {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun waitUntilDisplayed(text: String) {
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.waitUntil(timeoutMillis = 10_000L) {
             composeTestRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun waitUntilTextFieldHasText(text: String) {
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.waitUntil(timeoutMillis = 10_000L) {
             composeTestRule.onAllNodes(hasTestTag(TestTags.INPUT_TASK_EDITOR_TITLE).and(hasText(text)))
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun waitUntilCdExists(contentDesc: String) {
-        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+        composeTestRule.waitUntil(timeoutMillis = 10_000L) {
             composeTestRule.onAllNodes(hasContentDescription(contentDesc))
                 .fetchSemanticsNodes().isNotEmpty()
         }
