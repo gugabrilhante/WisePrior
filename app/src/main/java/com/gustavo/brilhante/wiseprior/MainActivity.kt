@@ -2,7 +2,6 @@ package com.gustavo.brilhante.wiseprior
 
 import android.Manifest
 import android.app.AlarmManager
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -71,6 +70,7 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED
             if (!granted) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
             }
         }
 
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
         // Skip in tests to avoid breaking UI automation by launching system settings
         if (versionProvider.sdkInt >= Build.VERSION_CODES.S && !isTesting()) {
             val alarmManager = getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
+            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                     data = Uri.fromParts("package", packageName, null)
                 }

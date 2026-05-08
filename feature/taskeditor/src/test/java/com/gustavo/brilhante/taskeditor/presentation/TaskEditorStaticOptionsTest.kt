@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -30,6 +31,7 @@ import org.junit.Test
 import java.util.Calendar
 import java.util.TimeZone
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorStaticOptionsTest {
 
     private val addTaskUseCase: AddTaskUseCase = mockk(relaxed = true)
