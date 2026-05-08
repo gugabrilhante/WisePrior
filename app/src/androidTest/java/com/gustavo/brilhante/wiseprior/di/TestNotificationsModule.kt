@@ -1,6 +1,8 @@
 package com.gustavo.brilhante.wiseprior.di
 
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.notifications.AlarmIntentFactory
+import com.gustavo.brilhante.notifications.AlarmIntentFactoryImpl
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.notifications.NotificationsModule
 import dagger.Binds
@@ -29,4 +31,8 @@ interface TestNotificationsModule {
     @Binds
     @Singleton
     fun bindFakeScheduler(fake: FakeNotificationScheduler): NotificationScheduler
+
+    @Binds
+    @Singleton
+    fun bindAlarmIntentFactory(impl: AlarmIntentFactoryImpl): AlarmIntentFactory
 }

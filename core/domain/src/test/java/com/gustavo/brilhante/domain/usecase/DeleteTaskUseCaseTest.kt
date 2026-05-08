@@ -16,7 +16,7 @@ class DeleteTaskUseCaseTest {
 
     @Test
     fun `given a task, when invoke called, then delegates to repository deleteTask`() = runTest {
-        val task = Task(id = 3, title = "Task to delete")
+        val task = Task(id = 3, title = "Task to delete", createdAt = 1000L)
 
         useCase(task)
 
@@ -31,7 +31,8 @@ class DeleteTaskUseCaseTest {
             notes = "Finish by EOD",
             isUrgent = true,
             isFlagged = true,
-            isCompleted = true
+            isCompleted = true,
+            createdAt = 1000L
         )
 
         useCase(task)
@@ -41,7 +42,7 @@ class DeleteTaskUseCaseTest {
 
     @Test
     fun `given repository throws, when invoke called, then exception propagates`() = runTest {
-        val task = Task(id = 3, title = "Task to delete")
+        val task = Task(id = 3, title = "Task to delete", createdAt = 1000L)
         coEvery { repository.deleteTask(task) } throws RuntimeException("DB error")
 
         try {

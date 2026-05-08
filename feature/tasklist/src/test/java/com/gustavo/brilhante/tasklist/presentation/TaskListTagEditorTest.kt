@@ -49,13 +49,15 @@ class TaskListTagEditorTest {
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
+    private val clockProvider: ClockProvider = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
 
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1000L
         every { getTasksUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit

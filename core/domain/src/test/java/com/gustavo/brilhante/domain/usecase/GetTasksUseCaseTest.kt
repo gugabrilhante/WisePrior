@@ -20,8 +20,8 @@ class GetTasksUseCaseTest {
     @Test
     fun `invoke delegates to repository and returns tasks`() = runTest {
         val tasks = listOf(
-            Task(id = 1, title = "Task A", priority = Priority.HIGH),
-            Task(id = 2, title = "Task B")
+            Task(id = 1, title = "Task A", priority = Priority.HIGH, createdAt = 1000L),
+            Task(id = 2, title = "Task B", createdAt = 1000L)
         )
         every { repository.getTasks() } returns flowOf(tasks)
 

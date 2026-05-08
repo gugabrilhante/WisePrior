@@ -46,5 +46,20 @@ class AlarmIntentFactoryImpl @Inject constructor(
         )
     }
 
+    override fun createShowDetailsPendingIntent(taskId: Long): PendingIntent {
+        // Find a way to launch the app; usually via its Launcher activity
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            putExtra(EXTRA_TASK_ID, taskId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        } ?: Intent()
+        
+        return PendingIntent.getActivity(
+            context,
+            taskId.requestCode() + 1_000_000, // Offset to avoid conflict with broadcast PI
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     private fun Long.requestCode(): Int = (this and 0x7FFFFFFF).toInt()
 }

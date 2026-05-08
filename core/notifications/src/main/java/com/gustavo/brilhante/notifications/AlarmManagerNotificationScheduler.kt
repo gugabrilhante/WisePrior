@@ -53,7 +53,7 @@ class AlarmManagerNotificationScheduler @Inject constructor(
             recurrenceRule = task.recurrenceRule
         )
 
-        scheduleExact(scheduledTime, pendingIntent)
+        scheduleExact(task.id, scheduledTime, pendingIntent)
         logger.d(TAG, "Scheduled task ${task.id} at $scheduledTime (recurrence=${task.recurrenceRule})")
     }
 
@@ -91,15 +91,24 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         hasTime: Boolean,
         recurrenceRule: RecurrenceRule
     ) {
+        val now = clockProvider.currentTimeMillis()
+        val scheduledTime = if (dueDate > now) {
+            dueDate
+        } else if (recurrenceRule.isRecurring) {
+            advanceToFuture(dueDate, recurrenceRule, now)
+        } else {
+            return
+        }
+
         val pendingIntent = intentFactory.createPendingIntent(
-            taskId, title, notes, dueDate, hasTime, recurrenceRule
+            taskId, title, notes, scheduledTime, hasTime, recurrenceRule
         )
-        scheduleExact(dueDate, pendingIntent)
+        scheduleExact(taskId, scheduledTime, pendingIntent)
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────
 
-    private fun scheduleExact(triggerAtMillis: Long, pendingIntent: PendingIntent) {
+    private fun scheduleExact(taskId: Long, triggerAtMillis: Long, pendingIntent: PendingIntent) {
         val canScheduleExact = if (versionProvider.sdkInt >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()
         } else {
@@ -107,13 +116,14 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         }
 
         if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent
-            )
+            // Using setAlarmClock is the most reliable way to fire an alarm exactly on time,
+            // even in Doze mode. It also shows the alarm icon in the status bar.
+            val showDetailsIntent = intentFactory.createShowDetailsPendingIntent(taskId)
+            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, showDetailsIntent)
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         } else {
             logger.w(TAG, "SCHEDULE_EXACT_ALARM not granted — using inexact fallback")
+            // Fallback for when exact alarms are not permitted. Subjects to batching.
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,

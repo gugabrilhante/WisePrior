@@ -14,7 +14,7 @@ class AddTaskUseCaseTest {
 
     @Test
     fun `invoke calls repository addTask with the given task`() = runTest {
-        val task = Task(title = "Buy groceries")
+        val task = Task(title = "Buy groceries", createdAt = 1000L)
 
         useCase(task)
 
