@@ -1,10 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <gradient
-        android:angle="135"
-        android:startColor="#42C777"
-        android:endColor="#D7F8C8"
-        android:type="linear"/>
+    <!-- Fundo com gradiente -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#63D9B0"
+                android:endColor="#B1ECD8"
+                android:angle="270"
+                android:type="linear" />
+        </shape>
+    </item>
 
-</shape>
+    <!-- Grid/template -->
+    <item>
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+
+            <!-- remove o fundo verde antigo -->
+
+            <path
+                android:fillColor="#00000000"
+                android:pathData="M9,0L9,108"
+                android:strokeColor="#22FFFFFF"
+                android:strokeWidth="0.8"/>
+
+            <!-- demais paths do grid aqui -->
+
+        </vector>
+    </item>
+
+</layer-list>
