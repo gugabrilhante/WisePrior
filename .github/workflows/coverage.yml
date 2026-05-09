@@ -42,8 +42,14 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Wipe stale .exec/.ec files from any previous run restored via Gradle build cache.
+      - name: Clean build artifacts
+        run: ./gradlew clean --stacktrace
+
+      # Only run tests here — jacocoTestReport runs AFTER instrumented tests so it
+      # can merge both .exec (unit) and .ec (instrumented) execution data in one pass.
       - name: Run unit tests with coverage
-        run: ./gradlew testDebugUnitTest jacocoTestReport --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Run instrumented tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -59,15 +65,50 @@ jobs:
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 
+      # --rerun-tasks ensures this is never skipped as UP-TO-DATE even if Gradle's
+      # incremental build didn't detect the new .ec files from the emulator run.
       - name: Generate merged coverage report
-        run: ./gradlew jacocoTestReport --stacktrace
+        run: ./gradlew jacocoTestReport --rerun-tasks --stacktrace
+
+      - name: Debug — CI context and coverage artifacts
+        if: always()
+        run: |
+          echo "=== Git / CI context ==="
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "GITHUB_HEAD_REF=$GITHUB_HEAD_REF"
+          echo "GITHUB_BASE_REF=$GITHUB_BASE_REF"
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          git rev-parse HEAD
+          git branch --show-current || echo "(detached HEAD — expected on push events)"
+
+          echo ""
+          echo "=== Execution data files ==="
+          find . -name "*.exec" | grep -v ".gradle" | sort || echo "No .exec files found"
+          find . -name "*.ec"   | grep -v ".gradle" | sort || echo "No .ec files found"
+
+          echo ""
+          echo "=== JaCoCo XML reports ==="
+          find . -type f -name "*.xml" | grep -i jacoco | sort || echo "No JaCoCo XML found"
+
+          echo ""
+          echo "=== Target report ==="
+          REPORT="build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
+          if [ -f "$REPORT" ]; then
+            wc -l "$REPORT"
+            du -h "$REPORT"
+            head -5 "$REPORT"
+          else
+            echo "ERROR: $REPORT not found"
+            ls -R build/reports || echo "build/reports does not exist"
+          fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
       - name: Upload HTML coverage report as artifact
         if: always()
