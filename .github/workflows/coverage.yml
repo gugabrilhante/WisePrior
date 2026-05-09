@@ -1,12 +1,15 @@
-name: Coverage (PR)
+name: Coverage
 
 on:
   pull_request:
     branches: [ master ]
+  push:
+    branches: [ master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel in-progress runs for PRs (same branch, new push); never cancel master pushes
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   coverage:
