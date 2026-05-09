@@ -48,6 +48,8 @@ subprojects {
                 includeNoLocationClasses = true
                 excludes = jacocoExclusions + ['jdk/internal/reflect/**', 'sun/reflect/**']
             }
+            maxHeapSize = "1024m"
+            forkEvery = 10
             jvmArgs(
                 "-XX:+EnableDynamicAgentLoading",
                 "-Djdk.attach.allowAttachSelf=true",
