@@ -1,8 +1,9 @@
 package com.gustavo.brilhante.tasklist.presentation
 
 import app.cash.turbine.test
-import com.gustavo.brilhante.domain.usecase.AddTagUseCase
+import com.gustavo.brilhante.domain.time.CalendarProvider
 import com.gustavo.brilhante.domain.time.ClockProvider
+import com.gustavo.brilhante.domain.usecase.AddTagUseCase
 import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
@@ -35,6 +36,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskListViewModelTest {
@@ -48,14 +51,22 @@ class TaskListViewModelTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
-    private val dateFormatter = DateFormatterImpl()
+    private val clockProvider: ClockProvider = mockk()
+    private val calendarProvider: CalendarProvider = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
+    private lateinit var dateFormatter: DateFormatterImpl
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1000L
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+        
+        dateFormatter = DateFormatterImpl(calendarProvider)
+        
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
@@ -110,7 +121,7 @@ class TaskListViewModelTest {
         viewModel.uiState.test {
             assertEquals(emptyList<Task>(), awaitItem().tasks)
 
-            val task = Task(id = 1, title = "New task")
+            val task = Task(id = 1, title = "New task", createdAt = 1000L)
             tasksFlow.value = listOf(task)
             assertEquals(listOf(task), awaitItem().tasks)
         }
@@ -119,7 +130,7 @@ class TaskListViewModelTest {
     @Test
     fun `deleteTask calls deleteTaskUseCase and cancels notification`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
-        val task = Task(id = 5, title = "Delete me")
+        val task = Task(id = 5, title = "Delete me", createdAt = 1000L)
         val viewModel = buildViewModel()
 
         viewModel.deleteTask(task)
@@ -132,7 +143,7 @@ class TaskListViewModelTest {
     fun `deleteTask failure updates error in uiState`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
         coEvery { deleteTaskUseCase(any()) } throws RuntimeException("DB error")
-        val task = Task(id = 1, title = "Failing task")
+        val task = Task(id = 1, title = "Failing task", createdAt = 1000L)
         val viewModel = buildViewModel()
 
         viewModel.deleteTask(task)
@@ -143,7 +154,7 @@ class TaskListViewModelTest {
     @Test
     fun `onTaskCheckedChange with true marks task complete and cancels notification`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
-        val task = Task(id = 7, title = "Finish report")
+        val task = Task(id = 7, title = "Finish report", createdAt = 1000L)
         val viewModel = buildViewModel()
 
         viewModel.onTaskCheckedChange(task, true)
@@ -155,7 +166,7 @@ class TaskListViewModelTest {
     @Test
     fun `onTaskCheckedChange with false marks task incomplete without cancelling notification`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
-        val task = Task(id = 8, title = "Review PR", isCompleted = true)
+        val task = Task(id = 8, title = "Review PR", isCompleted = true, createdAt = 1000L)
         val viewModel = buildViewModel()
 
         viewModel.onTaskCheckedChange(task, false)
@@ -168,7 +179,7 @@ class TaskListViewModelTest {
     fun `onTaskCheckedChange failure updates error in uiState`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
         coEvery { updateTaskUseCase(any()) } throws RuntimeException("Update failed")
-        val task = Task(id = 9, title = "Crash task")
+        val task = Task(id = 9, title = "Crash task", createdAt = 1000L)
         val viewModel = buildViewModel()
 
         viewModel.onTaskCheckedChange(task, true)

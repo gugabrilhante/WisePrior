@@ -13,5 +13,5 @@ data class Task(
     val isFlagged: Boolean = false,
     val isCompleted: Boolean = false,
     val recurrenceRule: RecurrenceRule = RecurrenceRule.NONE,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long
 )

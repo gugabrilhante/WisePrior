@@ -3,9 +3,11 @@ package com.gustavo.brilhante.notifications
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.os.Build
-import android.util.Log
+import com.gustavo.brilhante.domain.logging.Logger
+import com.gustavo.brilhante.domain.system.AndroidVersionProvider
+import com.gustavo.brilhante.domain.time.CalendarProvider
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
@@ -18,7 +20,12 @@ private const val TAG = "AlarmScheduler"
 
 @Singleton
 class AlarmManagerNotificationScheduler @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val clockProvider: ClockProvider,
+    private val calendarProvider: CalendarProvider,
+    private val versionProvider: AndroidVersionProvider,
+    private val logger: Logger,
+    private val intentFactory: AlarmIntentFactory
 ) : NotificationScheduler {
 
     private val alarmManager: AlarmManager =
@@ -26,18 +33,18 @@ class AlarmManagerNotificationScheduler @Inject constructor(
 
     override fun schedule(task: Task) {
         val rawDue = task.dueDate ?: return
-        val now = System.currentTimeMillis()
+        val now = clockProvider.currentTimeMillis()
 
         val scheduledTime = if (rawDue > now) {
             rawDue
         } else if (task.recurrenceRule.isRecurring) {
             advanceToFuture(rawDue, task.recurrenceRule, now)
         } else {
-            Log.d(TAG, "Skipping past non-recurring task ${task.id}")
+            logger.d(TAG, "Skipping past non-recurring task ${task.id}")
             return
         }
 
-        val pendingIntent = buildPendingIntent(
+        val pendingIntent = intentFactory.createPendingIntent(
             taskId = task.id,
             title = task.title,
             notes = task.notes,
@@ -46,25 +53,19 @@ class AlarmManagerNotificationScheduler @Inject constructor(
             recurrenceRule = task.recurrenceRule
         )
 
-        scheduleExact(scheduledTime, pendingIntent)
-        Log.d(TAG, "Scheduled task ${task.id} at $scheduledTime (recurrence=${task.recurrenceRule})")
+        scheduleExact(task.id, scheduledTime, pendingIntent)
+        logger.d(TAG, "Scheduled task ${task.id} at $scheduledTime (recurrence=${task.recurrenceRule})")
     }
 
     override fun cancel(taskId: Long) {
-        val intent = Intent(context, AlarmReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            taskId.requestCode(),
-            intent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        ) ?: return
+        val pendingIntent = intentFactory.getExistingPendingIntent(taskId) ?: return
         alarmManager.cancel(pendingIntent)
         pendingIntent.cancel()
-        Log.d(TAG, "Cancelled alarm for task $taskId")
+        logger.d(TAG, "Cancelled alarm for task $taskId")
     }
 
     override fun rescheduleAll(tasks: List<Task>) {
-        val now = System.currentTimeMillis()
+        val now = clockProvider.currentTimeMillis()
         var scheduled = 0
         tasks.forEach { task ->
             val dueDate = task.dueDate ?: return@forEach
@@ -79,10 +80,10 @@ class AlarmManagerNotificationScheduler @Inject constructor(
                 }
             }
         }
-        Log.d(TAG, "Rescheduled $scheduled alarms after reboot")
+        logger.d(TAG, "Rescheduled $scheduled alarms after reboot")
     }
 
-    fun scheduleFromReceiver(
+    override fun scheduleFromReceiver(
         taskId: Long,
         title: String,
         notes: String,
@@ -90,58 +91,45 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         hasTime: Boolean,
         recurrenceRule: RecurrenceRule
     ) {
-        val pendingIntent = buildPendingIntent(taskId, title, notes, dueDate, hasTime, recurrenceRule)
-        scheduleExact(dueDate, pendingIntent)
+        val now = clockProvider.currentTimeMillis()
+        val scheduledTime = if (dueDate > now) {
+            dueDate
+        } else if (recurrenceRule.isRecurring) {
+            advanceToFuture(dueDate, recurrenceRule, now)
+        } else {
+            return
+        }
+
+        val pendingIntent = intentFactory.createPendingIntent(
+            taskId, title, notes, scheduledTime, hasTime, recurrenceRule
+        )
+        scheduleExact(taskId, scheduledTime, pendingIntent)
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────
 
-    private fun scheduleExact(triggerAtMillis: Long, pendingIntent: PendingIntent) {
-        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    private fun scheduleExact(taskId: Long, triggerAtMillis: Long, pendingIntent: PendingIntent) {
+        val canScheduleExact = if (versionProvider.sdkInt >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()
         } else {
             true
         }
 
         if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent
-            )
+            // Using setAlarmClock is the most reliable way to fire an alarm exactly on time,
+            // even in Doze mode. It also shows the alarm icon in the status bar.
+            val showDetailsIntent = intentFactory.createShowDetailsPendingIntent(taskId)
+            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, showDetailsIntent)
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         } else {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM not granted — using inexact fallback")
+            logger.w(TAG, "SCHEDULE_EXACT_ALARM not granted — using inexact fallback")
+            // Fallback for when exact alarms are not permitted. Subjects to batching.
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,
                 pendingIntent
             )
         }
-    }
-
-    private fun buildPendingIntent(
-        taskId: Long,
-        title: String,
-        notes: String,
-        dueDate: Long,
-        hasTime: Boolean,
-        recurrenceRule: RecurrenceRule
-    ): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra(EXTRA_TASK_ID, taskId)
-            putExtra(EXTRA_TASK_TITLE, title)
-            putExtra(EXTRA_TASK_NOTES, notes)
-            putExtra(EXTRA_DUE_DATE, dueDate)
-            putExtra(EXTRA_HAS_TIME, hasTime)
-            putExtra(EXTRA_RECURRENCE_UNIT, recurrenceRule.unit.name)
-            putExtra(EXTRA_RECURRENCE_INTERVAL, recurrenceRule.interval)
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            taskId.requestCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
     }
 
     private fun advanceToFuture(dueDate: Long, rule: RecurrenceRule, now: Long): Long {
@@ -152,20 +140,16 @@ class AlarmManagerNotificationScheduler @Inject constructor(
         return next
     }
 
-    companion object {
-        fun nextOccurrence(from: Long, rule: RecurrenceRule): Long {
-            if (!rule.isRecurring) return from
-            val cal = Calendar.getInstance().apply { timeInMillis = from }
-            when (rule.unit) {
-                RecurrenceUnit.HOURS -> cal.add(Calendar.HOUR_OF_DAY, rule.interval)
-                RecurrenceUnit.DAYS -> cal.add(Calendar.DAY_OF_YEAR, rule.interval)
-                RecurrenceUnit.WEEKS -> cal.add(Calendar.WEEK_OF_YEAR, rule.interval)
-                RecurrenceUnit.MONTHS -> cal.add(Calendar.MONTH, rule.interval)
-                RecurrenceUnit.NONE -> Unit
-            }
-            return cal.timeInMillis
+    override fun nextOccurrence(from: Long, rule: RecurrenceRule): Long {
+        if (!rule.isRecurring) return from
+        val cal = calendarProvider.getInstance().apply { timeInMillis = from }
+        when (rule.unit) {
+            RecurrenceUnit.HOURS -> cal.add(Calendar.HOUR_OF_DAY, rule.interval)
+            RecurrenceUnit.DAYS -> cal.add(Calendar.DAY_OF_YEAR, rule.interval)
+            RecurrenceUnit.WEEKS -> cal.add(Calendar.WEEK_OF_YEAR, rule.interval)
+            RecurrenceUnit.MONTHS -> cal.add(Calendar.MONTH, rule.interval)
+            RecurrenceUnit.NONE -> Unit
         }
+        return cal.timeInMillis
     }
 }
-
-private fun Long.requestCode(): Int = (this and 0x7FFFFFFF).toInt()

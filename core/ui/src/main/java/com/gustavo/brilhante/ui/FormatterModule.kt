@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.ui
 
+import com.gustavo.brilhante.domain.time.CalendarProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,5 +13,6 @@ object FormatterModule {
 
     @Provides
     @Singleton
-    fun provideDateFormatter(): DateFormatter = DateFormatterImpl()
+    fun provideDateFormatter(calendarProvider: CalendarProvider): DateFormatter = 
+        DateFormatterImpl(calendarProvider)
 }

@@ -12,7 +12,7 @@ data class TaskEditorUiState(
     val url: String = "",
     val hasDate: Boolean = false,
     val hasTime: Boolean = false,
-    val dueDate: Long = System.currentTimeMillis(),
+    val dueDate: Long = 0L,
     val formattedDate: String? = null,
     val formattedTime: String? = null,
     val isUrgent: Boolean = false,

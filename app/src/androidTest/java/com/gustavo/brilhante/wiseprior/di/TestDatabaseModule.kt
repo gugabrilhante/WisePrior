@@ -24,6 +24,7 @@ import dagger.hilt.testing.TestInstallIn
 object TestDatabaseModule {
 
     @Provides
+    @javax.inject.Singleton
     fun provideInMemoryDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()

@@ -20,7 +20,7 @@ class TaskTest {
 
     @Test
     fun `test default values`() {
-        val task = Task(title = "Default Task")
+        val task = Task(title = "Default Task", createdAt = 1000L)
         assertEquals(0L, task.id)
         assertEquals("", task.notes)
         assertEquals(Priority.NONE, task.priority)

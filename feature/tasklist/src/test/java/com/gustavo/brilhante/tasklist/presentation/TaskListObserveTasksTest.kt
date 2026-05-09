@@ -51,13 +51,15 @@ class TaskListObserveTasksTest {
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
     private val sortPreferences: SortPreferencesDataStore = mockk()
-    private val calculateTaskPriority = CalculateTaskPriorityUseCase(ClockProvider { System.currentTimeMillis() })
+    private val clockProvider: ClockProvider = mockk()
+    private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
 
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1000L
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
@@ -123,7 +125,7 @@ class TaskListObserveTasksTest {
 
     @Test
     fun `given tasks flow emits normally, error is null and tasks are set`() = runTest(testDispatcher) {
-        val tasks = listOf(Task(id = 1L, title = "Normal task"))
+        val tasks = listOf(Task(id = 1L, title = "Normal task", createdAt = 1000L))
         every { getTasksUseCase() } returns flowOf(tasks)
 
         val viewModel = buildViewModel()
@@ -145,7 +147,7 @@ class TaskListObserveTasksTest {
         assertNull(viewModel.uiState.value.error)
         assertEquals(0, viewModel.uiState.value.tasks.size)
 
-        val newTask = Task(id = 2L, title = "New")
+        val newTask = Task(id = 2L, title = "New", createdAt = 1000L)
         tasksFlow.value = listOf(newTask)
         advanceUntilIdle()
 

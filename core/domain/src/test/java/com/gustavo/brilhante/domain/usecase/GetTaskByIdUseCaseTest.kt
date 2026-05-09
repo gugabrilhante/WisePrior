@@ -17,7 +17,7 @@ class GetTaskByIdUseCaseTest {
 
     @Test
     fun `invoke returns task when repository finds it`() = runTest {
-        val task = Task(id = 7, title = "Found task")
+        val task = Task(id = 7, title = "Found task", createdAt = 1000L)
         coEvery { repository.getTaskById(7L) } returns task
 
         val result = useCase(7L)

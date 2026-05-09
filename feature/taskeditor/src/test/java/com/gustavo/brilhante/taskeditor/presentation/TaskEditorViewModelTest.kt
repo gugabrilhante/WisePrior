@@ -1,6 +1,8 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
 import app.cash.turbine.test
+import com.gustavo.brilhante.domain.time.CalendarProvider
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -16,6 +18,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -32,6 +35,7 @@ import org.junit.Test
 import java.util.Calendar
 import java.util.TimeZone
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorViewModelTest {
 
     private val addTaskUseCase: AddTaskUseCase = mockk(relaxed = true)
@@ -39,6 +43,8 @@ class TaskEditorViewModelTest {
     private val getTaskByIdUseCase: GetTaskByIdUseCase = mockk()
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
+    private val clockProvider: ClockProvider = mockk()
+    private val calendarProvider: CalendarProvider = mockk()
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private var originalTimeZone: TimeZone? = null
@@ -51,12 +57,16 @@ class TaskEditorViewModelTest {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         Dispatchers.setMain(testDispatcher)
 
-        val realFormatter = DateFormatterImpl()
+        every { clockProvider.currentTimeMillis() } returns 1_000_000_000L
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+
+        val realFormatter = DateFormatterImpl(calendarProvider)
 
         every { getTagsUseCase() } returns flowOf(emptyList())
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, realFormatter
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
     }
 
@@ -103,7 +113,8 @@ class TaskEditorViewModelTest {
             priority = Priority.HIGH,
             tagIds = listOf(1L, 2L),
             isFlagged = true,
-            recurrenceRule = rule
+            recurrenceRule = rule,
+            createdAt = 1000L
         )
         coEvery { getTaskByIdUseCase(10L) } returns task
 
@@ -125,7 +136,7 @@ class TaskEditorViewModelTest {
 
     @Test
     fun `loadTask with same id twice does not reload and preserves state`() = runTest {
-        val task = Task(id = 10L, title = "Task")
+        val task = Task(id = 10L, title = "Task", createdAt = 1000L)
         coEvery { getTaskByIdUseCase(10L) } returns task
 
         viewModel.loadTask(10L)
@@ -261,7 +272,7 @@ class TaskEditorViewModelTest {
 
     @Test
     fun `Save existing task calls updateTaskUseCase`() = runTest {
-        val task = Task(id = 10L, title = "Existing")
+        val task = Task(id = 10L, title = "Existing", createdAt = 1000L)
         coEvery { getTaskByIdUseCase(10L) } returns task
         viewModel.loadTask(10L)
 

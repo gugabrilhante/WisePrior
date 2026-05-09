@@ -35,6 +35,15 @@ class TestWorkerFactoryForNotifications : WorkerFactory() {
                     override fun schedule(task: Task) {}
                     override fun rescheduleAll(tasks: List<Task>) {}
                     override fun cancel(taskId: Long) {}
+                    override fun nextOccurrence(from: Long, rule: com.gustavo.brilhante.model.RecurrenceRule): Long = from
+                    override fun scheduleFromReceiver(
+                        taskId: Long,
+                        title: String,
+                        notes: String,
+                        dueDate: Long,
+                        hasTime: Boolean,
+                        recurrenceRule: com.gustavo.brilhante.model.RecurrenceRule
+                    ) {}
                 }
 
                 RescheduleNotificationsWorker(

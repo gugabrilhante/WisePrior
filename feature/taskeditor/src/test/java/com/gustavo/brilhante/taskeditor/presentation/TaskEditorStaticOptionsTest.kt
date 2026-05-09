@@ -1,5 +1,7 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
+import com.gustavo.brilhante.domain.time.CalendarProvider
+import com.gustavo.brilhante.domain.time.ClockProvider
 import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
@@ -14,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -25,7 +28,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
+import java.util.TimeZone
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorStaticOptionsTest {
 
     private val addTaskUseCase: AddTaskUseCase = mockk(relaxed = true)
@@ -33,6 +39,8 @@ class TaskEditorStaticOptionsTest {
     private val getTaskByIdUseCase: GetTaskByIdUseCase = mockk()
     private val getTagsUseCase: GetTagsUseCase = mockk()
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
+    private val clockProvider: ClockProvider = mockk()
+    private val calendarProvider: CalendarProvider = mockk()
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -41,10 +49,16 @@ class TaskEditorStaticOptionsTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { clockProvider.currentTimeMillis() } returns 1_000_000_000L
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+
+        val realFormatter = DateFormatterImpl(calendarProvider)
+
         every { getTagsUseCase() } returns flowOf(emptyList())
         viewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, DateFormatterImpl()
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
     }
 
@@ -64,7 +78,7 @@ class TaskEditorStaticOptionsTest {
 
     @Test
     fun `given existing task, when loadTask called with valid id, then screenTitle is StringResource`() = runTest {
-        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Existing")
+        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Existing", createdAt = 1000L)
 
         viewModel.loadTask(10L)
 
@@ -73,14 +87,15 @@ class TaskEditorStaticOptionsTest {
 
     @Test
     fun `new and edit modes produce different screenTitle resId values`() = runTest {
-        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Existing")
+        coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Existing", createdAt = 1000L)
 
         viewModel.loadTask(-1L)
         val newTitle = viewModel.uiState.value.screenTitle as UiText.StringResource
 
+        val realFormatter = DateFormatterImpl(calendarProvider)
         val editViewModel = TaskEditorViewModel(
             addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
-            getTagsUseCase, notificationScheduler, DateFormatterImpl()
+            getTagsUseCase, notificationScheduler, realFormatter, clockProvider
         )
         editViewModel.loadTask(10L)
         val editTitle = editViewModel.uiState.value.screenTitle as UiText.StringResource
@@ -147,7 +162,7 @@ class TaskEditorStaticOptionsTest {
 
     @Test
     fun `given existing task with HIGH priority, when loadTask called, then HIGH option is selected`() = runTest {
-        coEvery { getTaskByIdUseCase(5L) } returns Task(id = 5L, title = "Task", priority = Priority.HIGH)
+        coEvery { getTaskByIdUseCase(5L) } returns Task(id = 5L, title = "Task", priority = Priority.HIGH, createdAt = 1000L)
 
         viewModel.loadTask(5L)
 

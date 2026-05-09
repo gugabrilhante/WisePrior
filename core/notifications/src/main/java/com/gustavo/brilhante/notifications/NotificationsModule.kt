@@ -15,4 +15,10 @@ interface NotificationsModule {
     fun bindNotificationScheduler(
         impl: AlarmManagerNotificationScheduler
     ): NotificationScheduler
+
+    @Binds
+    @Singleton
+    fun bindAlarmIntentFactory(
+        impl: AlarmIntentFactoryImpl
+    ): AlarmIntentFactory
 }

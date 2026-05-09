@@ -44,15 +44,15 @@ jobs:
 
       - name: Run instrumented tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 60
         with:
           api-level: 34
           arch: x86_64
           profile: pixel_6
-          # Use Google APIs so Hilt + Room initialise correctly
           target: google_apis
           avd-name: test_avd
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 4096
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 

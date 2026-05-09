@@ -45,9 +45,11 @@ subprojects {
         }
         tasks.withType(Test).configureEach {
             jacoco {
-                includeNoLocationClasses = false
-                excludes = jacocoExclusions
+                includeNoLocationClasses = true
+                excludes = jacocoExclusions + ['jdk/internal/reflect/**', 'sun/reflect/**']
             }
+            maxHeapSize = "1024m"
+            forkEvery = 10
             jvmArgs(
                 "-XX:+EnableDynamicAgentLoading",
                 "-Djdk.attach.allowAttachSelf=true",
@@ -112,6 +114,8 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
     // Collect .exec files from unit tests and .ec files from instrumentation tests
     executionData.setFrom(fileTree(rootDir) {
         include '**/jacoco/*.exec'
+        include '**/outputs/unit_test_code_coverage/**/*.exec'
+        include '**/outputs/code_coverage/**/*.ec'
         include '**/code_coverage/**/*.ec'
     })
 }

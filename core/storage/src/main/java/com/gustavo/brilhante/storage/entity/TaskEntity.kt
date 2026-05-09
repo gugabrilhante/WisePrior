@@ -18,5 +18,5 @@ data class TaskEntity(
     val isCompleted: Boolean = false,
     val recurrenceUnit: String = "NONE",
     val recurrenceInterval: Int = 1,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long
 )

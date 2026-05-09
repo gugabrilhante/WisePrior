@@ -1,5 +1,8 @@
 package com.gustavo.brilhante.ui
 
+import com.gustavo.brilhante.domain.time.CalendarProvider
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,13 +14,19 @@ import java.util.TimeZone
 
 class DateFormatterImplTest {
 
-    private val dateFormatter = DateFormatterImpl()
+    private val calendarProvider = mockk<CalendarProvider>()
+    private lateinit var dateFormatter: DateFormatterImpl
     private lateinit var originalLocale: Locale
 
     @Before
     fun setup() {
         originalLocale = Locale.getDefault()
         Locale.setDefault(Locale.US)
+        
+        every { calendarProvider.getInstance() } answers { Calendar.getInstance() }
+        every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
+        
+        dateFormatter = DateFormatterImpl(calendarProvider)
     }
 
     // ─── formatDate ───────────────────────────────────────────────────────────
@@ -74,7 +83,7 @@ class DateFormatterImplTest {
     fun `formatDate respects French locale on fresh instance`() {
         Locale.setDefault(Locale.FRENCH)
         // Use a fresh instance so ThreadLocal initializes with the French locale
-        val frenchFormatter = DateFormatterImpl()
+        val frenchFormatter = DateFormatterImpl(calendarProvider)
         val calendar = Calendar.getInstance().apply { set(2023, Calendar.JANUARY, 15) }
         val result = frenchFormatter.formatDate(calendar.timeInMillis)
         // French month abbreviation for January is "janv."
@@ -182,7 +191,7 @@ class DateFormatterImplTest {
     @Test
     fun `formatShortDate uses locale month name on fresh instance`() {
         Locale.setDefault(Locale.FRENCH)
-        val frenchFormatter = DateFormatterImpl()
+        val frenchFormatter = DateFormatterImpl(calendarProvider)
         val calendar = Calendar.getInstance().apply { set(2023, Calendar.MARCH, 7) }
         val result = frenchFormatter.formatShortDate(calendar.timeInMillis)
         assertFalse("French locale should not produce 'Mar'", result.contains("Mar"))
@@ -222,53 +231,67 @@ class DateFormatterImplTest {
 
     @Test
     fun `isToday returns true for current time`() {
-        assertTrue(dateFormatter.isToday(System.currentTimeMillis()))
+        val now = Calendar.getInstance()
+        every { calendarProvider.getInstance() } returns now
+        assertTrue(dateFormatter.isToday(now.timeInMillis))
     }
 
     @Test
     fun `isToday returns false for yesterday`() {
-        val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.timeInMillis
-        assertFalse(dateFormatter.isToday(yesterday))
+        val now = Calendar.getInstance()
+        val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+        every { calendarProvider.getInstance() } returnsMany listOf(yesterday, now)
+        assertFalse(dateFormatter.isToday(yesterday.timeInMillis))
     }
 
     @Test
     fun `isToday returns false for tomorrow`() {
-        val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }.timeInMillis
-        assertFalse(dateFormatter.isToday(tomorrow))
+        val now = Calendar.getInstance()
+        val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+        every { calendarProvider.getInstance() } returnsMany listOf(tomorrow, now)
+        assertFalse(dateFormatter.isToday(tomorrow.timeInMillis))
     }
 
     @Test
     fun `isToday returns false for far past`() {
-        val calendar = Calendar.getInstance().apply { set(2000, Calendar.JANUARY, 1) }
-        assertFalse(dateFormatter.isToday(calendar.timeInMillis))
+        val now = Calendar.getInstance()
+        val past = Calendar.getInstance().apply { set(2000, Calendar.JANUARY, 1) }
+        every { calendarProvider.getInstance() } returnsMany listOf(past, now)
+        assertFalse(dateFormatter.isToday(past.timeInMillis))
     }
 
     @Test
     fun `isToday returns false for far future`() {
-        val calendar = Calendar.getInstance().apply { set(2099, Calendar.DECEMBER, 31) }
-        assertFalse(dateFormatter.isToday(calendar.timeInMillis))
+        val now = Calendar.getInstance()
+        val future = Calendar.getInstance().apply { set(2099, Calendar.DECEMBER, 31) }
+        every { calendarProvider.getInstance() } returnsMany listOf(future, now)
+        assertFalse(dateFormatter.isToday(future.timeInMillis))
     }
 
     @Test
     fun `isToday returns true at start of today`() {
+        val now = Calendar.getInstance()
         val startOfDay = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        assertTrue(dateFormatter.isToday(startOfDay))
+        }
+        every { calendarProvider.getInstance() } returnsMany listOf(startOfDay, now)
+        assertTrue(dateFormatter.isToday(startOfDay.timeInMillis))
     }
 
     @Test
     fun `isToday returns true at end of today`() {
+        val now = Calendar.getInstance()
         val endOfDay = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 23)
             set(Calendar.MINUTE, 59)
             set(Calendar.SECOND, 59)
             set(Calendar.MILLISECOND, 999)
-        }.timeInMillis
-        assertTrue(dateFormatter.isToday(endOfDay))
+        }
+        every { calendarProvider.getInstance() } returnsMany listOf(endOfDay, now)
+        assertTrue(dateFormatter.isToday(endOfDay.timeInMillis))
     }
 
     // ─── toUtcMidnight ────────────────────────────────────────────────────────
