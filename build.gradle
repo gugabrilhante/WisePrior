@@ -94,15 +94,18 @@ task jacocoTestReport(type: JacocoReport, group: 'verification',
         html.outputLocation.set(file("$buildDir/reports/jacoco/jacocoTestReport/html"))
     }
 
-    // Collect original non-instrumented Kotlin class files (AGP 9 path)
-    def kotlinClassDirs = subprojects.collect { proj ->
-        fileTree(
-            dir: "${proj.buildDir}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
-            excludes: jacocoExclusions
-        )
+    // Collect class files from all modules, prioritizing transformed classes to match instrumented execution data.
+    def classDirs = subprojects.collect { proj ->
+        def asmDir = file("${proj.buildDir}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
+        if (asmDir.exists()) {
+            fileTree(dir: asmDir, excludes: jacocoExclusions)
+        } else {
+            fileTree(dir: "${proj.buildDir}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes", excludes: jacocoExclusions) +
+            fileTree(dir: "${proj.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: jacocoExclusions)
+        }
     }
 
-    classDirectories.setFrom(files(kotlinClassDirs))
+    classDirectories.setFrom(files(classDirs))
 
     sourceDirectories.setFrom(files(subprojects.collect { proj ->
         def relativePath = proj.projectDir.relativePath(rootDir)
