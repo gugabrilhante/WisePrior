@@ -67,11 +67,12 @@ import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 import com.gustavo.brilhante.tasklist.presentation.TaskListViewModel
 import com.gustavo.brilhante.ui.EmptyState
+import com.gustavo.brilhante.tasklist.presentation.LayoutModeResolver
+import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.colorResource
 import com.gustavo.brilhante.ui.TagPalette
 import com.gustavo.brilhante.ui.TaskCard
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,10 +81,11 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (Task) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: TaskListViewModel = hiltViewModel()
+    viewModel: TaskListViewModel = hiltViewModel(),
+    layoutModeResolver: LayoutModeResolver = remember { LayoutModeResolver() }
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isExpandedWidth = LocalConfiguration.current.screenWidthDp >= 600
+    val isExpandedWidth = layoutModeResolver.isExpanded(LocalConfiguration.current.screenWidthDp)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -97,10 +99,11 @@ fun TaskListScreen(
     }
 
     val sidebarContent: @Composable () -> Unit = {
+        val defaultColor = colorResource(TagPalette.colors.first().colorResId).toArgb().toLong() and 0xFFFFFFFFL
         TaskSidebarContent(
             uiState = uiState,
             onCollectionSelected = onCollectionSelected,
-            onAddTag = viewModel::showAddTag,
+            onAddTag = { viewModel.showAddTag(defaultColor) },
             onEditTag = viewModel::showEditTag
         )
     }
@@ -144,15 +147,16 @@ fun TaskListScreen(
         }
     }
 
-    if (uiState.showTagEditor) {
+    uiState.tagEditorDialog?.let { dialogUiModel ->
         TagEditorDialog(
-            title = if (uiState.editingTag != null) stringResource(R.string.edit_tag_title)
-                    else stringResource(R.string.new_tag_title),
-            initialName = uiState.editingTag?.name ?: "",
-            initialColor = uiState.editingTag?.color ?: colorResource(TagPalette.colors.first().colorResId).toArgb().toLong() and 0xFFFFFFFFL,
+            title = dialogUiModel.title.asString(),
+            initialName = dialogUiModel.initialName,
+            initialColor = dialogUiModel.initialColor,
             onSave = { name, color -> viewModel.saveTag(name, color) },
             onDismiss = viewModel::dismissTagEditor,
-            onDelete = uiState.editingTag?.let { tag -> { viewModel.deleteTag(tag) } }
+            onDelete = if (dialogUiModel.showDelete) {
+                uiState.editingTag?.let { tag -> { viewModel.deleteTag(tag) } }
+            } else null
         )
     }
 }
@@ -301,7 +305,6 @@ private fun SwipeToDeleteContainer(
 
     LaunchedEffect(currentValue) {
         if (currentValue == SwipeToDismissBoxValue.EndToStart) {
-            delay(400)
             onDelete()
         }
     }

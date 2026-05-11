@@ -4,6 +4,7 @@ import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorDialogUiModel
 import com.gustavo.brilhante.ui.UiText
 
 data class TaskListUiState(
@@ -17,6 +18,7 @@ data class TaskListUiState(
     val error: String? = null,
     val showTagEditor: Boolean = false,
     val editingTag: Tag? = null,
+    val tagEditorDialog: TagEditorDialogUiModel? = null,
     val expandedTaskIds: Set<Long> = emptySet(),
     val sortOption: TaskSortOption = TaskSortOption.SMART_PRIORITY,
     val screenTitle: UiText = UiText.DynamicString(""),

@@ -16,6 +16,10 @@ import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
+import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
+import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
+import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
 import com.gustavo.brilhante.ui.DateFormatterImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -55,6 +59,10 @@ class TaskListViewModelTest {
     private val calendarProvider: CalendarProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private lateinit var dateFormatter: DateFormatterImpl
+    private val swipeDismissUseCase = SwipeDismissUseCase()
+    private val sortOptionUiMapper = SortOptionUiMapper()
+    private val tagEditorUiMapper = TagEditorUiMapper()
+    private lateinit var taskListUiMapper: TaskListUiMapper
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -66,6 +74,7 @@ class TaskListViewModelTest {
         every { calendarProvider.getInstance(any<TimeZone>()) } answers { Calendar.getInstance(it.invocation.args[0] as TimeZone) }
         
         dateFormatter = DateFormatterImpl(calendarProvider)
+        taskListUiMapper = TaskListUiMapper(dateFormatter, calculateTaskPriority, sortOptionUiMapper)
         
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
@@ -80,7 +89,7 @@ class TaskListViewModelTest {
     private fun buildViewModel(): TaskListViewModel = TaskListViewModel(
         getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
         addTagUseCase, updateTagUseCase, deleteTagUseCase,
-        notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
+        notificationScheduler, sortPreferences, taskListUiMapper, tagEditorUiMapper, swipeDismissUseCase
     )
 
     @Test
