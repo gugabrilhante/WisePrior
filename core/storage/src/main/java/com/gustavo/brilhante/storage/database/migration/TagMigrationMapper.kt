@@ -6,6 +6,7 @@ object TagMigrationMapper {
         return oldTags.split(",")
             .map { it.trim() }
             .filter { it.isNotEmpty() }
+            .distinct()
             .mapNotNull { nameToId[it] }
             .joinToString(",")
     }

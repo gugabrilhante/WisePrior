@@ -45,4 +45,9 @@ class TagMigrationMapperTest {
     fun `mapToIdString with all unknown tags returns empty string`() {
         assertThat(TagMigrationMapper.mapToIdString("Unknown1,Unknown2", nameToId)).isEqualTo("")
     }
+
+    @Test
+    fun `mapToIdString with duplicated tags returns unique ids`() {
+        assertThat(TagMigrationMapper.mapToIdString("Work,Work,Personal", nameToId)).isEqualTo("1,2")
+    }
 }
