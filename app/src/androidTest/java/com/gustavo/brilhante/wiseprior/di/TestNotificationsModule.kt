@@ -3,6 +3,8 @@ package com.gustavo.brilhante.wiseprior.di
 import android.content.Context
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.Task
+import com.gustavo.brilhante.notifications.AlarmIntentBuilder
+import com.gustavo.brilhante.notifications.AlarmIntentBuilderImpl
 import com.gustavo.brilhante.notifications.AlarmIntentFactory
 import com.gustavo.brilhante.notifications.AlarmIntentFactoryImpl
 import com.gustavo.brilhante.notifications.NotificationScheduler
@@ -48,6 +50,14 @@ object TestNotificationsModule {
 
     @Provides
     @Singleton
-    fun provideAlarmIntentFactory(@ApplicationContext context: Context): AlarmIntentFactory =
-        AlarmIntentFactoryImpl(context)
+    fun provideAlarmIntentBuilder(@ApplicationContext context: Context): AlarmIntentBuilder =
+        AlarmIntentBuilderImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideAlarmIntentFactory(
+        @ApplicationContext context: Context,
+        intentBuilder: AlarmIntentBuilder
+    ): AlarmIntentFactory =
+        AlarmIntentFactoryImpl(context, intentBuilder)
 }
