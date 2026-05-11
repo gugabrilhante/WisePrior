@@ -13,6 +13,10 @@ import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
+import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
+import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
+import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
+import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
 import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import io.mockk.coEvery
@@ -51,6 +55,10 @@ class TaskListTagEditorTest {
     private val sortPreferences: SortPreferencesDataStore = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
+    private val swipeDismissUseCase = SwipeDismissUseCase()
+    private val sortOptionUiMapper = SortOptionUiMapper()
+    private val tagEditorUiMapper = TagEditorUiMapper()
+    private lateinit var taskListUiMapper: TaskListUiMapper
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -58,6 +66,9 @@ class TaskListTagEditorTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { clockProvider.currentTimeMillis() } returns 1000L
+        
+        taskListUiMapper = TaskListUiMapper(dateFormatter, calculateTaskPriority, sortOptionUiMapper)
+
         every { getTasksUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
@@ -73,7 +84,7 @@ class TaskListTagEditorTest {
         return TaskListViewModel(
             getTasksUseCase, deleteTaskUseCase, updateTaskUseCase, getTagsUseCase,
             addTagUseCase, updateTagUseCase, deleteTagUseCase,
-            notificationScheduler, dateFormatter, sortPreferences, calculateTaskPriority
+            notificationScheduler, sortPreferences, taskListUiMapper, tagEditorUiMapper, swipeDismissUseCase
         )
     }
 
@@ -83,7 +94,7 @@ class TaskListTagEditorTest {
     fun `given idle state, when showAddTag called, then showTagEditor is true and editingTag is null`() {
         val viewModel = buildViewModel()
 
-        viewModel.showAddTag()
+        viewModel.showAddTag(0L)
 
         val state = viewModel.uiState.value
         assertTrue(state.showTagEditor)
@@ -132,7 +143,7 @@ class TaskListTagEditorTest {
     fun `given fewer than max tags, when saveTag called, then addTagUseCase invoked with trimmed name`() = runTest(testDispatcher) {
         val viewModel = buildViewModel(tags = emptyList())
 
-        viewModel.showAddTag()
+        viewModel.showAddTag(0L)
         viewModel.saveTag("  Personal  ", 0xFF22C55EL)
         advanceUntilIdle()
 
@@ -148,7 +159,7 @@ class TaskListTagEditorTest {
         val viewModel = buildViewModel(tags = maxTags)
         advanceUntilIdle()
 
-        viewModel.showAddTag()
+        viewModel.showAddTag(0L)
         viewModel.saveTag("Overflow tag", 0xFF0000L)
         advanceUntilIdle()
 

@@ -33,6 +33,8 @@ class TaskListUiMapperTest {
         val collection = TaskCollection.All
         val sortOption = TaskSortOption.CREATED_DESC
         
+        every { dateFormatter.isToday(any()) } returns false
+
         val uiState = mapper.map(tasks, collection, emptyList(), sortOption, TaskListUiState())
 
         assertEquals(2, uiState.tasks.size)
@@ -46,6 +48,7 @@ class TaskListUiMapperTest {
         val task = Task(id = 1, title = "Task 1", dueDate = dueDate, hasTime = true, createdAt = 1000L)
         val tasks = listOf(task)
         
+        every { dateFormatter.isToday(any()) } returns false
         every { dateFormatter.formatShortDateTime(dueDate) } returns "Formatted Date"
         
         val uiState = mapper.map(tasks, TaskCollection.All, emptyList(), TaskSortOption.CREATED_DESC, TaskListUiState())

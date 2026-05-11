@@ -59,7 +59,7 @@ class TaskListViewModelTest {
     private val calendarProvider: CalendarProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private lateinit var dateFormatter: DateFormatterImpl
-    private val swipeDismissUseCase = SwipeDismissUseCase()
+    private val swipeDismissUseCase = mockk<SwipeDismissUseCase>()
     private val sortOptionUiMapper = SortOptionUiMapper()
     private val tagEditorUiMapper = TagEditorUiMapper()
     private lateinit var taskListUiMapper: TaskListUiMapper
@@ -76,6 +76,11 @@ class TaskListViewModelTest {
         dateFormatter = DateFormatterImpl(calendarProvider)
         taskListUiMapper = TaskListUiMapper(dateFormatter, calculateTaskPriority, sortOptionUiMapper)
         
+        coEvery { swipeDismissUseCase.invoke(any()) } coAnswers {
+            val action = it.invocation.args[0] as (suspend () -> Unit)
+            action()
+        }
+
         every { getTagsUseCase() } returns flowOf(emptyList())
         every { sortPreferences.sortOption } returns flowOf(TaskSortOption.SMART_PRIORITY)
         coEvery { sortPreferences.setSortOption(any()) } returns Unit
