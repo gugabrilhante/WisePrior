@@ -21,4 +21,10 @@ interface NotificationsModule {
     fun bindAlarmIntentFactory(
         impl: AlarmIntentFactoryImpl
     ): AlarmIntentFactory
+
+    @Binds
+    @Singleton
+    fun bindAlarmIntentBuilder(
+        impl: AlarmIntentBuilderImpl
+    ): AlarmIntentBuilder
 }

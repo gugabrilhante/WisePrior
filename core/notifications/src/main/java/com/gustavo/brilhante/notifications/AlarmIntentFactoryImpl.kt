@@ -2,13 +2,13 @@ package com.gustavo.brilhante.notifications
 
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import com.gustavo.brilhante.model.RecurrenceRule
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class AlarmIntentFactoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val intentBuilder: AlarmIntentBuilder
 ) : AlarmIntentFactory {
 
     override fun createPendingIntent(
@@ -19,15 +19,14 @@ class AlarmIntentFactoryImpl @Inject constructor(
         hasTime: Boolean,
         recurrenceRule: RecurrenceRule
     ): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra(EXTRA_TASK_ID, taskId)
-            putExtra(EXTRA_TASK_TITLE, title)
-            putExtra(EXTRA_TASK_NOTES, notes)
-            putExtra(EXTRA_DUE_DATE, dueDate)
-            putExtra(EXTRA_HAS_TIME, hasTime)
-            putExtra(EXTRA_RECURRENCE_UNIT, recurrenceRule.unit.name)
-            putExtra(EXTRA_RECURRENCE_INTERVAL, recurrenceRule.interval)
-        }
+        val intent = intentBuilder.buildAlarmIntent(
+            taskId,
+            title,
+            notes,
+            dueDate,
+            hasTime,
+            recurrenceRule
+        )
         return PendingIntent.getBroadcast(
             context,
             taskId.requestCode(),
@@ -37,7 +36,7 @@ class AlarmIntentFactoryImpl @Inject constructor(
     }
 
     override fun getExistingPendingIntent(taskId: Long): PendingIntent? {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = intentBuilder.buildBaseAlarmIntent()
         return PendingIntent.getBroadcast(
             context,
             taskId.requestCode(),
@@ -47,11 +46,7 @@ class AlarmIntentFactoryImpl @Inject constructor(
     }
 
     override fun createShowDetailsPendingIntent(taskId: Long): PendingIntent {
-        // Find a way to launch the app; usually via its Launcher activity
-        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-            putExtra(EXTRA_TASK_ID, taskId)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        } ?: Intent()
+        val intent = intentBuilder.buildShowDetailsIntent(taskId)
         
         return PendingIntent.getActivity(
             context,
