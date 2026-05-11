@@ -5,9 +5,14 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.gustavo.brilhante.model.DefaultTagColorPalette
 import com.gustavo.brilhante.storage.converter.Converters
 import com.gustavo.brilhante.storage.dao.TagDao
 import com.gustavo.brilhante.storage.dao.TaskDao
+import com.gustavo.brilhante.storage.database.migration.RecurrenceMigrationMapper
+import com.gustavo.brilhante.storage.database.migration.TagColorGenerator
+import com.gustavo.brilhante.storage.database.migration.TagMigrationMapper
+import com.gustavo.brilhante.storage.database.migration.TagNameParser
 import com.gustavo.brilhante.storage.entity.TagEntity
 import com.gustavo.brilhante.storage.entity.TaskEntity
 
@@ -79,22 +84,17 @@ abstract class AppDatabase : RoomDatabase() {
 
                 while (cursor.moveToNext()) {
                     val tagsString = cursor.getString(0)
-                    if (!tagsString.isNullOrBlank()) {
-                        tagsString.split(",").forEach { tag ->
-                            val trimmed = tag.trim()
-                            if (trimmed.isNotEmpty()) {
-                                uniqueNames.add(trimmed)
-                            }
-                        }
-                    }
+                    val parsedTags = TagNameParser.parse(tagsString)
+                    uniqueNames.addAll(parsedTags)
                 }
                 cursor.close()
 
                 // Insert unique tags into the tags table and build name→id mapping
                 // Default colors cycle through a simple palette
-                val colors = listOf(0xFFEF4444L, 0xFF3B82F6L, 0xFF22C55EL, 0xFFEAB308L, 0xFF8B5CF6L)
+                val colors = DefaultTagColorPalette.colors
+                val colorGenerator = TagColorGenerator(colors)
                 uniqueNames.forEachIndexed { index, name ->
-                    val color = colors[index % colors.size]
+                    val color = colorGenerator.getColorForIndex(index)
                     database.execSQL(
                         "INSERT INTO tags (name, color) VALUES (?, ?)",
                         arrayOf<Any>(name, color)
@@ -139,15 +139,7 @@ abstract class AppDatabase : RoomDatabase() {
                     val createdAt = tasksCursor.getLong(createdAtIndex)
 
                     // Convert tag names to tag IDs
-                    val tagIds = if (oldTags.isNullOrBlank()) {
-                        ""
-                    } else {
-                        oldTags.split(",")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .mapNotNull { nameToId[it] }
-                            .joinToString(",")
-                    }
+                    val tagIds = TagMigrationMapper.mapToIdString(oldTags, nameToId)
 
                     // Insert into tasks_new
                     if (dueDate == null) {
@@ -202,28 +194,65 @@ abstract class AppDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
 
-                database.execSQL(
-                    """
-                    INSERT INTO tasks_new
-                        (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds,
-                         isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
-                    SELECT id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds,
-                           isFlagged, isCompleted,
-                           CASE recurrenceType
-                               WHEN 'DAILY'   THEN 'DAYS'
-                               WHEN 'WEEKLY'  THEN 'WEEKS'
-                               WHEN 'MONTHLY' THEN 'MONTHS'
-                               ELSE 'NONE'
-                           END,
-                           1,
-                           createdAt
-                    FROM tasks
-                    """.trimIndent()
-                )
+                val cursor = database.query("SELECT * FROM tasks")
+                val idIndex = cursor.getColumnIndex("id")
+                val titleIndex = cursor.getColumnIndex("title")
+                val notesIndex = cursor.getColumnIndex("notes")
+                val urlIndex = cursor.getColumnIndex("url")
+                val dueDateIndex = cursor.getColumnIndex("dueDate")
+                val hasTimeIndex = cursor.getColumnIndex("hasTime")
+                val isUrgentIndex = cursor.getColumnIndex("isUrgent")
+                val priorityIndex = cursor.getColumnIndex("priority")
+                val tagIdsIndex = cursor.getColumnIndex("tagIds")
+                val isFlaggedIndex = cursor.getColumnIndex("isFlagged")
+                val isCompletedIndex = cursor.getColumnIndex("isCompleted")
+                val recurrenceTypeIndex = cursor.getColumnIndex("recurrenceType")
+                val createdAtIndex = cursor.getColumnIndex("createdAt")
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idIndex)
+                    val title = cursor.getString(titleIndex)
+                    val notes = cursor.getString(notesIndex)
+                    val url = cursor.getString(urlIndex)
+                    val dueDate = if (cursor.isNull(dueDateIndex)) null else cursor.getLong(dueDateIndex)
+                    val hasTime = cursor.getInt(hasTimeIndex)
+                    val isUrgent = cursor.getInt(isUrgentIndex)
+                    val priority = cursor.getString(priorityIndex)
+                    val tagIds = cursor.getString(tagIdsIndex)
+                    val isFlagged = cursor.getInt(isFlaggedIndex)
+                    val isCompleted = cursor.getInt(isCompletedIndex)
+                    val recurrenceType = cursor.getString(recurrenceTypeIndex)
+                    val createdAt = cursor.getLong(createdAtIndex)
+
+                    val recurrenceUnit = RecurrenceMigrationMapper.map(recurrenceType)
+                    val recurrenceInterval = 1
+
+                    if (dueDate == null) {
+                        database.execSQL(
+                            """
+                            INSERT INTO tasks_new
+                            (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+                            VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """.trimIndent(),
+                            arrayOf<Any?>(id, title, notes, url, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+                        )
+                    } else {
+                        database.execSQL(
+                            """
+                            INSERT INTO tasks_new
+                            (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """.trimIndent(),
+                            arrayOf<Any?>(id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+                        )
+                    }
+                }
+                cursor.close()
 
                 database.execSQL("DROP TABLE `tasks`")
                 database.execSQL("ALTER TABLE `tasks_new` RENAME TO `tasks`")
             }
         }
+
     }
 }
