@@ -3,7 +3,6 @@ package com.gustavo.brilhante.tasklist.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gustavo.brilhante.domain.usecase.AddTagUseCase
-import com.gustavo.brilhante.domain.usecase.CalculateTaskPriorityUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTagUseCase
 import com.gustavo.brilhante.domain.usecase.DeleteTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
@@ -16,9 +15,11 @@ import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.model.TaskCollection
-import com.gustavo.brilhante.ui.DateFormatter
 import com.gustavo.brilhante.ui.UiText
 import com.gustavo.brilhante.tasklist.R
+import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
+import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
+import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,8 +29,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-private const val MAX_TAGS = 5
 
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
@@ -41,9 +40,10 @@ class TaskListViewModel @Inject constructor(
     private val updateTagUseCase: UpdateTagUseCase,
     private val deleteTagUseCase: DeleteTagUseCase,
     private val notificationScheduler: NotificationScheduler,
-    private val dateFormatter: DateFormatter,
     private val sortPreferences: SortPreferencesDataStore,
-    private val calculateTaskPriority: CalculateTaskPriorityUseCase
+    private val taskListUiMapper: TaskListUiMapper,
+    private val tagEditorUiMapper: TagEditorUiMapper,
+    private val swipeDismissUseCase: SwipeDismissUseCase
 ) : ViewModel() {
 
     private val _selectedCollection = MutableStateFlow<TaskCollection>(TaskCollection.All)
@@ -67,62 +67,13 @@ class TaskListViewModel @Inject constructor(
             }
                 .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") } }
                 .collect { (tasks, collection, tags, sortOption) ->
-                    val filteredTasks = tasks.filterByCollection(collection).sortedWith(sortOption)
-                    val formattedDueDates = filteredTasks.mapNotNull { task ->
-                        task.dueDate?.let { dueDate ->
-                            val formatted = if (task.hasTime) dateFormatter.formatShortDateTime(dueDate)
-                                            else dateFormatter.formatShortDate(dueDate)
-                            task.id to formatted
-                        }
-                    }.toMap()
-
-                    val screenTitle = when (collection) {
-                        TaskCollection.All -> UiText.StringResource(R.string.collection_all)
-                        TaskCollection.Today -> UiText.StringResource(R.string.collection_today)
-                        TaskCollection.Scheduled -> UiText.StringResource(R.string.collection_scheduled)
-                        TaskCollection.Flagged -> UiText.StringResource(R.string.collection_flagged)
-                        TaskCollection.Completed -> UiText.StringResource(R.string.collection_completed)
-                        is TaskCollection.ByTag -> {
-                            val tagName = tags.find { it.id == collection.tagId }?.name
-                            if (tagName != null) UiText.DynamicString(tagName)
-                            else UiText.StringResource(R.string.collection_tag_fallback)
-                        }
-                    }
-
-                    val sortOptions = listOf(
-                        SortOptionUiModel(
-                            TaskSortOption.CREATED_DESC,
-                            UiText.StringResource(R.string.sort_created_newest),
-                            sortOption == TaskSortOption.CREATED_DESC
-                        ),
-                        SortOptionUiModel(
-                            TaskSortOption.CREATED_ASC,
-                            UiText.StringResource(R.string.sort_created_oldest),
-                            sortOption == TaskSortOption.CREATED_ASC
-                        ),
-                        SortOptionUiModel(
-                            TaskSortOption.SMART_PRIORITY,
-                            UiText.StringResource(R.string.sort_smart_priority),
-                            sortOption == TaskSortOption.SMART_PRIORITY
-                        )
-                    )
-
-                    _uiState.update {
-                        it.copy(
-                            tasks = filteredTasks,
-                            formattedDueDates = formattedDueDates,
-                            selectedCollection = collection,
-                            collectionCounts = tasks.toCounts(),
+                    _uiState.update { currentState ->
+                        taskListUiMapper.map(
+                            tasks = tasks,
+                            collection = collection,
                             tags = tags,
-                            tagCounts = tasks.toTagCounts(),
-                            isLoading = false,
                             sortOption = sortOption,
-                            screenTitle = screenTitle,
-                            sortOptions = sortOptions,
-                            showEmptyState = filteredTasks.isEmpty() && !it.isLoading,
-                            canAddTag = tags.size < MAX_TAGS,
-                            addTagLabel = if (tags.size < MAX_TAGS) UiText.StringResource(R.string.add_tag_label)
-                                          else UiText.PluralResource(R.plurals.tag_limit_message, MAX_TAGS, listOf(MAX_TAGS))
+                            currentUiState = currentState
                         )
                     }
                 }
@@ -147,11 +98,13 @@ class TaskListViewModel @Inject constructor(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
-            runCatching {
-                deleteTaskUseCase(task)
-                notificationScheduler.cancel(task.id)
-            }.onFailure { e ->
-                _uiState.update { it.copy(error = e.message) }
+            swipeDismissUseCase {
+                runCatching {
+                    deleteTaskUseCase(task)
+                    notificationScheduler.cancel(task.id)
+                }.onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
             }
         }
     }
@@ -182,16 +135,28 @@ class TaskListViewModel @Inject constructor(
 
     // ── Tag editor UI state ───────────────────────────────────────────────────
 
-    fun showAddTag() {
-        _uiState.update { it.copy(showTagEditor = true, editingTag = null) }
+    fun showAddTag(defaultColor: Long) {
+        _uiState.update { 
+            it.copy(
+                showTagEditor = true, 
+                editingTag = null,
+                tagEditorDialog = tagEditorUiMapper.map(null, defaultColor)
+            ) 
+        }
     }
 
     fun showEditTag(tag: Tag) {
-        _uiState.update { it.copy(showTagEditor = true, editingTag = tag) }
+        _uiState.update { 
+            it.copy(
+                showTagEditor = true, 
+                editingTag = tag,
+                tagEditorDialog = tagEditorUiMapper.map(tag, 0L)
+            ) 
+        }
     }
 
     fun dismissTagEditor() {
-        _uiState.update { it.copy(showTagEditor = false, editingTag = null) }
+        _uiState.update { it.copy(showTagEditor = false, editingTag = null, tagEditorDialog = null) }
     }
 
     fun saveTag(name: String, color: Long) {
@@ -202,8 +167,8 @@ class TaskListViewModel @Inject constructor(
             if (state.editingTag != null) {
                 updateTagUseCase(state.editingTag.copy(name = trimmedName, color = color))
             } else {
-                if (state.tags.size >= MAX_TAGS) {
-                    _uiState.update { it.copy(error = "Maximum of $MAX_TAGS tags reached") }
+                if (state.tags.size >= 5) { // MAX_TAGS was 5
+                    _uiState.update { it.copy(error = "Maximum of 5 tags reached") }
                     dismissTagEditor()
                     return@launch
                 }
@@ -220,40 +185,6 @@ class TaskListViewModel @Inject constructor(
                 _selectedCollection.value = TaskCollection.All
             }
             dismissTagEditor()
-        }
-    }
-
-    // ── Filtering & sorting ───────────────────────────────────────────────────
-
-    private fun List<Task>.filterByCollection(collection: TaskCollection): List<Task> =
-        when (collection) {
-            TaskCollection.All -> this
-            TaskCollection.Today -> filter { task -> task.dueDate?.let { dateFormatter.isToday(it) } == true }
-            TaskCollection.Scheduled -> filter { it.dueDate != null }
-            TaskCollection.Flagged -> filter { it.isFlagged }
-            TaskCollection.Completed -> filter { it.isCompleted }
-            is TaskCollection.ByTag -> filter { task -> task.tagIds.contains(collection.tagId) }
-        }
-
-    private fun List<Task>.sortedWith(option: TaskSortOption): List<Task> = when (option) {
-        TaskSortOption.CREATED_ASC -> sortedBy { it.createdAt }
-        TaskSortOption.CREATED_DESC -> sortedByDescending { it.createdAt }
-        TaskSortOption.SMART_PRIORITY -> sortedByDescending { calculateTaskPriority(it) }
-    }
-
-    private fun List<Task>.toCounts() = CollectionCounts(
-        all = size,
-        today = count { task -> task.dueDate?.let { dateFormatter.isToday(it) } == true },
-        scheduled = count { it.dueDate != null },
-        flagged = count { it.isFlagged },
-        completed = count { it.isCompleted }
-    )
-
-    private fun List<Task>.toTagCounts(): Map<Long, Int> = buildMap {
-        this@toTagCounts.forEach { task ->
-            task.tagIds.forEach { tagId ->
-                put(tagId, (get(tagId) ?: 0) + 1)
-            }
         }
     }
 }
