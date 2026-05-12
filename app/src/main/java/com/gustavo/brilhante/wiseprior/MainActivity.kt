@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -69,7 +70,11 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
 
         val alarmManager = getSystemService(AlarmManager::class.java)
-        val canScheduleExactAlarms = alarmManager?.canScheduleExactAlarms() ?: true
+        val canScheduleExactAlarms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager?.canScheduleExactAlarms() ?: true
+        } else {
+            true
+        }
 
         when (val action = permissionOrchestrator.getNextPermissionAction(
             notificationPermissionGranted,
