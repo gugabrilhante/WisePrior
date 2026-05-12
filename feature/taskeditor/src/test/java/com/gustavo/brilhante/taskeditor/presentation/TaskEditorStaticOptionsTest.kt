@@ -177,14 +177,14 @@ class TaskEditorStaticOptionsTest {
     fun `given new task, when loadTask called, then recurrenceUnitOptions has four entries`() {
         viewModel.loadTask(-1L)
 
-        assertEquals(4, viewModel.uiState.value.recurrenceUnitOptions.size)
+        assertEquals(4, viewModel.uiState.value.dateSection.recurrenceUiModel.unitOptions.size)
     }
 
     @Test
     fun `given new task, when loadTask called, then NONE unit is excluded from recurrenceUnitOptions`() {
         viewModel.loadTask(-1L)
 
-        val units = viewModel.uiState.value.recurrenceUnitOptions.map { it.unit }
+        val units = viewModel.uiState.value.dateSection.recurrenceUiModel.unitOptions.map { it.unit }
         assertFalse(units.contains(RecurrenceUnit.NONE))
     }
 
@@ -192,7 +192,7 @@ class TaskEditorStaticOptionsTest {
     fun `given new task, when loadTask called, then recurrenceUnitOptions contains HOURS DAYS WEEKS MONTHS`() {
         viewModel.loadTask(-1L)
 
-        val units = viewModel.uiState.value.recurrenceUnitOptions.map { it.unit }.toSet()
+        val units = viewModel.uiState.value.dateSection.recurrenceUiModel.unitOptions.map { it.unit }.toSet()
         assertEquals(
             setOf(RecurrenceUnit.HOURS, RecurrenceUnit.DAYS, RecurrenceUnit.WEEKS, RecurrenceUnit.MONTHS),
             units
@@ -203,7 +203,7 @@ class TaskEditorStaticOptionsTest {
     fun `given new task, when loadTask called, then all recurrenceUnit labels are StringResource`() {
         viewModel.loadTask(-1L)
 
-        val options = viewModel.uiState.value.recurrenceUnitOptions
+        val options = viewModel.uiState.value.dateSection.recurrenceUiModel.unitOptions
         assertTrue(options.all { it.label is UiText.StringResource })
     }
 
@@ -211,7 +211,7 @@ class TaskEditorStaticOptionsTest {
     fun `given new task, each recurrenceUnit option uses a distinct string resource`() {
         viewModel.loadTask(-1L)
 
-        val resIds = viewModel.uiState.value.recurrenceUnitOptions
+        val resIds = viewModel.uiState.value.dateSection.recurrenceUiModel.unitOptions
             .map { (it.label as UiText.StringResource).resId }
         assertEquals(resIds.size, resIds.toSet().size)
     }

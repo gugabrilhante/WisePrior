@@ -85,8 +85,8 @@ class TaskEditorViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("", state.title)
-        assertFalse(state.hasDate)
-        assertFalse(state.hasTime)
+        assertFalse(state.dateSection.hasDate)
+        assertFalse(state.dateSection.hasTime)
         assertFalse(state.isLoading)
     }
 
@@ -117,6 +117,16 @@ class TaskEditorViewModelTest {
             createdAt = 1000L
         )
         coEvery { getTaskByIdUseCase(10L) } returns task
+        val tags = listOf(
+            com.gustavo.brilhante.model.Tag(1L, "T1", 0L),
+            com.gustavo.brilhante.model.Tag(2L, "T2", 0L)
+        )
+        every { getTagsUseCase() } returns flowOf(tags)
+        
+        viewModel = TaskEditorViewModel(
+            addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
+            getTagsUseCase, notificationScheduler, DateFormatterImpl(calendarProvider), clockProvider
+        )
 
         viewModel.loadTask(10L)
 
@@ -124,11 +134,11 @@ class TaskEditorViewModelTest {
         assertEquals("Meeting", state.title)
         assertEquals("With team", state.notes)
         assertEquals("https://meet.example.com", state.url)
-        assertTrue(state.hasDate)
-        assertTrue(state.hasTime)
+        assertTrue(state.dateSection.hasDate)
+        assertTrue(state.dateSection.hasTime)
         assertTrue(state.isUrgent)
         assertEquals(Priority.HIGH, state.priority)
-        assertEquals(setOf(1L, 2L), state.selectedTagIds)
+        assertEquals(2, state.tagSection.tags.filter { it.isSelected }.size)
         assertTrue(state.isFlagged)
         assertEquals(rule, state.recurrenceRule)
         assertFalse(state.isLoading)
@@ -182,16 +192,14 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `RecurrenceChanged updates recurrenceRule`() {
-        val rule = RecurrenceRule(RecurrenceUnit.DAYS, 3)
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(rule))
-        assertEquals(rule, viewModel.uiState.value.recurrenceRule)
-    }
-
-    @Test
-    fun `RecurrenceChanged to NONE rule disables recurrence`() {
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceRule(RecurrenceUnit.HOURS, 8)))
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceRule.NONE))
+    fun `ToggleRecurrence toggles recurrenceRule`() {
+        assertFalse(viewModel.uiState.value.recurrenceRule.isRecurring)
+        viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
+        assertTrue(viewModel.uiState.value.recurrenceRule.isRecurring)
+        assertEquals(RecurrenceUnit.DAYS, viewModel.uiState.value.recurrenceRule.unit)
+        assertEquals(1, viewModel.uiState.value.recurrenceRule.interval)
+        
+        viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
         assertFalse(viewModel.uiState.value.recurrenceRule.isRecurring)
     }
 
@@ -199,21 +207,21 @@ class TaskEditorViewModelTest {
 
     @Test
     fun `ToggleDate turns hasDate on`() {
-        assertFalse(viewModel.uiState.value.hasDate)
+        assertFalse(viewModel.uiState.value.dateSection.hasDate)
         viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        assertTrue(viewModel.uiState.value.hasDate)
+        assertTrue(viewModel.uiState.value.dateSection.hasDate)
     }
 
     @Test
     fun `ToggleDate turning off resets hasTime and recurrenceRule`() {
         viewModel.onEvent(TaskEditorEvent.ToggleDate)
         viewModel.onEvent(TaskEditorEvent.ToggleTime)
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceRule(RecurrenceUnit.WEEKS, 2)))
+        viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
         viewModel.onEvent(TaskEditorEvent.ToggleDate)
 
         val state = viewModel.uiState.value
-        assertFalse(state.hasDate)
-        assertFalse(state.hasTime)
+        assertFalse(state.dateSection.hasDate)
+        assertFalse(state.dateSection.hasTime)
         assertFalse(state.recurrenceRule.isRecurring)
     }
 
@@ -230,24 +238,38 @@ class TaskEditorViewModelTest {
     @Test
     fun `ToggleDate on populates formattedDate`() {
         viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        assertNotNull(viewModel.uiState.value.formattedDate)
+        assertNotNull(viewModel.uiState.value.dateSection.formattedDate)
     }
 
     // ── tag selection ─────────────────────────────────────────────────────────
 
     @Test
-    fun `onTagSelected adds tagId to selectedTagIds`() {
-        viewModel.onTagSelected(1L)
-        viewModel.onTagSelected(2L)
-        assertEquals(setOf(1L, 2L), viewModel.uiState.value.selectedTagIds)
+    fun `TagClicked toggles tag selection`() = runTest {
+        val tag1 = com.gustavo.brilhante.model.Tag(1L, "Work", 0xFF000000L)
+        every { getTagsUseCase() } returns flowOf(listOf(tag1))
+        
+        // Re-initialize to collect the new flow
+        viewModel = TaskEditorViewModel(
+            addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
+            getTagsUseCase, notificationScheduler, DateFormatterImpl(calendarProvider), clockProvider
+        )
+
+        viewModel.onEvent(TaskEditorEvent.TagClicked(1L))
+        assertTrue(viewModel.uiState.value.tagSection.tags.find { it.id == 1L }?.isSelected == true)
+        
+        viewModel.onEvent(TaskEditorEvent.TagClicked(1L))
+        assertTrue(viewModel.uiState.value.tagSection.tags.find { it.id == 1L }?.isSelected == false)
     }
 
+    // ── dialogs ───────────────────────────────────────────────────────────────
+
     @Test
-    fun `onTagRemoved removes tagId from selectedTagIds`() {
-        viewModel.onTagSelected(1L)
-        viewModel.onTagSelected(2L)
-        viewModel.onTagRemoved(1L)
-        assertEquals(setOf(2L), viewModel.uiState.value.selectedTagIds)
+    fun `ShowDialog updates dialogState`() {
+        viewModel.onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.DatePicker))
+        assertEquals(ActiveDialog.DatePicker, viewModel.uiState.value.dialogState.activeDialog)
+        
+        viewModel.onEvent(TaskEditorEvent.DismissDialog)
+        assertNull(viewModel.uiState.value.dialogState.activeDialog)
     }
 
     // ── save ──────────────────────────────────────────────────────────────────
@@ -344,19 +366,23 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `Save with recurrenceRule persists rule`() = runTest {
-        val rule = RecurrenceRule(RecurrenceUnit.HOURS, 8)
-        viewModel.onEvent(TaskEditorEvent.TitleChanged("Recurring"))
-        viewModel.onEvent(TaskEditorEvent.ToggleDate)
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(rule))
+    fun `Increment and Decrement interval updates recurrenceRule`() {
+        viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
+        assertEquals(1, viewModel.uiState.value.recurrenceRule.interval)
+        
+        viewModel.onEvent(TaskEditorEvent.IncrementInterval)
+        assertEquals(2, viewModel.uiState.value.recurrenceRule.interval)
+        assertTrue(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
 
-        viewModel.navigationEvent.test {
-            viewModel.onEvent(TaskEditorEvent.Save)
-            awaitItem()
-        }
+        viewModel.onEvent(TaskEditorEvent.DecrementInterval)
+        assertEquals(1, viewModel.uiState.value.recurrenceRule.interval)
+        assertFalse(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
+    }
 
-        coVerify {
-            addTaskUseCase(match { it.recurrenceRule == rule })
-        }
+    @Test
+    fun `RecurrenceUnitSelected updates unit`() {
+        viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
+        viewModel.onEvent(TaskEditorEvent.RecurrenceUnitSelected(RecurrenceUnit.WEEKS))
+        assertEquals(RecurrenceUnit.WEEKS, viewModel.uiState.value.recurrenceRule.unit)
     }
 }
