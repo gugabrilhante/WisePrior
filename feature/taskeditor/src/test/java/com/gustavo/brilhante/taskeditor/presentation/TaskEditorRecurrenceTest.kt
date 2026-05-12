@@ -112,13 +112,13 @@ class TaskEditorRecurrenceTest {
     }
 
     @Test
-    fun `IncrementInterval updates canDecrementInterval to true`() {
+    fun `IncrementInterval updates canDecrement to true`() {
         viewModel.onEvent(TaskEditorEvent.ToggleRecurrence) // interval=1, canDecrement=false
-        assertFalse(viewModel.uiState.value.canDecrementInterval)
+        assertFalse(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
 
         viewModel.onEvent(TaskEditorEvent.IncrementInterval)
 
-        assertTrue(viewModel.uiState.value.canDecrementInterval)
+        assertTrue(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
     }
 
     // ── DecrementInterval ─────────────────────────────────────────────────────
@@ -151,32 +151,32 @@ class TaskEditorRecurrenceTest {
         assertTrue(viewModel.uiState.value.recurrenceRule.interval >= 1)
     }
 
-    // ── canDecrementInterval derived flag ─────────────────────────────────────
+    // ── canDecrement derived flag ─────────────────────────────────────
 
     @Test
-    fun `canDecrementInterval is false when interval equals 1`() {
+    fun `canDecrement is false when interval equals 1`() {
         viewModel.onEvent(TaskEditorEvent.ToggleRecurrence) // interval=1
 
-        assertFalse(viewModel.uiState.value.canDecrementInterval)
+        assertFalse(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
     }
 
     @Test
-    fun `canDecrementInterval is true when interval is greater than 1`() {
+    fun `canDecrement is true when interval is greater than 1`() {
         viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
         viewModel.onEvent(TaskEditorEvent.IncrementInterval) // interval=2
 
-        assertTrue(viewModel.uiState.value.canDecrementInterval)
+        assertTrue(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
     }
 
     @Test
-    fun `canDecrementInterval becomes false after decrementing back to 1`() {
+    fun `canDecrement becomes false after decrementing back to 1`() {
         viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
         viewModel.onEvent(TaskEditorEvent.IncrementInterval) // interval=2
-        assertTrue(viewModel.uiState.value.canDecrementInterval)
+        assertTrue(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
 
         viewModel.onEvent(TaskEditorEvent.DecrementInterval) // interval=1
 
-        assertFalse(viewModel.uiState.value.canDecrementInterval)
+        assertFalse(viewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
     }
 
     // ── RecurrenceUnitSelected ────────────────────────────────────────────────
@@ -239,32 +239,10 @@ class TaskEditorRecurrenceTest {
         assertFalse(freshViewModel.uiState.value.isLoading)
     }
 
-    // ── RecurrenceChanged (legacy event) still works ──────────────────────────
-
-    @Test
-    fun `RecurrenceChanged with a rule updates the rule and canDecrementInterval`() {
-        val rule = RecurrenceRule(RecurrenceUnit.WEEKS, 3)
-
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(rule))
-
-        assertEquals(rule, viewModel.uiState.value.recurrenceRule)
-        assertTrue(viewModel.uiState.value.canDecrementInterval)
-    }
-
-    @Test
-    fun `RecurrenceChanged to NONE sets canDecrementInterval false`() {
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceRule(RecurrenceUnit.DAYS, 5)))
-        assertTrue(viewModel.uiState.value.canDecrementInterval)
-
-        viewModel.onEvent(TaskEditorEvent.RecurrenceChanged(RecurrenceRule.NONE))
-
-        assertFalse(viewModel.uiState.value.canDecrementInterval)
-    }
-
     // ── Task loaded with existing recurrence ──────────────────────────────────
 
     @Test
-    fun `loadTask with recurring rule shows canDecrementInterval correctly`() = runTest {
+    fun `loadTask with recurring rule shows canDecrement correctly`() = runTest {
         val rule = RecurrenceRule(RecurrenceUnit.DAYS, 1)
         coEvery { getTaskByIdUseCase(10L) } returns Task(id = 10L, title = "Task", recurrenceRule = rule, createdAt = 1000L)
 
@@ -275,7 +253,7 @@ class TaskEditorRecurrenceTest {
         )
         freshViewModel.loadTask(10L)
 
-        // interval=1, so canDecrementInterval=false
-        assertFalse(freshViewModel.uiState.value.canDecrementInterval)
+        // interval=1, so canDecrement=false
+        assertFalse(freshViewModel.uiState.value.dateSection.recurrenceUiModel.canDecrement)
     }
 }

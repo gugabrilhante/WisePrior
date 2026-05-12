@@ -46,14 +46,6 @@ class TaskEditorViewModel @Inject constructor(
     )
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
 
-    val tags: StateFlow<List<Tag>> = uiState
-        .map { it.availableTags }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val selectedTagIds: StateFlow<Set<Long>> = uiState
-        .map { it.selectedTagIds }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
-
     private val _navigationEvent = Channel<Unit>(Channel.BUFFERED)
     val navigationEvent = _navigationEvent.receiveAsFlow()
 
@@ -62,6 +54,24 @@ class TaskEditorViewModel @Inject constructor(
     // Preserved so saving an edit doesn't overwrite the original creation timestamp
     private var originalCreatedAt: Long = clockProvider.currentTimeMillis()
 
+    private var availableTags: List<Tag> = emptyList()
+    private var selectedTagIds: Set<Long> = emptySet()
+
+    private val recurrenceUnitOptions = RecurrenceUnit.entries
+        .filter { it != RecurrenceUnit.NONE }
+        .map { unit ->
+            RecurrenceUnitOptionUiModel(
+                unit = unit,
+                label = UiText.StringResource(when (unit) {
+                    RecurrenceUnit.NONE -> 0 // Won't happen
+                    RecurrenceUnit.HOURS -> R.string.recurrence_unit_hours
+                    RecurrenceUnit.DAYS -> R.string.recurrence_unit_days
+                    RecurrenceUnit.WEEKS -> R.string.recurrence_unit_weeks
+                    RecurrenceUnit.MONTHS -> R.string.recurrence_unit_months
+                })
+            )
+        }
+
     init {
         observeAvailableTags()
     }
@@ -69,60 +79,53 @@ class TaskEditorViewModel @Inject constructor(
     private fun observeAvailableTags() {
         viewModelScope.launch {
             getTagsUseCase().collect { tags ->
-                _uiState.update { it.copy(availableTags = tags) }
+                availableTags = tags
+                _uiState.update { it.withTags() }
             }
         }
     }
 
     fun loadTask(id: Long) {
-        if (id <= 0L) {
+        val resolvedId = TaskEditorArgsResolver.resolveId(id)
+        val mode = TaskEditorArgsResolver.resolveMode(id)
+
+        if (resolvedId <= 0L) {
             if (editingTaskId == -1L) return
             originalCreatedAt = clockProvider.currentTimeMillis()
-            _uiState.update { current ->
+            _uiState.update {
                 TaskEditorUiState(
                     dueDate = clockProvider.currentTimeMillis(),
-                    availableTags = current.availableTags
-                ).withFormattedDates().withStaticOptions(false)
+                ).withTags().withDateSection().withPriorityOptions().withScreenTitle(mode)
             }
             editingTaskId = -1L
             return
         }
-        if (editingTaskId == id) return
-        editingTaskId = id
+        if (editingTaskId == resolvedId) return
+        editingTaskId = resolvedId
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            getTaskByIdUseCase(id)?.let { task ->
+            getTaskByIdUseCase(resolvedId)?.let { task ->
                 originalCreatedAt = task.createdAt
-                _uiState.update { current ->
+                selectedTagIds = task.tagIds.toSet()
+                _uiState.update {
                     TaskEditorUiState(
                         title = task.title,
                         notes = task.notes,
                         url = task.url,
-                        hasDate = task.dueDate != null,
-                        hasTime = task.hasTime,
                         dueDate = task.dueDate ?: clockProvider.currentTimeMillis(),
                         isUrgent = task.isUrgent,
                         priority = task.priority,
-                        selectedTagIds = task.tagIds.toSet(),
-                        availableTags = current.availableTags,
                         isFlagged = task.isFlagged,
                         isCompleted = task.isCompleted,
                         recurrenceRule = task.recurrenceRule,
                         isLoading = false
-                    ).withFormattedDates().withStaticOptions(true)
+                    ).withTags()
+                        .withDateSection(hasDate = task.dueDate != null, hasTime = task.hasTime)
+                        .withPriorityOptions()
+                        .withScreenTitle(mode)
                 }
             } ?: _uiState.update { it.copy(isLoading = false) }
         }
-    }
-
-    // ── Tag selection ─────────────────────────────────────────────────────────
-
-    fun onTagSelected(tagId: Long) {
-        _uiState.update { it.copy(selectedTagIds = it.selectedTagIds + tagId) }
-    }
-
-    fun onTagRemoved(tagId: Long) {
-        _uiState.update { it.copy(selectedTagIds = it.selectedTagIds - tagId) }
     }
 
     // ── Events ────────────────────────────────────────────────────────────────
@@ -136,17 +139,17 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.UrlChanged ->
                 _uiState.update { it.copy(url = event.url) }
             is TaskEditorEvent.ToggleDate -> {
-                val turningOff = _uiState.value.hasDate
+                val turningOff = _uiState.value.dateSection.hasDate
                 _uiState.update {
-                    it.copy(
-                        hasDate = !it.hasDate,
-                        hasTime = if (turningOff) false else it.hasTime,
-                        recurrenceRule = if (turningOff) RecurrenceRule.NONE else it.recurrenceRule
-                    ).withFormattedDates()
+                    val newHasDate = !it.dateSection.hasDate
+                    val newHasTime = if (turningOff) false else it.dateSection.hasTime
+                    val newRecurrenceRule = if (turningOff) RecurrenceRule.NONE else it.recurrenceRule
+                    it.copy(recurrenceRule = newRecurrenceRule)
+                        .withDateSection(hasDate = newHasDate, hasTime = newHasTime)
                 }
             }
             is TaskEditorEvent.ToggleTime ->
-                _uiState.update { it.copy(hasTime = !it.hasTime).withFormattedDates() }
+                _uiState.update { it.withDateSection(hasTime = !it.dateSection.hasTime) }
             is TaskEditorEvent.ToggleUrgent ->
                 _uiState.update { it.copy(isUrgent = !it.isUrgent) }
             is TaskEditorEvent.ToggleFlagged ->
@@ -156,67 +159,83 @@ class TaskEditorViewModel @Inject constructor(
             is TaskEditorEvent.DueDateChanged ->
                 _uiState.update { state ->
                     val newDueDate = dateFormatter.updateDate(state.dueDate, event.dateMillis)
-                    state.copy(dueDate = newDueDate, showDatePicker = false).withFormattedDates()
+                    state.copy(dueDate = newDueDate)
+                        .withDateSection()
+                        .withDialogState(null)
                 }
             is TaskEditorEvent.TimeChanged ->
                 _uiState.update { state ->
                     val newDueDate = dateFormatter.updateTime(state.dueDate, event.hour, event.minute)
-                    state.copy(dueDate = newDueDate, showTimePicker = false).withFormattedDates()
+                    state.copy(dueDate = newDueDate)
+                        .withDateSection()
+                        .withDialogState(null)
                 }
-            is TaskEditorEvent.RecurrenceChanged ->
-                _uiState.update { it.copy(recurrenceRule = event.rule).withDerivedFlags() }
             is TaskEditorEvent.ToggleRecurrence ->
                 _uiState.update { state ->
                     val next = if (state.recurrenceRule.isRecurring) RecurrenceRule.NONE
-                               else RecurrenceRule(RecurrenceUnit.DAYS, 1)
-                    state.copy(recurrenceRule = next).withDerivedFlags()
+                    else RecurrenceRule(RecurrenceUnit.DAYS, 1)
+                    state.copy(recurrenceRule = next).withDateSection()
                 }
             is TaskEditorEvent.IncrementInterval ->
                 _uiState.update { state ->
                     state.copy(
                         recurrenceRule = state.recurrenceRule.copy(interval = state.recurrenceRule.interval + 1)
-                    ).withDerivedFlags()
+                    ).withDateSection()
                 }
             is TaskEditorEvent.DecrementInterval ->
                 _uiState.update { state ->
                     val r = state.recurrenceRule
-                    if (r.interval > 1) state.copy(recurrenceRule = r.copy(interval = r.interval - 1)).withDerivedFlags()
+                    if (r.interval > 1) state.copy(recurrenceRule = r.copy(interval = r.interval - 1)).withDateSection()
                     else state
                 }
             is TaskEditorEvent.RecurrenceUnitSelected ->
                 _uiState.update { state ->
-                    state.copy(recurrenceRule = state.recurrenceRule.copy(unit = event.unit)).withDerivedFlags()
+                    state.copy(recurrenceRule = state.recurrenceRule.copy(unit = event.unit)).withDateSection()
                 }
             is TaskEditorEvent.TagClicked -> {
                 val tagId = event.tagId
-                _uiState.update { state ->
-                    val updated = if (tagId in state.selectedTagIds) state.selectedTagIds - tagId
-                                  else state.selectedTagIds + tagId
-                    state.copy(selectedTagIds = updated)
-                }
+                selectedTagIds = if (tagId in selectedTagIds) selectedTagIds - tagId
+                else selectedTagIds + tagId
+                _uiState.update { it.withTags() }
             }
-            is TaskEditorEvent.ShowDatePicker ->
-                _uiState.update { it.copy(showDatePicker = true) }
-            is TaskEditorEvent.HideDatePicker ->
-                _uiState.update { it.copy(showDatePicker = false) }
-            is TaskEditorEvent.ShowTimePicker ->
-                _uiState.update { it.copy(showTimePicker = true) }
-            is TaskEditorEvent.HideTimePicker ->
-                _uiState.update { it.copy(showTimePicker = false) }
+            is TaskEditorEvent.ShowDialog ->
+                _uiState.update { it.withDialogState(event.dialog) }
+            is TaskEditorEvent.DismissDialog ->
+                _uiState.update { it.withDialogState(null) }
             is TaskEditorEvent.Save -> save()
         }
     }
 
-    private fun TaskEditorUiState.withDerivedFlags(): TaskEditorUiState =
-        copy(canDecrementInterval = recurrenceRule.interval > 1)
-
-    private fun TaskEditorUiState.withFormattedDates(): TaskEditorUiState {
+    private fun TaskEditorUiState.withDateSection(
+        hasDate: Boolean = dateSection.hasDate,
+        hasTime: Boolean = dateSection.hasTime
+    ): TaskEditorUiState {
         return copy(
-            formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
-            formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null,
-            datePickerUtcMillis = dateFormatter.toUtcMidnight(dueDate),
-            timePickerHour = dateFormatter.getHour(dueDate),
-            timePickerMinute = dateFormatter.getMinute(dueDate),
+            dateSection = DateSectionUiModel(
+                hasDate = hasDate,
+                formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
+                showTimeToggle = hasDate,
+                hasTime = hasTime,
+                formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null,
+                showRecurrence = hasDate,
+                recurrenceUiModel = RecurrenceUiMapper.map(recurrenceRule, recurrenceUnitOptions)
+            )
+        )
+    }
+
+    private fun TaskEditorUiState.withTags(): TaskEditorUiState {
+        return copy(
+            tagSection = TagSectionUiModel(
+                tags = availableTags.map { tag ->
+                    TagItemUiModel(
+                        id = tag.id,
+                        name = tag.name,
+                        color = tag.color,
+                        isSelected = tag.id in selectedTagIds
+                    )
+                },
+                showEmptyState = availableTags.isEmpty() && selectedTagIds.isEmpty()
+            )
         )
     }
 
@@ -243,22 +262,24 @@ class TaskEditorViewModel @Inject constructor(
         )
     }
 
-    private fun TaskEditorUiState.withStaticOptions(isEditing: Boolean): TaskEditorUiState {
+    private fun TaskEditorUiState.withDialogState(activeDialog: ActiveDialog?): TaskEditorUiState {
         return copy(
-            screenTitle = UiText.StringResource(if (isEditing) R.string.editor_title_edit else R.string.editor_title_new),
-            recurrenceUnitOptions = RecurrenceUnit.entries.filter { it != RecurrenceUnit.NONE }.map { unit ->
-                RecurrenceUnitOptionUiModel(
-                    unit = unit,
-                    label = UiText.StringResource(when (unit) {
-                        RecurrenceUnit.NONE -> 0 // Won't happen
-                        RecurrenceUnit.HOURS -> R.string.recurrence_unit_hours
-                        RecurrenceUnit.DAYS -> R.string.recurrence_unit_days
-                        RecurrenceUnit.WEEKS -> R.string.recurrence_unit_weeks
-                        RecurrenceUnit.MONTHS -> R.string.recurrence_unit_months
-                    })
-                )
-            }
-        ).withPriorityOptions()
+            dialogState = TaskEditorDialogState(
+                activeDialog = activeDialog,
+                datePickerUtcMillis = dateFormatter.toUtcMidnight(dueDate),
+                timePickerHour = dateFormatter.getHour(dueDate),
+                timePickerMinute = dateFormatter.getMinute(dueDate)
+            )
+        )
+    }
+
+    private fun TaskEditorUiState.withScreenTitle(mode: TaskEditorMode): TaskEditorUiState {
+        return copy(
+            screenTitle = UiText.StringResource(
+                if (mode == TaskEditorMode.EDIT) R.string.editor_title_edit
+                else R.string.editor_title_new
+            )
+        )
     }
 
     private fun save() {
@@ -275,11 +296,11 @@ class TaskEditorViewModel @Inject constructor(
                 title = state.title.trim(),
                 notes = state.notes.trim(),
                 url = state.url.trim(),
-                dueDate = if (state.hasDate) state.dueDate else null,
-                hasTime = state.hasTime,
+                dueDate = if (state.dateSection.hasDate) state.dueDate else null,
+                hasTime = state.dateSection.hasTime,
                 isUrgent = state.isUrgent,
                 priority = state.priority,
-                tagIds = state.selectedTagIds.toList(),
+                tagIds = selectedTagIds.toList(),
                 isFlagged = state.isFlagged,
                 isCompleted = state.isCompleted,
                 recurrenceRule = state.recurrenceRule,

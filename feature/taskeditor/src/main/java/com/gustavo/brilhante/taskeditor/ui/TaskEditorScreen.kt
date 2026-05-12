@@ -65,10 +65,13 @@ import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.gustavo.brilhante.model.RecurrenceRule
+import com.gustavo.brilhante.ui.UiText
 import com.gustavo.brilhante.model.RecurrenceUnit
-import com.gustavo.brilhante.taskeditor.presentation.PriorityOptionUiModel
+import com.gustavo.brilhante.model.Tag
+import com.gustavo.brilhante.taskeditor.presentation.ActiveDialog
+import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUiModel
 import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUnitOptionUiModel
+import com.gustavo.brilhante.taskeditor.presentation.TaskEditorArgsResolver
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
@@ -93,53 +96,55 @@ fun TaskEditorScreen(
         viewModel.navigationEvent.collect { onBack() }
     }
 
-    if (uiState.showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.datePickerUtcMillis
-        )
-        DatePickerDialog(
-            modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
-            onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        viewModel.onEvent(TaskEditorEvent.DueDateChanged(it))
-                    } ?: viewModel.onEvent(TaskEditorEvent.HideDatePicker)
-                }) { Text(stringResource(R.string.editor_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.HideDatePicker) }) {
-                    Text(stringResource(R.string.editor_cancel))
+    when (uiState.dialogState.activeDialog) {
+        ActiveDialog.DatePicker -> {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = uiState.dialogState.datePickerUtcMillis
+            )
+            DatePickerDialog(
+                modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
+                onDismissRequest = { viewModel.onEvent(TaskEditorEvent.DismissDialog) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            viewModel.onEvent(TaskEditorEvent.DueDateChanged(it))
+                        } ?: viewModel.onEvent(TaskEditorEvent.DismissDialog)
+                    }) { Text(stringResource(R.string.editor_ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.DismissDialog) }) {
+                        Text(stringResource(R.string.editor_cancel))
+                    }
                 }
+            ) {
+                DatePicker(state = datePickerState, showModeToggle = true)
             }
-        ) {
-            DatePicker(state = datePickerState, showModeToggle = true)
         }
-    }
-
-    if (uiState.showTimePicker) {
-        val timePickerState = rememberTimePickerState(
-            initialHour = uiState.timePickerHour,
-            initialMinute = uiState.timePickerMinute,
-            is24Hour = true
-        )
-        AlertDialog(
-            modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
-            onDismissRequest = { viewModel.onEvent(TaskEditorEvent.HideTimePicker) },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.onEvent(
-                        TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
-                    )
-                }) { Text(stringResource(R.string.editor_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.HideTimePicker) }) {
-                    Text(stringResource(R.string.editor_cancel))
-                }
-            },
-            text = { TimePicker(state = timePickerState) }
-        )
+        ActiveDialog.TimePicker -> {
+            val timePickerState = rememberTimePickerState(
+                initialHour = uiState.dialogState.timePickerHour,
+                initialMinute = uiState.dialogState.timePickerMinute,
+                is24Hour = true
+            )
+            AlertDialog(
+                modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
+                onDismissRequest = { viewModel.onEvent(TaskEditorEvent.DismissDialog) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.onEvent(
+                            TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
+                        )
+                    }) { Text(stringResource(R.string.editor_ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.DismissDialog) }) {
+                        Text(stringResource(R.string.editor_cancel))
+                    }
+                },
+                text = { TimePicker(state = timePickerState) }
+            )
+        }
+        null -> {}
     }
 
     Scaffold(
@@ -222,35 +227,35 @@ fun TaskEditorScreen(
                 Column {
                     ToggleRow(
                         label = stringResource(R.string.editor_label_date),
-                        checked = uiState.hasDate,
+                        checked = uiState.dateSection.hasDate,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleDate) },
                         icon = Icons.Filled.CalendarMonth,
-                        supportingText = if (uiState.hasDate) uiState.formattedDate else null,
-                        onRowClick = if (uiState.hasDate) {
-                            { viewModel.onEvent(TaskEditorEvent.ShowDatePicker) }
+                        supportingText = uiState.dateSection.formattedDate,
+                        onRowClick = if (uiState.dateSection.hasDate) {
+                            { viewModel.onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.DatePicker)) }
                         } else null,
                         testTag = TestTags.TOGGLE_TASK_DATE
                     )
 
-                    if (uiState.hasDate) {
+                    if (uiState.dateSection.showTimeToggle) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         ToggleRow(
                             label = stringResource(R.string.editor_label_time),
-                            checked = uiState.hasTime,
+                            checked = uiState.dateSection.hasTime,
                             onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleTime) },
                             icon = Icons.Filled.Schedule,
-                            supportingText = if (uiState.hasTime) uiState.formattedTime else null,
-                            onRowClick = if (uiState.hasTime) {
-                                { viewModel.onEvent(TaskEditorEvent.ShowTimePicker) }
+                            supportingText = uiState.dateSection.formattedTime,
+                            onRowClick = if (uiState.dateSection.hasTime) {
+                                { viewModel.onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.TimePicker)) }
                             } else null,
                             testTag = TestTags.TOGGLE_TASK_TIME
                         )
+                    }
 
+                    if (uiState.dateSection.showRecurrence) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         RecurrenceSelector(
-                            rule = uiState.recurrenceRule,
-                            unitOptions = uiState.recurrenceUnitOptions,
-                            canDecrementInterval = uiState.canDecrementInterval,
+                            model = uiState.dateSection.recurrenceUiModel,
                             onEvent = viewModel::onEvent,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
@@ -309,7 +314,7 @@ fun TaskEditorScreen(
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_tags), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_TAGS))
-            if (uiState.availableTags.isEmpty() && uiState.selectedTagIds.isEmpty()) {
+            if (uiState.tagSection.showEmptyState) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -334,11 +339,10 @@ fun TaskEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
-                    uiState.availableTags.forEach { tag ->
-                        val isSelected = uiState.selectedTagIds.contains(tag.id)
+                    uiState.tagSection.tags.forEach { tag ->
                         TagChip(
-                            tag = tag,
-                            isSelected = isSelected,
+                            tag = Tag(id = tag.id, name = tag.name, color = tag.color),
+                            isSelected = tag.isSelected,
                             onClick = { viewModel.onEvent(TaskEditorEvent.TagClicked(tag.id)) }
                         )
                     }
@@ -369,9 +373,7 @@ fun TaskEditorScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecurrenceSelector(
-    rule: RecurrenceRule,
-    unitOptions: List<RecurrenceUnitOptionUiModel>,
-    canDecrementInterval: Boolean,
+    model: RecurrenceUiModel,
     onEvent: (TaskEditorEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -396,13 +398,13 @@ private fun RecurrenceSelector(
                 )
             }
             Switch(
-                checked = rule.isRecurring,
+                checked = model.isRecurring,
                 onCheckedChange = { onEvent(TaskEditorEvent.ToggleRecurrence) },
                 modifier = Modifier.testTag(TestTags.TOGGLE_TASK_RECURRENCE)
             )
         }
 
-        if (rule.isRecurring) {
+        if (model.isRecurring) {
             Spacer(Modifier.height(8.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -417,13 +419,13 @@ private fun RecurrenceSelector(
                 Spacer(Modifier.width(4.dp))
                 IconButton(
                     onClick = { onEvent(TaskEditorEvent.DecrementInterval) },
-                    enabled = canDecrementInterval,
+                    enabled = model.canDecrement,
                     modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_DECREMENT)
                 ) {
                     Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.editor_recurrence_decrease))
                 }
                 Text(
-                    text = rule.interval.toString(),
+                    text = model.intervalLabel,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.width(32.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -436,8 +438,8 @@ private fun RecurrenceSelector(
                 }
                 Spacer(Modifier.width(4.dp))
                 RecurrenceUnitDropdown(
-                    selected = rule.unit,
-                    options = unitOptions,
+                    selectedLabel = model.selectedUnitLabel,
+                    options = model.unitOptions,
                     onSelect = { onEvent(TaskEditorEvent.RecurrenceUnitSelected(it)) }
                 )
             }
@@ -448,7 +450,7 @@ private fun RecurrenceSelector(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecurrenceUnitDropdown(
-    selected: RecurrenceUnit,
+    selectedLabel: UiText,
     options: List<RecurrenceUnitOptionUiModel>,
     onSelect: (RecurrenceUnit) -> Unit,
     modifier: Modifier = Modifier
@@ -461,7 +463,7 @@ private fun RecurrenceUnitDropdown(
         modifier = modifier.testTag(TestTags.DROPDOWN_RECURRENCE_UNIT)
     ) {
         OutlinedTextField(
-            value = options.find { it.unit == selected }?.label?.asString() ?: "",
+            value = selectedLabel.asString(),
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
