@@ -272,6 +272,39 @@ class TaskEditorViewModelTest {
         assertNull(viewModel.uiState.value.dialogState.activeDialog)
     }
 
+    @Test
+    fun `showEmptyState is true when availableTags is empty even if selectedTagIds is not`() = runTest {
+        val task = Task(id = 10L, title = "Task", tagIds = listOf(1L), createdAt = 1000L)
+        coEvery { getTaskByIdUseCase(10L) } returns task
+        every { getTagsUseCase() } returns flowOf(emptyList())
+
+        viewModel = TaskEditorViewModel(
+            addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
+            getTagsUseCase, notificationScheduler, DateFormatterImpl(calendarProvider), clockProvider
+        )
+        viewModel.loadTask(10L)
+
+        assertTrue(viewModel.uiState.value.tagSection.showEmptyState)
+    }
+
+    @Test
+    fun `showEmptyState is false when availableTags is not empty even if selectedTagIds is not matching`() = runTest {
+        val task = Task(id = 10L, title = "Task", tagIds = listOf(1L), createdAt = 1000L)
+        coEvery { getTaskByIdUseCase(10L) } returns task
+        val tag2 = com.gustavo.brilhante.model.Tag(2L, "Tag 2", 0L)
+        every { getTagsUseCase() } returns flowOf(listOf(tag2))
+
+        viewModel = TaskEditorViewModel(
+            addTaskUseCase, updateTaskUseCase, getTaskByIdUseCase,
+            getTagsUseCase, notificationScheduler, DateFormatterImpl(calendarProvider), clockProvider
+        )
+        viewModel.loadTask(10L)
+
+        // It should show Tag 2 chip, not the empty state
+        assertFalse(viewModel.uiState.value.tagSection.showEmptyState)
+        assertEquals(1, viewModel.uiState.value.tagSection.tags.size)
+    }
+
     // ── save ──────────────────────────────────────────────────────────────────
 
     @Test

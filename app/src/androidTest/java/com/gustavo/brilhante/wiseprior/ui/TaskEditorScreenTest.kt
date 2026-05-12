@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.rule.GrantPermissionRule
 import com.gustavo.brilhante.ui.TestTags
@@ -133,14 +134,18 @@ class TaskEditorScreenTest {
 
     @Test
     fun flagToggle_remainsDisplayedAfterClick() {
-        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_FLAGGED).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_FLAGGED)
+            .performScrollTo()
+            .assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_FLAGGED).performClick()
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_FLAGGED).assertIsDisplayed()
     }
 
     @Test
     fun urgentToggle_isVisibleAndClickable() {
-        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT)
+            .performScrollTo()
+            .assertIsDisplayed()
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).performClick()
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_URGENT).assertIsDisplayed()
     }
@@ -193,17 +198,22 @@ class TaskEditorScreenTest {
         val noTagsMsg = composeTestRule.activity.getString(
             com.gustavo.brilhante.taskeditor.R.string.no_tags_created
         )
-        composeTestRule.onNodeWithText(noTagsMsg).assertIsDisplayed()
+        composeTestRule.onNodeWithText(noTagsMsg)
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test
     fun urlSection_isVisible() {
-        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_URL).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_URL)
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test
     fun urlField_acceptsInput() {
         composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_URL)
+            .performScrollTo()
             .performTextInput("https://example.com")
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("https://example.com").assertIsDisplayed()
