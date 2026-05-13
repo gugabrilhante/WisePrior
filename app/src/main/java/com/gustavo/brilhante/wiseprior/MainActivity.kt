@@ -19,16 +19,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.gustavo.brilhante.designsystem.theme.WisePriorTheme
-import com.gustavo.brilhante.domain.system.AndroidVersionProvider
-import com.gustavo.brilhante.notifications.EXTRA_TASK_ID
+import com.gustavo.brilhante.wiseprior.navigation.NotificationNavigationParser
 import com.gustavo.brilhante.wiseprior.navigation.WisePriorNavHost
+import com.gustavo.brilhante.wiseprior.startup.StartupPermissionAction
+import com.gustavo.brilhante.wiseprior.startup.StartupPermissionOrchestrator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject lateinit var versionProvider: AndroidVersionProvider
+    @Inject lateinit var permissionOrchestrator: StartupPermissionOrchestrator
+    @Inject lateinit var navigationParser: NotificationNavigationParser
 
     // taskId to open on start/resume, driven by notification tap
     private var pendingTaskId by mutableStateOf<Long?>(null)
@@ -40,7 +42,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         requestPermissionsIfNeeded()
-        pendingTaskId = intent.getTaskId()
+        pendingTaskId = navigationParser.getTaskId(intent)
 
         setContent {
             WisePriorTheme {
@@ -59,45 +61,35 @@ class MainActivity : ComponentActivity() {
     public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingTaskId = intent.getTaskId()
+        pendingTaskId = navigationParser.getTaskId(intent)
     }
 
     private fun requestPermissionsIfNeeded() {
-        // Notification Permission (Android 13+)
-        if (versionProvider.sdkInt >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                return
-            }
+        val notificationPermissionGranted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val alarmManager = getSystemService(AlarmManager::class.java)
+        val canScheduleExactAlarms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager?.canScheduleExactAlarms() ?: true
+        } else {
+            true
         }
 
-        // Exact Alarm Permission (Android 12+)
-        // Skip in tests to avoid breaking UI automation by launching system settings
-        if (versionProvider.sdkInt >= Build.VERSION_CODES.S && !isTesting()) {
-            val alarmManager = getSystemService(AlarmManager::class.java)
-            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+        when (val action = permissionOrchestrator.getNextPermissionAction(
+            notificationPermissionGranted,
+            canScheduleExactAlarms
+        )) {
+            is StartupPermissionAction.RequestNotificationPermission -> {
+                notificationPermissionLauncher.launch(action.permission)
+            }
+            is StartupPermissionAction.RequestExactAlarmPermission -> {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                     data = Uri.fromParts("package", packageName, null)
                 }
                 startActivity(intent)
             }
+            StartupPermissionAction.None -> { /* Do nothing */ }
         }
-    }
-
-    private fun isTesting(): Boolean {
-        return try {
-            Class.forName("androidx.test.espresso.Espresso")
-            true
-        } catch (e: ClassNotFoundException) {
-            false
-        }
-    }
-
-    private fun Intent?.getTaskId(): Long? {
-        val id = this?.getLongExtra(EXTRA_TASK_ID, -1L) ?: return null
-        return if (id > 0L) id else null
     }
 }

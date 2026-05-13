@@ -234,7 +234,7 @@ class TaskEditorViewModel @Inject constructor(
                         isSelected = tag.id in selectedTagIds
                     )
                 },
-                showEmptyState = availableTags.isEmpty() && selectedTagIds.isEmpty()
+                showEmptyState = availableTags.isEmpty()
             )
         )
     }
