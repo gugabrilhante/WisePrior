@@ -10,8 +10,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -238,11 +243,12 @@ private fun TaskListContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
         ) {
             AnimatedVisibility(
                 visible = uiState.showEmptyState,
-                enter = fadeIn(), exit = fadeOut()
+                enter = fadeIn(), exit = fadeOut(),
+                modifier = Modifier.padding(paddingValues)
             ) {
                 EmptyState(
                     title = stringResource(R.string.empty_tasks_title),
@@ -255,7 +261,12 @@ private fun TaskListContent(
                 enter = fadeIn(), exit = fadeOut()
             ) {
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = paddingValues.calculateTopPadding() + 8.dp,
+                        end = 16.dp,
+                        bottom = paddingValues.calculateBottomPadding() + 8.dp
+                    ),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(
