@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId "com.gustavo.brilhante.wiseprior"
         minSdk 24
-        targetSdk 36
+        targetSdk 35
         versionCode 3
         versionName "1.2"
         testInstrumentationRunner "com.gustavo.brilhante.wiseprior.HiltTestRunner"
@@ -54,6 +54,7 @@ dependencies {
 
     implementation libs.androidx.core.ktx
     implementation libs.androidx.activity.compose
+    implementation libs.androidx.activity.ktx
     implementation libs.androidx.lifecycle.runtime.ktx
 
     def composeBom = platform(libs.androidx.compose.bom)
