@@ -19,6 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Repeat
@@ -70,6 +73,7 @@ import com.gustavo.brilhante.ui.UiText
 import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.taskeditor.presentation.ActiveDialog
+import com.gustavo.brilhante.taskeditor.presentation.ChecklistItemUiModel
 import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUiModel
 import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUnitOptionUiModel
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorArgsResolver
@@ -217,7 +221,22 @@ fun TaskEditorScreen(
                 }
             }
 
+            // ── Checklist ─────────────────────────────────────────────────
+            Spacer(Modifier.height(8.dp))
+            SectionHeader(
+                stringResource(R.string.editor_section_checklist),
+                modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_CHECKLIST)
+            )
+            ChecklistSection(
+                items = uiState.checklistItems,
+                onEvent = viewModel::onEvent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
             // ── Date & Time ───────────────────────────────────────────────
+            Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_datetime), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DATETIME))
             Surface(
                 tonalElevation = 1.dp,
@@ -366,6 +385,100 @@ fun TaskEditorScreen(
             )
 
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ── Checklist section ─────────────────────────────────────────────────────────
+
+@Composable
+private fun ChecklistSection(
+    items: List<ChecklistItemUiModel>,
+    onEvent: (TaskEditorEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+    ) {
+        Column {
+            items.forEachIndexed { index, item ->
+                ChecklistItemRow(
+                    item = item,
+                    onCheckedChange = { onEvent(TaskEditorEvent.ChecklistItemChecked(index, it)) },
+                    onTextChange = { onEvent(TaskEditorEvent.ChecklistItemTextChanged(index, it)) },
+                    onDelete = { onEvent(TaskEditorEvent.RemoveChecklistItem(index)) },
+                    modifier = Modifier.testTag("${TestTags.CHECKLIST_ITEM_ROW}_$index")
+                )
+                if (index < items.lastIndex) {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                }
+            }
+            if (items.isNotEmpty()) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+            TextButton(
+                onClick = { onEvent(TaskEditorEvent.AddChecklistItem) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(TestTags.BTN_CHECKLIST_ADD_ITEM)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.editor_checklist_add_item))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChecklistItemRow(
+    item: ChecklistItemUiModel,
+    onCheckedChange: (Boolean) -> Unit,
+    onTextChange: (String) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = { onCheckedChange(!item.isChecked) },
+            modifier = Modifier.testTag(TestTags.CHECKLIST_ITEM_CHECKBOX)
+        ) {
+            Icon(
+                imageVector = if (item.isChecked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = if (item.isChecked) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        OutlinedTextField(
+            value = item.text,
+            onValueChange = onTextChange,
+            placeholder = { Text(stringResource(R.string.editor_checklist_item_placeholder)) },
+            modifier = Modifier
+                .weight(1f)
+                .testTag(TestTags.CHECKLIST_ITEM_TEXT_INPUT),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent
+            ),
+            textStyle = if (item.isChecked)
+                MaterialTheme.typography.bodyLarge.copy(
+                    textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            else MaterialTheme.typography.bodyLarge
+        )
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.testTag(TestTags.BTN_CHECKLIST_ITEM_DELETE)
+        ) {
+            Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.editor_checklist_item_delete))
         }
     }
 }

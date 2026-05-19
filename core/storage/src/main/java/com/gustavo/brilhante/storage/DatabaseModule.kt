@@ -2,6 +2,7 @@ package com.gustavo.brilhante.storage
 
 import android.content.Context
 import androidx.room.Room
+import com.gustavo.brilhante.storage.dao.ChecklistItemDao
 import com.gustavo.brilhante.storage.dao.TagDao
 import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.database.AppDatabase
@@ -9,6 +10,7 @@ import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_3_
 import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_4_5
 import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_5_6
 import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_6_7
+import com.gustavo.brilhante.storage.database.AppDatabase.Companion.MIGRATION_7_8
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +26,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.databaseName)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .fallbackToDestructiveMigration(true)
             .build()
 
@@ -33,4 +35,7 @@ object DatabaseModule {
 
     @Provides
     fun provideTagDao(db: AppDatabase): TagDao = db.tagDao()
+
+    @Provides
+    fun provideChecklistItemDao(db: AppDatabase): ChecklistItemDao = db.checklistItemDao()
 }

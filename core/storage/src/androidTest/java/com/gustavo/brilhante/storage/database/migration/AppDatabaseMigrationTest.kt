@@ -156,6 +156,36 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
+    fun migrate7To8() {
+        val db7 = helper.createDatabase(TEST_DB, 7)
+
+        // Seed a task at v7
+        db7.execSQL(
+            """
+            INSERT INTO tasks (id, title, notes, url, dueDate, hasTime, isUrgent, priority, tagIds, isFlagged, isCompleted, recurrenceUnit, recurrenceInterval, createdAt)
+            VALUES (1, 'Shopping', '', '', NULL, 0, 0, 'NONE', '', 0, 0, 'NONE', 1, 1000)
+            """.trimIndent()
+        )
+        db7.close()
+
+        val db8 = helper.runMigrationsAndValidate(TEST_DB, 8, true, AppDatabase.MIGRATION_7_8)
+
+        // checklist_items table must exist and be empty for existing tasks
+        val cursor = db8.query("SELECT * FROM checklist_items")
+        assertThat(cursor.count).isEqualTo(0)
+        cursor.close()
+
+        // Verify schema columns
+        val schemaCursor = db8.query("PRAGMA table_info(checklist_items)")
+        val columns = mutableListOf<String>()
+        while (schemaCursor.moveToNext()) {
+            columns.add(schemaCursor.getString(schemaCursor.getColumnIndex("name")))
+        }
+        schemaCursor.close()
+        assertThat(columns).containsAtLeast("id", "taskId", "text", "isChecked")
+    }
+
+    @Test
     fun migrate6To7() {
         val db6 = helper.createDatabase(TEST_DB, 6)
 

@@ -7,6 +7,7 @@ import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
@@ -118,7 +119,10 @@ class TaskEditorViewModel @Inject constructor(
                         isFlagged = task.isFlagged,
                         isCompleted = task.isCompleted,
                         recurrenceRule = task.recurrenceRule,
-                        isLoading = false
+                        isLoading = false,
+                        checklistItems = task.checklistItems.map {
+                            ChecklistItemUiModel(id = it.id, text = it.text, isChecked = it.isChecked)
+                        }
                     ).withTags()
                         .withDateSection(hasDate = task.dueDate != null, hasTime = task.hasTime)
                         .withPriorityOptions()
@@ -198,6 +202,24 @@ class TaskEditorViewModel @Inject constructor(
                 else selectedTagIds + tagId
                 _uiState.update { it.withTags() }
             }
+            is TaskEditorEvent.AddChecklistItem ->
+                _uiState.update { it.copy(checklistItems = it.checklistItems + ChecklistItemUiModel()) }
+            is TaskEditorEvent.RemoveChecklistItem ->
+                _uiState.update {
+                    it.copy(checklistItems = it.checklistItems.toMutableList().also { list -> list.removeAt(event.index) })
+                }
+            is TaskEditorEvent.ChecklistItemTextChanged ->
+                _uiState.update {
+                    it.copy(checklistItems = it.checklistItems.mapIndexed { i, item ->
+                        if (i == event.index) item.copy(text = event.text) else item
+                    })
+                }
+            is TaskEditorEvent.ChecklistItemChecked ->
+                _uiState.update {
+                    it.copy(checklistItems = it.checklistItems.mapIndexed { i, item ->
+                        if (i == event.index) item.copy(isChecked = event.isChecked) else item
+                    })
+                }
             is TaskEditorEvent.ShowDialog ->
                 _uiState.update { it.withDialogState(event.dialog) }
             is TaskEditorEvent.DismissDialog ->
@@ -304,7 +326,10 @@ class TaskEditorViewModel @Inject constructor(
                 isFlagged = state.isFlagged,
                 isCompleted = state.isCompleted,
                 recurrenceRule = state.recurrenceRule,
-                createdAt = if (isEditing) originalCreatedAt else now
+                createdAt = if (isEditing) originalCreatedAt else now,
+                checklistItems = state.checklistItems
+                    .filter { it.text.isNotBlank() }
+                    .map { ChecklistItem(id = it.id, text = it.text.trim(), isChecked = it.isChecked) }
             )
 
             if (isEditing) {

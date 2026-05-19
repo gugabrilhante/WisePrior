@@ -44,6 +44,12 @@ data class TagItemUiModel(
     val isSelected: Boolean
 )
 
+data class ChecklistItemUiModel(
+    val id: Long = 0,
+    val text: String = "",
+    val isChecked: Boolean = false
+)
+
 data class TagSectionUiModel(
     val tags: List<TagItemUiModel> = emptyList(),
     val showEmptyState: Boolean = false

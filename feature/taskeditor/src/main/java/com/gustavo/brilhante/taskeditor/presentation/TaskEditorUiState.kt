@@ -22,7 +22,8 @@ data class TaskEditorUiState(
     val priorityOptions: List<PriorityOptionUiModel> = emptyList(),
     val dialogState: TaskEditorDialogState = TaskEditorDialogState(),
     val dateSection: DateSectionUiModel = DateSectionUiModel(),
-    val tagSection: TagSectionUiModel = TagSectionUiModel()
+    val tagSection: TagSectionUiModel = TagSectionUiModel(),
+    val checklistItems: List<ChecklistItemUiModel> = emptyList()
 )
 
 data class PriorityOptionUiModel(
@@ -56,4 +57,8 @@ sealed interface TaskEditorEvent {
     data class ShowDialog(val dialog: ActiveDialog) : TaskEditorEvent
     data object DismissDialog : TaskEditorEvent
     data object Save : TaskEditorEvent
+    data object AddChecklistItem : TaskEditorEvent
+    data class RemoveChecklistItem(val index: Int) : TaskEditorEvent
+    data class ChecklistItemTextChanged(val index: Int, val text: String) : TaskEditorEvent
+    data class ChecklistItemChecked(val index: Int, val isChecked: Boolean) : TaskEditorEvent
 }

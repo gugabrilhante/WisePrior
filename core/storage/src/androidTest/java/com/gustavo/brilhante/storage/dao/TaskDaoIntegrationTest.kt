@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.gustavo.brilhante.storage.database.AppDatabase
+import com.gustavo.brilhante.storage.entity.ChecklistItemEntity
 import com.gustavo.brilhante.storage.entity.TaskEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -16,15 +17,12 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Integration tests for TaskDao using an in-memory Room database.
- * Validates real SQL behaviour: inserts, queries, updates, deletes, and Flow reactivity.
- */
 @RunWith(AndroidJUnit4::class)
 class TaskDaoIntegrationTest {
 
     private lateinit var database: AppDatabase
     private lateinit var dao: TaskDao
+    private lateinit var checklistItemDao: ChecklistItemDao
 
     @Before
     fun setup() {
@@ -33,6 +31,7 @@ class TaskDaoIntegrationTest {
             .allowMainThreadQueries()
             .build()
         dao = database.taskDao()
+        checklistItemDao = database.checklistItemDao()
     }
 
     @After
@@ -61,12 +60,12 @@ class TaskDaoIntegrationTest {
         createdAt = createdAt
     )
 
-    // ── getAllTasks ────────────────────────────────────────────────────────────
+    // ── getAllTasksWithChecklist ───────────────────────────────────────────────
 
     @Test
     fun givenEmptyDatabase_whenGetAllTasksObserved_thenEmitsEmptyList() = runTest {
-        dao.getAllTasks().test {
-            assertEquals(emptyList<TaskEntity>(), awaitItem())
+        dao.getAllTasksWithChecklist().test {
+            assertEquals(emptyList<TaskEntity>(), awaitItem().map { it.task })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -75,11 +74,11 @@ class TaskDaoIntegrationTest {
     fun givenInsertedTask_whenGetAllTasksObserved_thenEmitsListContainingThatTask() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "Buy milk"))
 
-        dao.getAllTasks().test {
+        dao.getAllTasksWithChecklist().test {
             val items = awaitItem()
             assertEquals(1, items.size)
-            assertEquals("Buy milk", items.first().title)
-            assertEquals(insertedId, items.first().id)
+            assertEquals("Buy milk", items.first().task.title)
+            assertEquals(insertedId, items.first().task.id)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -89,45 +88,45 @@ class TaskDaoIntegrationTest {
         dao.insertTask(buildEntity(title = "Older", createdAt = 1_000L))
         dao.insertTask(buildEntity(title = "Newer", createdAt = 2_000L))
 
-        dao.getAllTasks().test {
+        dao.getAllTasksWithChecklist().test {
             val items = awaitItem()
             assertEquals(2, items.size)
-            assertEquals("Newer", items[0].title)
-            assertEquals("Older", items[1].title)
+            assertEquals("Newer", items[0].task.title)
+            assertEquals("Older", items[1].task.title)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
     fun givenObservationStarted_whenTaskInsertedAfterwards_thenFlowEmitsUpdatedList() = runTest {
-        dao.getAllTasks().test {
-            assertEquals(emptyList<TaskEntity>(), awaitItem())
+        dao.getAllTasksWithChecklist().test {
+            assertEquals(emptyList<TaskEntity>(), awaitItem().map { it.task })
 
             dao.insertTask(buildEntity(title = "Reactive task"))
 
             val updated = awaitItem()
             assertEquals(1, updated.size)
-            assertEquals("Reactive task", updated.first().title)
+            assertEquals("Reactive task", updated.first().task.title)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    // ── getTaskById ───────────────────────────────────────────────────────────
+    // ── getTaskWithChecklistById ──────────────────────────────────────────────
 
     @Test
     fun givenInsertedTask_whenGetTaskByIdCalledWithItsId_thenReturnsThatTask() = runTest {
         val insertedId = dao.insertTask(buildEntity(title = "Finish report"))
 
-        val result = dao.getTaskById(insertedId)
+        val result = dao.getTaskWithChecklistById(insertedId)
 
         assertNotNull(result)
-        assertEquals("Finish report", result!!.title)
-        assertEquals(insertedId, result.id)
+        assertEquals("Finish report", result!!.task.title)
+        assertEquals(insertedId, result.task.id)
     }
 
     @Test
     fun givenEmptyDatabase_whenGetTaskByIdCalled_thenReturnsNull() = runTest {
-        assertNull(dao.getTaskById(99L))
+        assertNull(dao.getTaskWithChecklistById(99L))
     }
 
     // ── updateTask ────────────────────────────────────────────────────────────
@@ -138,8 +137,8 @@ class TaskDaoIntegrationTest {
 
         dao.updateTask(buildEntity(id = insertedId, title = "Updated"))
 
-        dao.getAllTasks().test {
-            assertEquals("Updated", awaitItem().first().title)
+        dao.getAllTasksWithChecklist().test {
+            assertEquals("Updated", awaitItem().first().task.title)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -152,9 +151,57 @@ class TaskDaoIntegrationTest {
 
         dao.deleteTask(buildEntity(id = insertedId, title = "To delete"))
 
-        dao.getAllTasks().test {
-            assertEquals(emptyList<TaskEntity>(), awaitItem())
+        dao.getAllTasksWithChecklist().test {
+            assertEquals(emptyList<TaskEntity>(), awaitItem().map { it.task })
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── getAllTasksWithChecklist — checklist included ──────────────────────────
+
+    @Test
+    fun givenTaskWithChecklistItems_whenGetAllTasksWithChecklist_thenItemsAreIncluded() = runTest {
+        val taskId = dao.insertTask(buildEntity(title = "Shopping"))
+        checklistItemDao.insertAll(listOf(
+            ChecklistItemEntity(taskId = taskId, text = "Milk", isChecked = false),
+            ChecklistItemEntity(taskId = taskId, text = "Eggs", isChecked = true)
+        ))
+
+        dao.getAllTasksWithChecklist().test {
+            val tasks = awaitItem()
+            assertEquals(1, tasks.size)
+            val checklist = tasks.first().checklistItems.sortedBy { it.id }
+            assertEquals(2, checklist.size)
+            assertEquals("Milk", checklist[0].text)
+            assertEquals(false, checklist[0].isChecked)
+            assertEquals("Eggs", checklist[1].text)
+            assertEquals(true, checklist[1].isChecked)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenTaskWithNoChecklistItems_whenGetAllTasksWithChecklist_thenEmptyListReturned() = runTest {
+        dao.insertTask(buildEntity(title = "Simple task"))
+
+        dao.getAllTasksWithChecklist().test {
+            val tasks = awaitItem()
+            assertEquals(1, tasks.size)
+            assertEquals(emptyList<ChecklistItemEntity>(), tasks.first().checklistItems)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun givenTaskWithChecklist_whenGetTaskWithChecklistById_thenCorrectTaskReturned() = runTest {
+        val taskId = dao.insertTask(buildEntity(title = "Supermarket"))
+        checklistItemDao.insertAll(listOf(
+            ChecklistItemEntity(taskId = taskId, text = "Bread", isChecked = false)
+        ))
+
+        val result = dao.getTaskWithChecklistById(taskId)
+        assertEquals("Supermarket", result?.task?.title)
+        assertEquals(1, result?.checklistItems?.size)
+        assertEquals("Bread", result?.checklistItems?.first()?.text)
     }
 }

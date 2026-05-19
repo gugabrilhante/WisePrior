@@ -64,6 +64,14 @@ object TestTags {
     const val BTN_TASK_EDITOR_RECURRENCE_DECREMENT = "btn_task_editor_recurrence_decrement"
     const val BTN_TASK_EDITOR_RECURRENCE_INCREMENT = "btn_task_editor_recurrence_increment"
 
+    // Checklist
+    const val SECTION_TASK_EDITOR_CHECKLIST = "section_task_editor_checklist"
+    const val BTN_CHECKLIST_ADD_ITEM = "btn_checklist_add_item"
+    const val CHECKLIST_ITEM_ROW = "checklist_item_row"
+    const val CHECKLIST_ITEM_CHECKBOX = "checklist_item_checkbox"
+    const val CHECKLIST_ITEM_TEXT_INPUT = "checklist_item_text_input"
+    const val BTN_CHECKLIST_ITEM_DELETE = "btn_checklist_item_delete"
+
     // Sidebar — already declared as string constants in TaskSidebar.kt; mirrored here
     // so tests can import from a single location.
     const val SIDEBAR_LIST = "sidebar_list"
