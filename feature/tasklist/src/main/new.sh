@@ -1,0 +1,1 @@
+keytool -printcert -jarfile app/build/outputs/apk/release/app-release-unsigned.apk
