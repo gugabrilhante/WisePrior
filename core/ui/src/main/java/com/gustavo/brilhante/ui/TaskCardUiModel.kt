@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.ui.graphics.Color
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
@@ -21,5 +22,6 @@ data class TaskCardUiModel(
     val priorityTextRes: Int?,
     val priorityColorRes: Int?,
     val hasPriority: Boolean,
-    val isTitleStrikethrough: Boolean
+    val isTitleStrikethrough: Boolean,
+    val checklistItems: List<ChecklistItem> = emptyList()
 )

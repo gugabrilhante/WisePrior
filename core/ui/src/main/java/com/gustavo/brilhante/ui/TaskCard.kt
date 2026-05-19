@@ -28,10 +28,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -76,6 +78,7 @@ fun TaskCard(
     formattedDueDate: String? = null,
     isExpanded: Boolean = false,
     onToggleExpanded: () -> Unit = {},
+    onToggleChecklistItem: (itemId: Long, isChecked: Boolean) -> Unit = { _, _ -> },
 ) {
     val uiModel = remember(task, allTags, formattedDueDate) {
         TaskCardUiMapper.map(task, allTags, formattedDueDate)
@@ -223,6 +226,56 @@ fun TaskCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(vertical = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
                     )
+                }
+
+                // CHECKLIST
+                AnimatedVisibility(
+                    visible = effectiveExpanded && uiModel.checklistItems.isNotEmpty(),
+                    enter = expandVertically(
+                        animationSpec = tween(50, easing = FastOutSlowInEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    ),
+                    exit = shrinkVertically(
+                        animationSpec = tween(300, easing = FastOutLinearInEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(150, easing = FastOutLinearInEasing)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(top = 2.dp)) {
+                        uiModel.checklistItems.forEach { item ->
+                            val displayChecked = uiModel.isCompleted || item.isChecked
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                IconButton(
+                                    onClick = { onToggleChecklistItem(item.id, !item.isChecked) },
+                                    enabled = !uiModel.isCompleted,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (displayChecked) Icons.Filled.CheckCircle
+                                                      else Icons.Outlined.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp),
+                                        tint = if (displayChecked) Color(0xFF34C759)
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = item.text,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (displayChecked) MaterialTheme.colorScheme.onSurfaceVariant
+                                            else MaterialTheme.colorScheme.onSurface,
+                                    textDecoration = if (displayChecked) TextDecoration.LineThrough else null,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // METADATA

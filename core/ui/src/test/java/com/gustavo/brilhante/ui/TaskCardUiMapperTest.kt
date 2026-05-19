@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.ui
 
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
@@ -267,6 +268,28 @@ class TaskCardUiMapperTest {
         val result = TaskCardUiMapper.map(task(tagIds = listOf(1L, 2L, 3L)), allTags, null)
 
         assertTrue(result.hasExpandableContent)
+    }
+
+    @Test
+    fun `given task with checklist items, hasExpandableContent is true`() {
+        val task = task().copy(checklistItems = listOf(ChecklistItem(text = "Step 1")))
+
+        val result = TaskCardUiMapper.map(task, emptyList(), null)
+
+        assertTrue(result.hasExpandableContent)
+    }
+
+    @Test
+    fun `given task with checklist items, checklistItems are passed through to uiModel`() {
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "Buy milk", isChecked = false),
+            ChecklistItem(id = 2L, text = "Buy eggs", isChecked = true)
+        )
+        val task = task().copy(checklistItems = items)
+
+        val result = TaskCardUiMapper.map(task, emptyList(), null)
+
+        assertEquals(items, result.checklistItems)
     }
 
     // ── Tag filtering ─────────────────────────────────────────────────────────

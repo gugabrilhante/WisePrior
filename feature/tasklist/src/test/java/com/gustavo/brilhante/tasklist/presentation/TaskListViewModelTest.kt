@@ -11,6 +11,7 @@ import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTasksUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTagUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
@@ -199,5 +200,69 @@ class TaskListViewModelTest {
         viewModel.onTaskCheckedChange(task, true)
 
         assertEquals("Update failed", viewModel.uiState.value.error)
+    }
+
+    // ── onChecklistItemToggled ────────────────────────────────────────────────
+
+    @Test
+    fun `onChecklistItemToggled updates the target item checked state`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val item = ChecklistItem(id = 1L, text = "Step 1", isChecked = false)
+        val task = Task(id = 10, title = "Task", createdAt = 1000L, checklistItems = listOf(item))
+        val viewModel = buildViewModel()
+
+        viewModel.onChecklistItemToggled(task, itemId = 1L, isChecked = true)
+
+        val expectedTask = task.copy(checklistItems = listOf(item.copy(isChecked = true)))
+        coVerify(exactly = 1) { updateTaskUseCase(expectedTask) }
+    }
+
+    @Test
+    fun `onChecklistItemToggled when all items become checked auto-completes task and cancels notification`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "A", isChecked = true),
+            ChecklistItem(id = 2L, text = "B", isChecked = false)
+        )
+        val task = Task(id = 11, title = "Task", createdAt = 1000L, checklistItems = items)
+        val viewModel = buildViewModel()
+
+        viewModel.onChecklistItemToggled(task, itemId = 2L, isChecked = true)
+
+        val expectedTask = task.copy(
+            checklistItems = items.map { it.copy(isChecked = true) },
+            isCompleted = true
+        )
+        coVerify(exactly = 1) { updateTaskUseCase(expectedTask) }
+        verify(exactly = 1) { notificationScheduler.cancel(11L) }
+    }
+
+    @Test
+    fun `onChecklistItemToggled when not all items checked does not complete task`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "A", isChecked = false),
+            ChecklistItem(id = 2L, text = "B", isChecked = false)
+        )
+        val task = Task(id = 12, title = "Task", createdAt = 1000L, checklistItems = items)
+        val viewModel = buildViewModel()
+
+        viewModel.onChecklistItemToggled(task, itemId = 1L, isChecked = true)
+
+        coVerify { updateTaskUseCase(match { !it.isCompleted }) }
+        verify(exactly = 0) { notificationScheduler.cancel(any()) }
+    }
+
+    @Test
+    fun `onChecklistItemToggled failure updates error in uiState`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        coEvery { updateTaskUseCase(any()) } throws RuntimeException("Toggle failed")
+        val item = ChecklistItem(id = 1L, text = "Step", isChecked = false)
+        val task = Task(id = 13, title = "Task", createdAt = 1000L, checklistItems = listOf(item))
+        val viewModel = buildViewModel()
+
+        viewModel.onChecklistItemToggled(task, itemId = 1L, isChecked = true)
+
+        assertEquals("Toggle failed", viewModel.uiState.value.error)
     }
 }

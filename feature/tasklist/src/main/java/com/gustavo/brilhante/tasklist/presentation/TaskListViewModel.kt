@@ -120,6 +120,25 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
+    fun onChecklistItemToggled(task: Task, itemId: Long, isChecked: Boolean) {
+        viewModelScope.launch {
+            val updatedItems = task.checklistItems.map {
+                if (it.id == itemId) it.copy(isChecked = isChecked) else it
+            }
+            val allChecked = updatedItems.isNotEmpty() && updatedItems.all { it.isChecked }
+            val updatedTask = task.copy(
+                checklistItems = updatedItems,
+                isCompleted = task.isCompleted || allChecked
+            )
+            runCatching {
+                updateTaskUseCase(updatedTask)
+                if (allChecked && !task.isCompleted) notificationScheduler.cancel(task.id)
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
     // ── Card expansion ────────────────────────────────────────────────────────
 
     fun toggleExpanded(taskId: Long) {

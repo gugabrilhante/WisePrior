@@ -129,6 +129,7 @@ fun TaskListScreen(
                 onDeleteTask = viewModel::deleteTask,
                 onToggleComplete = viewModel::onTaskCheckedChange,
                 onToggleExpanded = viewModel::toggleExpanded,
+                onToggleChecklistItem = viewModel::onChecklistItemToggled,
                 onSortOptionSelected = viewModel::setSortOption
             )
         }
@@ -147,6 +148,7 @@ fun TaskListScreen(
                 onDeleteTask = viewModel::deleteTask,
                 onToggleComplete = viewModel::onTaskCheckedChange,
                 onToggleExpanded = viewModel::toggleExpanded,
+                onToggleChecklistItem = viewModel::onChecklistItemToggled,
                 onSortOptionSelected = viewModel::setSortOption
             )
         }
@@ -177,6 +179,7 @@ private fun TaskListContent(
     onDeleteTask: (Task) -> Unit,
     onToggleComplete: (Task, Boolean) -> Unit,
     onToggleExpanded: (Long) -> Unit,
+    onToggleChecklistItem: (Task, Long, Boolean) -> Unit,
     onSortOptionSelected: (TaskSortOption) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -291,6 +294,9 @@ private fun TaskListContent(
                                 onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
                                 isExpanded = task.id in uiState.expandedTaskIds,
                                 onToggleExpanded = { onToggleExpanded(task.id) },
+                                onToggleChecklistItem = { itemId, isChecked ->
+                                    onToggleChecklistItem(task, itemId, isChecked)
+                                },
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         }
