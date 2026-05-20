@@ -265,54 +265,84 @@ private fun TaskEditorDialogs(
 ) {
     when (dialogState.activeDialog) {
         ActiveDialog.DatePicker -> {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = dialogState.datePickerUtcMillis
+            TaskDatePickerDialog(
+                initialSelectedDateMillis = dialogState.datePickerUtcMillis,
+                onDateSelected = { onEvent(TaskEditorEvent.DueDateChanged(it)) },
+                onDismiss = { onEvent(TaskEditorEvent.DismissDialog) }
             )
-            DatePickerDialog(
-                modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
-                onDismissRequest = { onEvent(TaskEditorEvent.DismissDialog) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            onEvent(TaskEditorEvent.DueDateChanged(it))
-                        } ?: onEvent(TaskEditorEvent.DismissDialog)
-                    }) { Text(stringResource(R.string.editor_ok)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onEvent(TaskEditorEvent.DismissDialog) }) {
-                        Text(stringResource(R.string.editor_cancel))
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState, showModeToggle = true)
-            }
         }
         ActiveDialog.TimePicker -> {
-            val timePickerState = rememberTimePickerState(
+            TaskTimePickerDialog(
                 initialHour = dialogState.timePickerHour,
                 initialMinute = dialogState.timePickerMinute,
-                is24Hour = true
-            )
-            AlertDialog(
-                modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
-                onDismissRequest = { onEvent(TaskEditorEvent.DismissDialog) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onEvent(
-                            TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
-                        )
-                    }) { Text(stringResource(R.string.editor_ok)) }
+                onTimeSelected = { hour, minute ->
+                    onEvent(TaskEditorEvent.TimeChanged(hour, minute))
                 },
-                dismissButton = {
-                    TextButton(onClick = { onEvent(TaskEditorEvent.DismissDialog) }) {
-                        Text(stringResource(R.string.editor_cancel))
-                    }
-                },
-                text = { TimePicker(state = timePickerState) }
+                onDismiss = { onEvent(TaskEditorEvent.DismissDialog) }
             )
         }
         null -> {}
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskDatePickerDialog(
+    initialSelectedDateMillis: Long?,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialSelectedDateMillis
+    )
+    DatePickerDialog(
+        modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let {
+                    onDateSelected(it)
+                } ?: onDismiss()
+            }) { Text(stringResource(R.string.editor_ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.editor_cancel))
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState, showModeToggle = true)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskTimePickerDialog(
+    initialHour: Int,
+    initialMinute: Int,
+    onTimeSelected: (Int, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val timePickerState = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = true
+    )
+    AlertDialog(
+        modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onTimeSelected(timePickerState.hour, timePickerState.minute)
+            }) { Text(stringResource(R.string.editor_ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.editor_cancel))
+            }
+        },
+        text = { TimePicker(state = timePickerState) }
+    )
 }
 
 @Composable

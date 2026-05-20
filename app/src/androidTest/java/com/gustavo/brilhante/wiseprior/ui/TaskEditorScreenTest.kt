@@ -171,6 +171,63 @@ class TaskEditorScreenTest {
     }
 
     @Test
+    fun dateDialog_showsWhenClickingOnDateRow() {
+        // Enable date
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+
+        // Click again to show dialog (ToggleRow triggers onRowClick when checked=true)
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(TestTags.DIALOG_DATE_PICKER).assertIsDisplayed()
+    }
+
+    @Test
+    fun timeDialog_showsWhenClickingOnTimeRow() {
+        // Enable date first (needed for time toggle to show)
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.waitForIdle()
+
+        // Enable time
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).performClick()
+        composeTestRule.waitForIdle()
+
+        // Click again to show dialog
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(TestTags.DIALOG_TIME_PICKER).assertIsDisplayed()
+    }
+
+    @Test
+    fun dateDialog_okButton_works() {
+        // Enable date
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        // Show dialog
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+
+        val okText = composeTestRule.activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_ok)
+        composeTestRule.onNodeWithText(okText).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.DIALOG_DATE_PICKER).assertDoesNotExist()
+    }
+
+    @Test
+    fun timeDialog_okButton_works() {
+        // Enable date and time
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).performClick()
+        // Show dialog
+        composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_TIME).performClick()
+
+        val okText = composeTestRule.activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_ok)
+        composeTestRule.onNodeWithText(okText).performClick()
+
+        composeTestRule.onNodeWithTag(TestTags.DIALOG_TIME_PICKER).assertDoesNotExist()
+    }
+
+    @Test
     fun recurrenceToggle_click_showsIntervalControls() {
         composeTestRule.onNodeWithTag(TestTags.TOGGLE_TASK_DATE).performClick()
         composeTestRule.waitForIdle()
