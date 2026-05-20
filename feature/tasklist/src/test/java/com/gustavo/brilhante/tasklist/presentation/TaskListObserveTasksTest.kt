@@ -17,7 +17,7 @@ import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -54,7 +54,7 @@ class TaskListObserveTasksTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private val swipeDismissUseCase = SwipeDismissUseCase()

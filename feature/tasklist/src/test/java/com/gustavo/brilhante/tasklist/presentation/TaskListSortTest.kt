@@ -15,7 +15,7 @@ import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
@@ -50,7 +50,7 @@ class TaskListSortTest {
     private val updateTagUseCase: UpdateTagUseCase = mockk(relaxed = true)
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calendarProvider: CalendarProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
@@ -160,7 +160,7 @@ class TaskListSortTest {
             val initial = awaitItem()
             assertEquals(newTask.id, initial.tasks.first().id)
 
-            viewModel.setSortOption(TaskSortOption.CREATED_ASC)
+            viewModel.onEvent(TaskListEvent.SetSortOption(TaskSortOption.CREATED_ASC))
             val updated = awaitItem()
             assertEquals(oldTask.id, updated.tasks.first().id)
             assertEquals(TaskSortOption.CREATED_ASC, updated.sortOption)

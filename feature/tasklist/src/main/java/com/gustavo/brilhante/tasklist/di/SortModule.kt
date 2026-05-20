@@ -5,6 +5,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.gustavo.brilhante.tasklist.data.SortPreferences
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,12 +17,18 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object SortModule {
+abstract class SortModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideSortDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { context.preferencesDataStoreFile("sort_preferences") }
-        )
+    abstract fun bindSortPreferences(impl: SortPreferencesDataStore): SortPreferences
+
+    companion object {
+        @Provides
+        @Singleton
+        fun provideSortDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+            PreferenceDataStoreFactory.create(
+                produceFile = { context.preferencesDataStoreFile("sort_preferences") }
+            )
+    }
 }

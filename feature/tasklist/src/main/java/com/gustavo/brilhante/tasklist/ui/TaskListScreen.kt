@@ -69,6 +69,7 @@ import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.tasklist.R
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import com.gustavo.brilhante.tasklist.presentation.TaskListEvent
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 import com.gustavo.brilhante.tasklist.presentation.TaskListViewModel
 import com.gustavo.brilhante.ui.EmptyState
@@ -98,18 +99,27 @@ fun TaskListScreen(
         if (isExpandedWidth) drawerState.close()
     }
 
-    val onCollectionSelected: (TaskCollection) -> Unit = { collection ->
-        viewModel.onCollectionSelected(collection)
-        if (!isExpandedWidth) scope.launch { drawerState.close() }
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is TaskListEvent.AddTask -> onAddTask()
+                is TaskListEvent.EditTask -> onEditTask(event.task)
+                else -> {}
+            }
+        }
     }
 
     val sidebarContent: @Composable () -> Unit = {
         val defaultColor = colorResource(TagPalette.colors.first().colorResId).toArgb().toLong() and 0xFFFFFFFFL
         TaskSidebarContent(
             uiState = uiState,
-            onCollectionSelected = onCollectionSelected,
-            onAddTag = { viewModel.showAddTag(defaultColor) },
-            onEditTag = viewModel::showEditTag
+            onEvent = { event ->
+                viewModel.onEvent(event)
+                if (event is TaskListEvent.SelectCollection && !isExpandedWidth) {
+                    scope.launch { drawerState.close() }
+                }
+            },
+            defaultColor = defaultColor
         )
     }
 
@@ -124,13 +134,7 @@ fun TaskListScreen(
                 uiState = uiState,
                 showMenuButton = false,
                 onMenuClick = {},
-                onAddTask = onAddTask,
-                onEditTask = onEditTask,
-                onDeleteTask = viewModel::deleteTask,
-                onToggleComplete = viewModel::onTaskCheckedChange,
-                onToggleExpanded = viewModel::toggleExpanded,
-                onToggleChecklistItem = viewModel::onChecklistItemToggled,
-                onSortOptionSelected = viewModel::setSortOption
+                onEvent = viewModel::onEvent
             )
         }
     } else {
@@ -143,13 +147,7 @@ fun TaskListScreen(
                 uiState = uiState,
                 showMenuButton = true,
                 onMenuClick = { scope.launch { drawerState.open() } },
-                onAddTask = onAddTask,
-                onEditTask = onEditTask,
-                onDeleteTask = viewModel::deleteTask,
-                onToggleComplete = viewModel::onTaskCheckedChange,
-                onToggleExpanded = viewModel::toggleExpanded,
-                onToggleChecklistItem = viewModel::onChecklistItemToggled,
-                onSortOptionSelected = viewModel::setSortOption
+                onEvent = viewModel::onEvent
             )
         }
     }
@@ -159,10 +157,10 @@ fun TaskListScreen(
             title = dialogUiModel.title.asString(),
             initialName = dialogUiModel.initialName,
             initialColor = dialogUiModel.initialColor,
-            onSave = { name, color -> viewModel.saveTag(name, color) },
-            onDismiss = viewModel::dismissTagEditor,
+            onSave = { name, color -> viewModel.onEvent(TaskListEvent.SaveTag(name, color)) },
+            onDismiss = { viewModel.onEvent(TaskListEvent.DismissTagEditor) },
             onDelete = if (dialogUiModel.showDelete) {
-                uiState.editingTag?.let { tag -> { viewModel.deleteTag(tag) } }
+                uiState.editingTag?.let { tag -> { viewModel.onEvent(TaskListEvent.DeleteTag(tag)) } }
             } else null
         )
     }
@@ -174,13 +172,7 @@ private fun TaskListContent(
     uiState: TaskListUiState,
     showMenuButton: Boolean,
     onMenuClick: () -> Unit,
-    onAddTask: () -> Unit,
-    onEditTask: (Task) -> Unit,
-    onDeleteTask: (Task) -> Unit,
-    onToggleComplete: (Task, Boolean) -> Unit,
-    onToggleExpanded: (Long) -> Unit,
-    onToggleChecklistItem: (Task, Long, Boolean) -> Unit,
-    onSortOptionSelected: (TaskSortOption) -> Unit,
+    onEvent: (TaskListEvent) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showSortMenu by remember { mutableStateOf(false) }
@@ -218,7 +210,7 @@ private fun TaskListContent(
                                 DropdownMenuItem(
                                     text = { Text(opt.label.asString()) },
                                     onClick = {
-                                        onSortOptionSelected(opt.option)
+                                        onEvent(TaskListEvent.SetSortOption(opt.option))
                                         showSortMenu = false
                                     },
                                     leadingIcon = if (opt.isSelected) {
@@ -234,7 +226,7 @@ private fun TaskListContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onAddTask,
+                onClick = { onEvent(TaskListEvent.AddTask) },
                 modifier = Modifier.testTag(TestTags.BTN_TASK_LIST_ADD),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -278,7 +270,7 @@ private fun TaskListContent(
                     ) { task ->
                         SwipeToDeleteContainer(
                             task = task,
-                            onDelete = { onDeleteTask(task) },
+                            onDelete = { onEvent(TaskListEvent.DeleteTask(task)) },
                             modifier = Modifier.animateItem(
                                 placementSpec = spring(
                                     stiffness = Spring.StiffnessMediumLow,
@@ -290,12 +282,12 @@ private fun TaskListContent(
                                 task = task,
                                 allTags = uiState.tags,
                                 formattedDueDate = uiState.formattedDueDates[task.id],
-                                onClick = { onEditTask(task) },
-                                onToggleComplete = { isChecked -> onToggleComplete(task, isChecked) },
+                                onClick = { onEvent(TaskListEvent.EditTask(task)) },
+                                onToggleComplete = { isChecked -> onEvent(TaskListEvent.ToggleTaskChecked(task, isChecked)) },
                                 isExpanded = task.id in uiState.expandedTaskIds,
-                                onToggleExpanded = { onToggleExpanded(task.id) },
+                                onToggleExpanded = { onEvent(TaskListEvent.ToggleTaskExpanded(task.id)) },
                                 onToggleChecklistItem = { itemId, isChecked ->
-                                    onToggleChecklistItem(task, itemId, isChecked)
+                                    onEvent(TaskListEvent.ToggleChecklistItem(task, itemId, isChecked))
                                 },
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )

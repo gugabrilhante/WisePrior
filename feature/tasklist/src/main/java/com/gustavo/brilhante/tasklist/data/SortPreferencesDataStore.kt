@@ -15,14 +15,14 @@ private val SORT_OPTION_KEY = stringPreferencesKey("sort_option")
 @Singleton
 class SortPreferencesDataStore @Inject constructor(
     private val dataStore: DataStore<Preferences>
-) {
-    val sortOption: Flow<TaskSortOption> = dataStore.data.map { prefs ->
+) : SortPreferences {
+    override val sortOption: Flow<TaskSortOption> = dataStore.data.map { prefs ->
         prefs[SORT_OPTION_KEY]
             ?.let { runCatching { TaskSortOption.valueOf(it) }.getOrNull() }
             ?: TaskSortOption.SMART_PRIORITY
     }
 
-    suspend fun setSortOption(option: TaskSortOption) {
+    override suspend fun setSortOption(option: TaskSortOption) {
         dataStore.edit { it[SORT_OPTION_KEY] = option.name }
     }
 }

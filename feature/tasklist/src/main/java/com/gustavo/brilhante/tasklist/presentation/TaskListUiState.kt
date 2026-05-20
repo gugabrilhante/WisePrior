@@ -55,4 +55,15 @@ sealed interface TaskListEvent {
     data class DeleteTask(val task: Task) : TaskListEvent
     data class EditTask(val task: Task) : TaskListEvent
     data object AddTask : TaskListEvent
+    data class SelectCollection(val collection: TaskCollection) : TaskListEvent
+    data class SetSortOption(val option: TaskSortOption) : TaskListEvent
+    data class ToggleTaskChecked(val task: Task, val isChecked: Boolean) : TaskListEvent
+    data class ToggleChecklistItem(val task: Task, val itemId: Long, val isChecked: Boolean) : TaskListEvent
+    data class ToggleTaskExpanded(val taskId: Long) : TaskListEvent
+    data class ShowAddTag(val defaultColor: Long) : TaskListEvent
+    data class ShowEditTag(val tag: Tag) : TaskListEvent
+    data object DismissTagEditor : TaskListEvent
+    data class SaveTag(val name: String, val color: Long) : TaskListEvent
+    data class DeleteTag(val tag: Tag) : TaskListEvent
+    data object ErrorDismissed : TaskListEvent
 }

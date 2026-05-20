@@ -18,7 +18,7 @@ import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import io.mockk.coEvery
 import io.mockk.every
@@ -50,7 +50,7 @@ class TaskListCollectionFilterTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk()
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private val swipeDismissUseCase = SwipeDismissUseCase()
@@ -118,7 +118,7 @@ class TaskListCollectionFilterTest {
     fun `given tasks with mixed due dates, when Today selected, then only tasks due today are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Today)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Today))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -130,7 +130,7 @@ class TaskListCollectionFilterTest {
     fun `given no task due today, when Today selected, then shows empty list`() = runTest(testDispatcher) {
         val viewModel = buildViewModel(listOf(taskNoDate, taskPast))
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Today)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Today))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -142,7 +142,7 @@ class TaskListCollectionFilterTest {
     fun `given tasks with and without due dates, when Scheduled selected, then only tasks with any due date are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Scheduled)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Scheduled))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -157,7 +157,7 @@ class TaskListCollectionFilterTest {
     fun `given mixed tasks, when Flagged selected, then only flagged tasks are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Flagged)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Flagged))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -169,7 +169,7 @@ class TaskListCollectionFilterTest {
     fun `given mixed tasks, when Completed selected, then only completed tasks are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Completed)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Completed))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -181,7 +181,7 @@ class TaskListCollectionFilterTest {
     fun `given tasks with tags, when ByTag selected, then only tasks carrying that tag are shown`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(42L))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(42L)))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -193,7 +193,7 @@ class TaskListCollectionFilterTest {
     fun `given no tasks with tag, when ByTag selected, then shows empty list`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(999L))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(999L)))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -205,7 +205,7 @@ class TaskListCollectionFilterTest {
     fun `given a collection, when onCollectionSelected called, then uiState selectedCollection updates`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Flagged)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Flagged))
         advanceUntilIdle()
 
         assertEquals(TaskCollection.Flagged, viewModel.uiState.value.selectedCollection)
@@ -230,7 +230,7 @@ class TaskListCollectionFilterTest {
     fun `given filtered collection, when state emitted, then collectionCounts still reflect all tasks`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Flagged)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Flagged))
         advanceUntilIdle()
 
         viewModel.uiState.test {

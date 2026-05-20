@@ -17,7 +17,7 @@ import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -52,7 +52,7 @@ class TaskListTagEditorTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private val swipeDismissUseCase = SwipeDismissUseCase()
@@ -94,7 +94,7 @@ class TaskListTagEditorTest {
     fun `given idle state, when showAddTag called, then showTagEditor is true and editingTag is null`() {
         val viewModel = buildViewModel()
 
-        viewModel.showAddTag(0L)
+        viewModel.onEvent(TaskListEvent.ShowAddTag(0L))
 
         val state = viewModel.uiState.value
         assertTrue(state.showTagEditor)
@@ -106,7 +106,7 @@ class TaskListTagEditorTest {
         val viewModel = buildViewModel()
         val tag = Tag(id = 1L, name = "Work", color = 0xFF3B82F6L)
 
-        viewModel.showEditTag(tag)
+        viewModel.onEvent(TaskListEvent.ShowEditTag(tag))
 
         val state = viewModel.uiState.value
         assertTrue(state.showTagEditor)
@@ -116,9 +116,9 @@ class TaskListTagEditorTest {
     @Test
     fun `given editor open, when dismissTagEditor called, then showTagEditor is false and editingTag is null`() {
         val viewModel = buildViewModel()
-        viewModel.showEditTag(Tag(id = 1L, name = "Work", color = 0L))
+        viewModel.onEvent(TaskListEvent.ShowEditTag(Tag(id = 1L, name = "Work", color = 0L)))
 
-        viewModel.dismissTagEditor()
+        viewModel.onEvent(TaskListEvent.DismissTagEditor)
 
         val state = viewModel.uiState.value
         assertFalse(state.showTagEditor)
@@ -131,7 +131,7 @@ class TaskListTagEditorTest {
     fun `given blank name, when saveTag called, then addTagUseCase is never invoked`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
 
-        viewModel.saveTag("   ", 0xFF0000L)
+        viewModel.onEvent(TaskListEvent.SaveTag("   ", 0xFF0000L))
         advanceUntilIdle()
 
         coVerify(exactly = 0) { addTagUseCase(any()) }
@@ -143,8 +143,8 @@ class TaskListTagEditorTest {
     fun `given fewer than max tags, when saveTag called, then addTagUseCase invoked with trimmed name`() = runTest(testDispatcher) {
         val viewModel = buildViewModel(tags = emptyList())
 
-        viewModel.showAddTag(0L)
-        viewModel.saveTag("  Personal  ", 0xFF22C55EL)
+        viewModel.onEvent(TaskListEvent.ShowAddTag(0L))
+        viewModel.onEvent(TaskListEvent.SaveTag("  Personal  ", 0xFF22C55EL))
         advanceUntilIdle()
 
         coVerify(exactly = 1) {
@@ -159,8 +159,8 @@ class TaskListTagEditorTest {
         val viewModel = buildViewModel(tags = maxTags)
         advanceUntilIdle()
 
-        viewModel.showAddTag(0L)
-        viewModel.saveTag("Overflow tag", 0xFF0000L)
+        viewModel.onEvent(TaskListEvent.ShowAddTag(0L))
+        viewModel.onEvent(TaskListEvent.SaveTag("Overflow tag", 0xFF0000L))
         advanceUntilIdle()
 
         coVerify(exactly = 0) { addTagUseCase(any()) }
@@ -174,9 +174,9 @@ class TaskListTagEditorTest {
     fun `given editing tag, when saveTag called, then updateTagUseCase invoked with updated fields`() = runTest(testDispatcher) {
         val original = Tag(id = 7L, name = "Old name", color = 0L)
         val viewModel = buildViewModel(tags = listOf(original))
-        viewModel.showEditTag(original)
+        viewModel.onEvent(TaskListEvent.ShowEditTag(original))
 
-        viewModel.saveTag("New name", 0xFF9900L)
+        viewModel.onEvent(TaskListEvent.SaveTag("New name", 0xFF9900L))
         advanceUntilIdle()
 
         coVerify(exactly = 1) {
@@ -189,9 +189,9 @@ class TaskListTagEditorTest {
     fun `given editing tag, when saveTag called with whitespace, then name is trimmed before update`() = runTest(testDispatcher) {
         val original = Tag(id = 8L, name = "Old", color = 0L)
         val viewModel = buildViewModel(tags = listOf(original))
-        viewModel.showEditTag(original)
+        viewModel.onEvent(TaskListEvent.ShowEditTag(original))
 
-        viewModel.saveTag("  Trimmed  ", 0L)
+        viewModel.onEvent(TaskListEvent.SaveTag("  Trimmed  ", 0L))
         advanceUntilIdle()
 
         coVerify { updateTagUseCase(match { it.name == "Trimmed" }) }
@@ -203,9 +203,9 @@ class TaskListTagEditorTest {
     fun `given a tag, when deleteTag called, then deleteTagUseCase invoked and editor dismissed`() = runTest(testDispatcher) {
         val tag = Tag(id = 2L, name = "Delete me", color = 0L)
         val viewModel = buildViewModel(tags = listOf(tag))
-        viewModel.showEditTag(tag)
+        viewModel.onEvent(TaskListEvent.ShowEditTag(tag))
 
-        viewModel.deleteTag(tag)
+        viewModel.onEvent(TaskListEvent.DeleteTag(tag))
         advanceUntilIdle()
 
         coVerify(exactly = 1) { deleteTagUseCase(tag) }
@@ -217,11 +217,11 @@ class TaskListTagEditorTest {
         val tag = Tag(id = 3L, name = "Active tag", color = 0L)
         val viewModel = buildViewModel(tags = listOf(tag))
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(tag.id))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(tag.id)))
         advanceUntilIdle()
         assertEquals(TaskCollection.ByTag(tag.id), viewModel.uiState.value.selectedCollection)
 
-        viewModel.deleteTag(tag)
+        viewModel.onEvent(TaskListEvent.DeleteTag(tag))
         advanceUntilIdle()
 
         assertEquals(TaskCollection.All, viewModel.uiState.value.selectedCollection)
@@ -233,10 +233,10 @@ class TaskListTagEditorTest {
         val activeTag  = Tag(id = 20L, name = "Active", color = 0L)
         val viewModel = buildViewModel(tags = listOf(deletedTag, activeTag))
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(activeTag.id))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(activeTag.id)))
         advanceUntilIdle()
 
-        viewModel.deleteTag(deletedTag)
+        viewModel.onEvent(TaskListEvent.DeleteTag(deletedTag))
         advanceUntilIdle()
 
         assertEquals(TaskCollection.ByTag(activeTag.id), viewModel.uiState.value.selectedCollection)
@@ -248,9 +248,9 @@ class TaskListTagEditorTest {
     fun `given editing tag, when saveTag called, then addTagUseCase is never invoked`() = runTest(testDispatcher) {
         val original = Tag(id = 5L, name = "Existing", color = 0L)
         val viewModel = buildViewModel(tags = listOf(original))
-        viewModel.showEditTag(original)
+        viewModel.onEvent(TaskListEvent.ShowEditTag(original))
 
-        viewModel.saveTag("Renamed", 0L)
+        viewModel.onEvent(TaskListEvent.SaveTag("Renamed", 0L))
         advanceUntilIdle()
 
         coVerify(exactly = 0) { addTagUseCase(any()) }
