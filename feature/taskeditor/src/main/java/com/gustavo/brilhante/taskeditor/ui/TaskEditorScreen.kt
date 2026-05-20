@@ -63,7 +63,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.ui.TestTags
 import com.gustavo.brilhante.taskeditor.R
@@ -160,7 +159,7 @@ fun TaskEditorContent(
                         onClick = onBack,
                         modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_BACK)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.editor_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = uiState.backContentDescription.asString())
                     }
                 },
                 actions = {
@@ -168,7 +167,7 @@ fun TaskEditorContent(
                         onClick = { onEvent(TaskEditorEvent.Save) },
                         modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_DONE)
                     ) {
-                        Text(stringResource(R.string.editor_done), style = MaterialTheme.typography.titleMedium)
+                        Text(uiState.doneLabel.asString(), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             )
@@ -187,6 +186,8 @@ fun TaskEditorContent(
                 title = uiState.title,
                 notes = uiState.notes,
                 titleError = uiState.titleError,
+                titlePlaceholder = uiState.titlePlaceholder.asString(),
+                notesPlaceholder = uiState.notesPlaceholder.asString(),
                 onTitleChange = { onEvent(TaskEditorEvent.TitleChanged(it)) },
                 onNotesChange = { onEvent(TaskEditorEvent.NotesChanged(it)) }
             )
@@ -194,11 +195,12 @@ fun TaskEditorContent(
             // ── Checklist ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(
-                stringResource(R.string.editor_section_checklist),
+                uiState.checklistSectionLabel.asString(),
                 modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_CHECKLIST)
             )
             ChecklistSection(
                 items = uiState.checklistItems,
+                addChecklistItemLabel = uiState.addChecklistItemLabel.asString(),
                 onEvent = onEvent,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -207,7 +209,7 @@ fun TaskEditorContent(
 
             // ── Date & Time ───────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_datetime), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DATETIME))
+            SectionHeader(uiState.datetimeSectionLabel.asString(), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DATETIME))
             DateTimeSection(
                 dateSection = uiState.dateSection,
                 onEvent = onEvent
@@ -215,16 +217,18 @@ fun TaskEditorContent(
 
             // ── Details ───────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_details), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DETAILS))
+            SectionHeader(uiState.detailsSectionLabel.asString(), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DETAILS))
             DetailsSection(
                 isUrgent = uiState.isUrgent,
                 isFlagged = uiState.isFlagged,
+                urgentLabel = uiState.urgentLabel.asString(),
+                flagLabel = uiState.flagLabel.asString(),
                 onEvent = onEvent
             )
 
             // ── Priority ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_priority), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_PRIORITY))
+            SectionHeader(uiState.prioritySectionLabel.asString(), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_PRIORITY))
             PrioritySection(
                 priorityOptions = uiState.priorityOptions,
                 onPriorityChange = { onEvent(TaskEditorEvent.PriorityChanged(it)) }
@@ -232,7 +236,7 @@ fun TaskEditorContent(
 
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_tags), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_TAGS))
+            SectionHeader(uiState.tagsSectionLabel.asString(), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_TAGS))
             TagsSection(
                 tagSection = uiState.tagSection,
                 onTagClick = { onEvent(TaskEditorEvent.TagClicked(it)) }
@@ -240,11 +244,11 @@ fun TaskEditorContent(
 
             // ── URL ───────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
-            SectionHeader(stringResource(R.string.editor_section_url), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_URL))
+            SectionHeader(uiState.urlSectionLabel.asString(), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_URL))
             OutlinedTextField(
                 value = uiState.url,
                 onValueChange = { onEvent(TaskEditorEvent.UrlChanged(it)) },
-                placeholder = { Text(stringResource(R.string.editor_placeholder_url)) },
+                placeholder = { Text(uiState.urlPlaceholder.asString()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -267,6 +271,8 @@ private fun TaskEditorDialogs(
         ActiveDialog.DatePicker -> {
             TaskDatePickerDialog(
                 initialSelectedDateMillis = dialogState.datePickerUtcMillis,
+                okLabel = dialogState.okLabel.asString(),
+                cancelLabel = dialogState.cancelLabel.asString(),
                 onDateSelected = { onEvent(TaskEditorEvent.DueDateChanged(it)) },
                 onDismiss = { onEvent(TaskEditorEvent.DismissDialog) }
             )
@@ -275,6 +281,8 @@ private fun TaskEditorDialogs(
             TaskTimePickerDialog(
                 initialHour = dialogState.timePickerHour,
                 initialMinute = dialogState.timePickerMinute,
+                okLabel = dialogState.okLabel.asString(),
+                cancelLabel = dialogState.cancelLabel.asString(),
                 onTimeSelected = { hour, minute ->
                     onEvent(TaskEditorEvent.TimeChanged(hour, minute))
                 },
@@ -289,6 +297,8 @@ private fun TaskEditorDialogs(
 @Composable
 private fun TaskDatePickerDialog(
     initialSelectedDateMillis: Long?,
+    okLabel: String,
+    cancelLabel: String,
     onDateSelected: (Long) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -303,11 +313,11 @@ private fun TaskDatePickerDialog(
                 datePickerState.selectedDateMillis?.let {
                     onDateSelected(it)
                 } ?: onDismiss()
-            }) { Text(stringResource(R.string.editor_ok)) }
+            }) { Text(okLabel) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.editor_cancel))
+                Text(cancelLabel)
             }
         }
     ) {
@@ -320,6 +330,8 @@ private fun TaskDatePickerDialog(
 private fun TaskTimePickerDialog(
     initialHour: Int,
     initialMinute: Int,
+    okLabel: String,
+    cancelLabel: String,
     onTimeSelected: (Int, Int) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -334,11 +346,11 @@ private fun TaskTimePickerDialog(
         confirmButton = {
             TextButton(onClick = {
                 onTimeSelected(timePickerState.hour, timePickerState.minute)
-            }) { Text(stringResource(R.string.editor_ok)) }
+            }) { Text(okLabel) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.editor_cancel))
+                Text(cancelLabel)
             }
         },
         text = { TimePicker(state = timePickerState) }
@@ -350,6 +362,8 @@ private fun EditorMainSection(
     title: String,
     notes: String,
     titleError: UiText?,
+    titlePlaceholder: String,
+    notesPlaceholder: String,
     onTitleChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -365,7 +379,7 @@ private fun EditorMainSection(
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
-                placeholder = { Text(stringResource(R.string.editor_placeholder_title)) },
+                placeholder = { Text(titlePlaceholder) },
                 isError = titleError != null,
                 supportingText = titleError?.let { { Text(it.asString()) } },
                 modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_TITLE),
@@ -379,7 +393,7 @@ private fun EditorMainSection(
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                placeholder = { Text(stringResource(R.string.editor_placeholder_notes)) },
+                placeholder = { Text(notesPlaceholder) },
                 modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_NOTES),
                 minLines = 3,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -406,7 +420,7 @@ private fun DateTimeSection(
     ) {
         Column {
             ToggleRow(
-                label = stringResource(R.string.editor_label_date),
+                label = dateSection.dateLabel.asString(),
                 checked = dateSection.hasDate,
                 onCheckedChange = { onEvent(TaskEditorEvent.ToggleDate) },
                 icon = Icons.Filled.CalendarMonth,
@@ -420,7 +434,7 @@ private fun DateTimeSection(
             if (dateSection.showTimeToggle) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 ToggleRow(
-                    label = stringResource(R.string.editor_label_time),
+                    label = dateSection.timeLabel.asString(),
                     checked = dateSection.hasTime,
                     onCheckedChange = { onEvent(TaskEditorEvent.ToggleTime) },
                     icon = Icons.Filled.Schedule,
@@ -448,6 +462,8 @@ private fun DateTimeSection(
 private fun DetailsSection(
     isUrgent: Boolean,
     isFlagged: Boolean,
+    urgentLabel: String,
+    flagLabel: String,
     onEvent: (TaskEditorEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -460,7 +476,7 @@ private fun DetailsSection(
     ) {
         Column {
             ToggleRow(
-                label = stringResource(R.string.editor_label_urgent),
+                label = urgentLabel,
                 checked = isUrgent,
                 onCheckedChange = { onEvent(TaskEditorEvent.ToggleUrgent) },
                 icon = Icons.Filled.Warning,
@@ -468,7 +484,7 @@ private fun DetailsSection(
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             ToggleRow(
-                label = stringResource(R.string.editor_label_flag),
+                label = flagLabel,
                 checked = isFlagged,
                 onCheckedChange = { onEvent(TaskEditorEvent.ToggleFlagged) },
                 icon = Icons.Filled.Flag,
@@ -517,12 +533,12 @@ private fun TagsSection(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = stringResource(R.string.no_tags_created),
+                text = tagSection.emptyStateTitle.asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.create_tags_sidebar),
+                text = tagSection.emptyStateSubtitle.asString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -550,6 +566,7 @@ private fun TagsSection(
 @Composable
 private fun ChecklistSection(
     items: List<ChecklistItemUiModel>,
+    addChecklistItemLabel: String,
     onEvent: (TaskEditorEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -567,7 +584,7 @@ private fun ChecklistSection(
                     onDelete = { onEvent(TaskEditorEvent.RemoveChecklistItem(index)) },
                     modifier = Modifier.testTag("${TestTags.CHECKLIST_ITEM_ROW}_$index")
                 )
-                if (index < items.lastIndex) {
+                if (item.showDivider) {
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
@@ -582,7 +599,7 @@ private fun ChecklistSection(
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.editor_checklist_add_item))
+                Text(addChecklistItemLabel)
             }
         }
     }
@@ -606,18 +623,15 @@ private fun ChecklistItemRow(
         ) {
             Icon(
                 imageVector = if (item.isChecked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                contentDescription = stringResource(
-                    if (item.isChecked) R.string.editor_checklist_item_mark_incomplete
-                    else R.string.editor_checklist_item_mark_complete
-                ),
-                tint = if (item.isChecked) MaterialTheme.colorScheme.primary
+                contentDescription = item.checkContentDescription.asString(),
+                tint = if (item.isPrimaryTint) MaterialTheme.colorScheme.primary
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         OutlinedTextField(
             value = item.text,
             onValueChange = onTextChange,
-            placeholder = { Text(stringResource(R.string.editor_checklist_item_placeholder)) },
+            placeholder = { Text(item.placeholder.asString()) },
             modifier = Modifier
                 .weight(1f)
                 .testTag(TestTags.CHECKLIST_ITEM_TEXT_INPUT),
@@ -626,7 +640,7 @@ private fun ChecklistItemRow(
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent
             ),
-            textStyle = if (item.isChecked)
+            textStyle = if (item.isStrikethrough)
                 MaterialTheme.typography.bodyLarge.copy(
                     textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -637,7 +651,7 @@ private fun ChecklistItemRow(
             onClick = onDelete,
             modifier = Modifier.testTag(TestTags.BTN_CHECKLIST_ITEM_DELETE)
         ) {
-            Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.editor_checklist_item_delete))
+            Icon(Icons.Filled.Clear, contentDescription = item.deleteContentDescription.asString())
         }
     }
 }
@@ -667,7 +681,7 @@ private fun RecurrenceSelector(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(R.string.editor_recurrence_repeat),
+                    text = model.repeatLabel.asString(),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -686,7 +700,7 @@ private fun RecurrenceSelector(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = stringResource(R.string.editor_recurrence_every),
+                    text = model.everyLabel.asString(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -696,7 +710,7 @@ private fun RecurrenceSelector(
                     enabled = model.canDecrement,
                     modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_DECREMENT)
                 ) {
-                    Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.editor_recurrence_decrease))
+                    Icon(Icons.Filled.Remove, contentDescription = model.decreaseContentDescription.asString())
                 }
                 Text(
                     text = model.intervalLabel,
@@ -708,7 +722,7 @@ private fun RecurrenceSelector(
                     onClick = { onEvent(TaskEditorEvent.IncrementInterval) },
                     modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_RECURRENCE_INCREMENT)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_recurrence_increase))
+                    Icon(Icons.Filled.Add, contentDescription = model.increaseContentDescription.asString())
                 }
                 Spacer(Modifier.width(4.dp))
                 RecurrenceUnitDropdown(

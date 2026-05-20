@@ -482,13 +482,37 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `ChecklistItemChecked toggles isChecked at given index`() {
+    fun `ChecklistItemChecked toggles isChecked and updates visual properties`() {
         viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
-        assertFalse(viewModel.uiState.value.checklistItems.first().isChecked)
+        val initialItem = viewModel.uiState.value.checklistItems.first()
+        assertFalse(initialItem.isChecked)
+        assertFalse(initialItem.isStrikethrough)
 
         viewModel.onEvent(TaskEditorEvent.ChecklistItemChecked(0, true))
 
-        assertTrue(viewModel.uiState.value.checklistItems.first().isChecked)
+        val updatedItem = viewModel.uiState.value.checklistItems.first()
+        assertTrue(updatedItem.isChecked)
+        assertTrue(updatedItem.isStrikethrough)
+        assertTrue(updatedItem.isPrimaryTint)
+        assertEquals(R.string.editor_checklist_item_mark_incomplete, (updatedItem.checkContentDescription as UiText.StringResource).resId)
+    }
+
+    @Test
+    fun `AddChecklistItem updates showDivider for existing items`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        assertFalse(viewModel.uiState.value.checklistItems[0].showDivider)
+
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        assertTrue(viewModel.uiState.value.checklistItems[0].showDivider)
+        assertFalse(viewModel.uiState.value.checklistItems[1].showDivider)
+    }
+
+    @Test
+    fun `uiState has static labels populated on init`() {
+        val state = viewModel.uiState.value
+        assertEquals(R.string.editor_placeholder_title, (state.titlePlaceholder as UiText.StringResource).resId)
+        assertEquals(R.string.editor_section_checklist, (state.checklistSectionLabel as UiText.StringResource).resId)
+        assertEquals(R.string.editor_label_urgent, (state.urgentLabel as UiText.StringResource).resId)
     }
 
     @Test
@@ -512,7 +536,7 @@ class TaskEditorViewModelTest {
     }
 
     @Test
-    fun `loadTask populates checklistItems from task`() = runTest {
+    fun `loadTask populates checklistItems from task with correct visual properties`() = runTest {
         val task = Task(
             id = 10L,
             title = "Supermarket",
@@ -530,7 +554,13 @@ class TaskEditorViewModelTest {
         assertEquals(2, items.size)
         assertEquals("Bread", items[0].text)
         assertFalse(items[0].isChecked)
+        assertTrue(items[0].showDivider)
+        assertFalse(items[0].isStrikethrough)
+
         assertEquals("Butter", items[1].text)
         assertTrue(items[1].isChecked)
+        assertFalse(items[1].showDivider)
+        assertTrue(items[1].isStrikethrough)
+        assertEquals(R.string.editor_checklist_item_mark_incomplete, (items[1].checkContentDescription as UiText.StringResource).resId)
     }
 }

@@ -25,7 +25,21 @@ data class TaskEditorUiState(
     val dialogState: TaskEditorDialogState = TaskEditorDialogState(),
     val dateSection: DateSectionUiModel = DateSectionUiModel(),
     val tagSection: TagSectionUiModel = TagSectionUiModel(),
-    val checklistItems: List<ChecklistItemUiModel> = emptyList()
+    val checklistItems: List<ChecklistItemUiModel> = emptyList(),
+    val titlePlaceholder: UiText = UiText.DynamicString(""),
+    val notesPlaceholder: UiText = UiText.DynamicString(""),
+    val urlPlaceholder: UiText = UiText.DynamicString(""),
+    val urgentLabel: UiText = UiText.DynamicString(""),
+    val flagLabel: UiText = UiText.DynamicString(""),
+    val backContentDescription: UiText = UiText.DynamicString(""),
+    val doneLabel: UiText = UiText.DynamicString(""),
+    val checklistSectionLabel: UiText = UiText.DynamicString(""),
+    val datetimeSectionLabel: UiText = UiText.DynamicString(""),
+    val detailsSectionLabel: UiText = UiText.DynamicString(""),
+    val prioritySectionLabel: UiText = UiText.DynamicString(""),
+    val tagsSectionLabel: UiText = UiText.DynamicString(""),
+    val urlSectionLabel: UiText = UiText.DynamicString(""),
+    val addChecklistItemLabel: UiText = UiText.DynamicString("")
 )
 
 fun TaskEditorUiState.toTask(id: Long, createdAt: Long, tagIds: List<Long>): Task {
