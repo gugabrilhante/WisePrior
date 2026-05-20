@@ -49,7 +49,16 @@ object TaskCardUiMapper {
             },
             hasPriority = hasPriority,
             isTitleStrikethrough = task.isCompleted,
-            checklistItems = task.checklistItems
+            checklistItems = task.checklistItems.map { item ->
+                ChecklistItemUiModel(
+                    id = item.id,
+                    text = item.text,
+                    isChecked = item.isChecked,
+                    isDisplayChecked = task.isCompleted || item.isChecked,
+                    checkboxDescriptionRes = if (item.isChecked) R.string.task_card_mark_incomplete
+                                             else R.string.task_card_mark_complete
+                )
+            }
         )
     }
 }

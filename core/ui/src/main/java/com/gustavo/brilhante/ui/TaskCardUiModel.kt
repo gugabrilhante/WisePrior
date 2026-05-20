@@ -23,5 +23,13 @@ data class TaskCardUiModel(
     val priorityColorRes: Int?,
     val hasPriority: Boolean,
     val isTitleStrikethrough: Boolean,
-    val checklistItems: List<ChecklistItem> = emptyList()
+    val checklistItems: List<ChecklistItemUiModel> = emptyList()
+)
+
+data class ChecklistItemUiModel(
+    val id: Long,
+    val text: String,
+    val isChecked: Boolean,
+    val isDisplayChecked: Boolean,
+    val checkboxDescriptionRes: Int
 )

@@ -243,26 +243,26 @@ fun TaskCard(
                     )
                 ) {
                     Column(modifier = Modifier.padding(top = 2.dp)) {
-                        uiModel.checklistItems.forEach { item ->
-                            val displayChecked = uiModel.isCompleted || item.isChecked
+                        uiModel.checklistItems.forEachIndexed { index, item ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("${TestTags.CHECKLIST_ITEM_ROW}_$index")
                             ) {
                                 IconButton(
                                     onClick = { onToggleChecklistItem(item.id, !item.isChecked) },
                                     enabled = !uiModel.isCompleted,
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .testTag("${TestTags.CHECKLIST_ITEM_CHECKBOX}_$index")
                                 ) {
                                     Icon(
-                                        imageVector = if (displayChecked) Icons.Filled.CheckCircle
+                                        imageVector = if (item.isDisplayChecked) Icons.Filled.CheckCircle
                                                       else Icons.Outlined.RadioButtonUnchecked,
-                                        contentDescription = stringResource(
-                                            if (item.isChecked) R.string.task_card_mark_incomplete
-                                            else R.string.task_card_mark_complete
-                                        ),
+                                        contentDescription = stringResource(item.checkboxDescriptionRes),
                                         modifier = Modifier.size(22.dp),
-                                        tint = if (displayChecked) Color(0xFF34C759)
+                                        tint = if (item.isDisplayChecked) Color(0xFF34C759)
                                                else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -270,9 +270,9 @@ fun TaskCard(
                                 Text(
                                     text = item.text,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (displayChecked) MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (item.isDisplayChecked) MaterialTheme.colorScheme.onSurfaceVariant
                                             else MaterialTheme.colorScheme.onSurface,
-                                    textDecoration = if (displayChecked) TextDecoration.LineThrough else null,
+                                    textDecoration = if (item.isDisplayChecked) TextDecoration.LineThrough else null,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
@@ -8,9 +9,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -258,5 +262,70 @@ class TaskCardTest {
         }
         composeTestRule.onNodeWithText(highPriorityLabel).assertIsDisplayed()
         composeTestRule.onNodeWithText("Priority Task").assertIsDisplayed()
+    }
+
+    // ── Checklist ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun taskCard_expanded_withChecklist_displaysItems() {
+        val items = listOf(
+            ChecklistItem(id = 1, text = "Subtask 1"),
+            ChecklistItem(id = 2, text = "Subtask 2")
+        )
+        val task = Task(id = 1, title = "Parent", checklistItems = items, createdAt = defaultCreatedAt)
+        composeTestRule.setContent {
+            TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
+        }
+        composeTestRule.onNodeWithText("Subtask 1").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Subtask 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun taskCard_clickingChecklistItem_triggersCallback() {
+        var toggledId = -1L
+        var toggledChecked = false
+        val items = listOf(ChecklistItem(id = 42, text = "Click me", isChecked = false))
+        val task = Task(id = 1, title = "Task", checklistItems = items, createdAt = defaultCreatedAt)
+        composeTestRule.setContent {
+            TaskCard(
+                task = task,
+                onClick = {},
+                onToggleComplete = {},
+                isExpanded = true,
+                onToggleChecklistItem = { id, checked ->
+                    toggledId = id
+                    toggledChecked = checked
+                }
+            )
+        }
+        
+        composeTestRule.onNodeWithTag("${TestTags.CHECKLIST_ITEM_CHECKBOX}_0").performClick()
+        
+        assertEquals(42L, toggledId)
+        assertTrue(toggledChecked)
+    }
+
+    @Test
+    fun taskCard_completedTask_checklistCheckboxesAreDisabled() {
+        val items = listOf(ChecklistItem(id = 1, text = "Subtask"))
+        val task = Task(id = 1, title = "Done", isCompleted = true, checklistItems = items, createdAt = defaultCreatedAt)
+        composeTestRule.setContent {
+            TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
+        }
+        
+        composeTestRule.onNodeWithTag("${TestTags.CHECKLIST_ITEM_CHECKBOX}_0").assertIsNotEnabled()
+    }
+
+    @Test
+    fun taskCard_checkedItem_showsMarkIncompleteContentDescription() {
+        val items = listOf(ChecklistItem(id = 1, text = "Checked", isChecked = true))
+        val task = Task(id = 1, title = "Task", checklistItems = items, createdAt = defaultCreatedAt)
+        val markIncompleteCd = "Mark task as incomplete" // R.string.task_card_mark_incomplete
+        
+        composeTestRule.setContent {
+            TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
+        }
+        
+        composeTestRule.onNodeWithContentDescription(markIncompleteCd).assertIsDisplayed()
     }
 }
