@@ -206,7 +206,11 @@ class TaskEditorViewModel @Inject constructor(
                 _uiState.update { it.copy(checklistItems = it.checklistItems + ChecklistItemUiModel()) }
             is TaskEditorEvent.RemoveChecklistItem ->
                 _uiState.update {
-                    it.copy(checklistItems = it.checklistItems.toMutableList().also { list -> list.removeAt(event.index) })
+                    if (event.index in it.checklistItems.indices) {
+                        it.copy(checklistItems = it.checklistItems.toMutableList().also { list -> list.removeAt(event.index) })
+                    } else {
+                        it
+                    }
                 }
             is TaskEditorEvent.ChecklistItemTextChanged ->
                 _uiState.update {

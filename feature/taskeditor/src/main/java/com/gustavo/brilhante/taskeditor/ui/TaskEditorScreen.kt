@@ -450,7 +450,10 @@ private fun ChecklistItemRow(
         ) {
             Icon(
                 imageVector = if (item.isChecked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                contentDescription = null,
+                contentDescription = stringResource(
+                    if (item.isChecked) R.string.editor_checklist_item_mark_incomplete
+                    else R.string.editor_checklist_item_mark_complete
+                ),
                 tint = if (item.isChecked) MaterialTheme.colorScheme.primary
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -22,6 +22,8 @@
     <string name="editor_checklist_add_item">Adicionar Item</string>
     <string name="editor_checklist_item_placeholder">Item</string>
     <string name="editor_checklist_item_delete">Excluir item</string>
+    <string name="editor_checklist_item_mark_complete">Marcar item como concluído</string>
+    <string name="editor_checklist_item_mark_incomplete">Marcar item como incompleto</string>
 
     <string name="editor_label_date">Data</string>
     <string name="editor_label_time">Hora</string>

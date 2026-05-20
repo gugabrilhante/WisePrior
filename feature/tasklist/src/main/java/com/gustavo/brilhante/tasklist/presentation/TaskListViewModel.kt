@@ -128,7 +128,7 @@ class TaskListViewModel @Inject constructor(
             val allChecked = updatedItems.isNotEmpty() && updatedItems.all { it.isChecked }
             val updatedTask = task.copy(
                 checklistItems = updatedItems,
-                isCompleted = task.isCompleted || allChecked
+                isCompleted = allChecked
             )
             runCatching {
                 updateTaskUseCase(updatedTask)

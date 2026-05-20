@@ -452,6 +452,21 @@ class TaskEditorViewModelTest {
     }
 
     @Test
+    fun `RemoveChecklistItem with out of bounds index does not crash and preserves state`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(0, "Keep me"))
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+
+        // Out of bounds
+        viewModel.onEvent(TaskEditorEvent.RemoveChecklistItem(1))
+        viewModel.onEvent(TaskEditorEvent.RemoveChecklistItem(-1))
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+        assertEquals("Keep me", viewModel.uiState.value.checklistItems.first().text)
+    }
+
+    @Test
     fun `ChecklistItemTextChanged updates text at given index`() {
         viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
         viewModel.onEvent(TaskEditorEvent.AddChecklistItem)

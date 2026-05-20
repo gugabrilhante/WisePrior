@@ -257,7 +257,10 @@ fun TaskCard(
                                     Icon(
                                         imageVector = if (displayChecked) Icons.Filled.CheckCircle
                                                       else Icons.Outlined.RadioButtonUnchecked,
-                                        contentDescription = null,
+                                        contentDescription = stringResource(
+                                            if (item.isChecked) R.string.task_card_mark_incomplete
+                                            else R.string.task_card_mark_complete
+                                        ),
                                         modifier = Modifier.size(22.dp),
                                         tint = if (displayChecked) Color(0xFF34C759)
                                                else MaterialTheme.colorScheme.onSurfaceVariant

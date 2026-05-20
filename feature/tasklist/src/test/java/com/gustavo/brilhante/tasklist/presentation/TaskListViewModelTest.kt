@@ -255,6 +255,27 @@ class TaskListViewModelTest {
     }
 
     @Test
+    fun `onChecklistItemToggled when item unchecked on completed task makes it incomplete`() = runTest {
+        every { getTasksUseCase() } returns flowOf(emptyList())
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "A", isChecked = true),
+            ChecklistItem(id = 2L, text = "B", isChecked = true)
+        )
+        // Task is already completed
+        val task = Task(id = 14, title = "Task", isCompleted = true, createdAt = 1000L, checklistItems = items)
+        val viewModel = buildViewModel()
+
+        // Uncheck one item
+        viewModel.onChecklistItemToggled(task, itemId = 2L, isChecked = false)
+
+        val expectedTask = task.copy(
+            checklistItems = listOf(items[0], items[1].copy(isChecked = false)),
+            isCompleted = false
+        )
+        coVerify(exactly = 1) { updateTaskUseCase(expectedTask) }
+    }
+
+    @Test
     fun `onChecklistItemToggled failure updates error in uiState`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
         coEvery { updateTaskUseCase(any()) } throws RuntimeException("Toggle failed")

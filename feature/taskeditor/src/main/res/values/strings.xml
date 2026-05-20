@@ -22,6 +22,8 @@
     <string name="editor_checklist_add_item">Add Item</string>
     <string name="editor_checklist_item_placeholder">Item</string>
     <string name="editor_checklist_item_delete">Delete item</string>
+    <string name="editor_checklist_item_mark_complete">Mark item as complete</string>
+    <string name="editor_checklist_item_mark_incomplete">Mark item as incomplete</string>
 
     <string name="editor_label_date">Date</string>
     <string name="editor_label_time">Time</string>
