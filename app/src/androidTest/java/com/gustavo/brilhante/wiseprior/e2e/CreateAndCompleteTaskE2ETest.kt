@@ -94,8 +94,8 @@ class CreateAndCompleteTaskE2ETest {
 
         // ── Step 4: Open the task in edit mode ───────────────────────────────
         composeTestRule.onNodeWithText(originalTitle).performClick()
-        composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
         waitUntilTextFieldHasText(originalTitle)
+        composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
         composeTestRule.onNode(hasTestTag(TestTags.INPUT_TASK_EDITOR_TITLE).and(hasText(originalTitle))).assertIsDisplayed()
 
         // ── Step 5: Change title and set priority ────────────────────────────
