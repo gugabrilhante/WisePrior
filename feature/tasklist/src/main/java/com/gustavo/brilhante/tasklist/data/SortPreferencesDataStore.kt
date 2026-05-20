@@ -7,11 +7,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.gustavo.brilhante.model.TaskSortOption
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 import javax.inject.Singleton
 
 private val SORT_OPTION_KEY = stringPreferencesKey("sort_option")
 
-class SortPreferencesDataStore(
+@Singleton
+class SortPreferencesDataStore @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) : SortPreferences {
     override val sortOption: Flow<TaskSortOption> = dataStore.data.map { prefs ->

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.platform.app.InstrumentationRegistry
 import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
@@ -23,6 +24,13 @@ class TaskCardTest {
     val composeTestRule = createComposeRule()
 
     private val defaultCreatedAt = 1000L
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val expandCd get() = context.getString(R.string.task_card_expand)
+    private val flaggedCd get() = context.getString(R.string.task_card_flagged)
+    private val urgentCd get() = context.getString(R.string.task_card_urgent)
+    private val markIncompleteCd get() = context.getString(R.string.task_card_mark_incomplete)
+    private val highPriorityLabel get() = context.getString(R.string.priority_high)
 
     // ── Basic rendering ───────────────────────────────────────────────────────
 
@@ -65,7 +73,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        composeTestRule.onNodeWithContentDescription("Expand").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(expandCd).assertIsDisplayed()
     }
 
     @Test
@@ -105,7 +113,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onAllNodesWithContentDescription("Flagged").onFirst().assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription(flaggedCd).onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -114,7 +122,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onAllNodesWithContentDescription("Urgent").onFirst().assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription(urgentCd).onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -123,8 +131,8 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
-        composeTestRule.onAllNodesWithContentDescription("Flagged").onFirst().assertIsDisplayed()
-        composeTestRule.onAllNodesWithContentDescription("Urgent").onFirst().assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription(flaggedCd).onFirst().assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription(urgentCd).onFirst().assertIsDisplayed()
     }
 
     // ── Due date ──────────────────────────────────────────────────────────────
@@ -201,7 +209,7 @@ class TaskCardTest {
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {})
         }
-        composeTestRule.onNodeWithContentDescription("Expand").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(expandCd).assertDoesNotExist()
     }
 
     // ── onToggleExpanded callback ─────────────────────────────────────────────
@@ -218,7 +226,7 @@ class TaskCardTest {
                 onToggleExpanded = { toggled = true }
             )
         }
-        composeTestRule.onNodeWithContentDescription("Expand").performClick()
+        composeTestRule.onNodeWithContentDescription(expandCd).performClick()
         assert(toggled)
     }
 
@@ -251,7 +259,6 @@ class TaskCardTest {
     @Test
     fun taskCard_expanded_withHighPriority_showsPriorityIndicator() {
         val task = Task(id = 1, title = "Priority Task", priority = Priority.HIGH, notes = "Detail", createdAt = defaultCreatedAt)
-        val highPriorityLabel = "High priority"
         composeTestRule.setContent {
             TaskCard(
                 task = task,
@@ -320,12 +327,11 @@ class TaskCardTest {
     fun taskCard_checkedItem_showsMarkIncompleteContentDescription() {
         val items = listOf(ChecklistItem(id = 1, text = "Checked", isChecked = true))
         val task = Task(id = 1, title = "Task", checklistItems = items, createdAt = defaultCreatedAt)
-        val markIncompleteCd = "Mark task as incomplete" // R.string.task_card_mark_incomplete
         
         composeTestRule.setContent {
             TaskCard(task = task, onClick = {}, onToggleComplete = {}, isExpanded = true)
         }
         
-        composeTestRule.onNodeWithContentDescription(markIncompleteCd).assertIsDisplayed()
+        composeTestRule.onAllNodesWithContentDescription(markIncompleteCd).onFirst().assertIsDisplayed()
     }
 }
