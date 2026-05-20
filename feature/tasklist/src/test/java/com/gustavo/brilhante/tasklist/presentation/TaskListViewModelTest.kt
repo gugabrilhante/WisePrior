@@ -207,13 +207,14 @@ class TaskListViewModelTest {
     @Test
     fun `onChecklistItemToggled updates the target item checked state`() = runTest {
         every { getTasksUseCase() } returns flowOf(emptyList())
-        val item = ChecklistItem(id = 1L, text = "Step 1", isChecked = false)
-        val task = Task(id = 10, title = "Task", createdAt = 1000L, checklistItems = listOf(item))
+        val item1 = ChecklistItem(id = 1L, text = "Step 1", isChecked = false)
+        val item2 = ChecklistItem(id = 2L, text = "Step 2", isChecked = false)
+        val task = Task(id = 10, title = "Task", createdAt = 1000L, checklistItems = listOf(item1, item2))
         val viewModel = buildViewModel()
 
         viewModel.onChecklistItemToggled(task, itemId = 1L, isChecked = true)
 
-        val expectedTask = task.copy(checklistItems = listOf(item.copy(isChecked = true)))
+        val expectedTask = task.copy(checklistItems = listOf(item1.copy(isChecked = true), item2))
         coVerify(exactly = 1) { updateTaskUseCase(expectedTask) }
     }
 

@@ -54,6 +54,7 @@ class NotificationHelperTest {
         mockkStatic(NotificationManagerCompat::class)
         val mockManagerCompat: NotificationManagerCompat = mockk(relaxed = true)
         every { NotificationManagerCompat.from(any()) } returns mockManagerCompat
+        every { mockManagerCompat.areNotificationsEnabled() } returns true
 
         helper.showNotification(1L, "Title", "Notes")
 
