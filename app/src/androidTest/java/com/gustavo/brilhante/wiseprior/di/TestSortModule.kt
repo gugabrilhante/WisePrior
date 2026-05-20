@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.gustavo.brilhante.tasklist.data.SortPreferences
+import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
 import com.gustavo.brilhante.tasklist.di.SortModule
 import dagger.Module
 import dagger.Provides
@@ -34,4 +36,9 @@ object TestSortModule {
                 context.preferencesDataStoreFile("sort_preferences_test_${UUID.randomUUID()}")
             }
         )
+
+    @Provides
+    @Singleton
+    fun provideSortPreferences(dataStore: DataStore<Preferences>): SortPreferences =
+        SortPreferencesDataStore(dataStore)
 }
