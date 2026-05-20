@@ -70,20 +70,48 @@ import com.gustavo.brilhante.taskeditor.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gustavo.brilhante.ui.UiText
+import androidx.compose.ui.tooling.preview.Preview
+import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.taskeditor.presentation.ActiveDialog
 import com.gustavo.brilhante.taskeditor.presentation.ChecklistItemUiModel
+import com.gustavo.brilhante.taskeditor.presentation.DateSectionUiModel
+import com.gustavo.brilhante.taskeditor.presentation.PriorityOptionUiModel
 import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUiModel
 import com.gustavo.brilhante.taskeditor.presentation.RecurrenceUnitOptionUiModel
+import com.gustavo.brilhante.taskeditor.presentation.TagSectionUiModel
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorArgsResolver
+import com.gustavo.brilhante.taskeditor.presentation.TaskEditorDialogState
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorEvent
+import com.gustavo.brilhante.taskeditor.presentation.TaskEditorUiState
 import com.gustavo.brilhante.taskeditor.presentation.TaskEditorViewModel
 import com.gustavo.brilhante.ui.SectionHeader
 import com.gustavo.brilhante.ui.TagChip
 import com.gustavo.brilhante.ui.ToggleRow
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Preview(showBackground = true)
+@Composable
+private fun TaskEditorContentPreview() {
+    MaterialTheme {
+        TaskEditorContent(
+            uiState = TaskEditorUiState(
+                title = "Study for the exam",
+                notes = "Chapters 1 to 5",
+                screenTitle = UiText.DynamicString("Edit Task"),
+                priorityOptions = listOf(
+                    PriorityOptionUiModel(Priority.NONE, UiText.DynamicString("None"), true, "none"),
+                    PriorityOptionUiModel(Priority.LOW, UiText.DynamicString("Low"), false, "low"),
+                    PriorityOptionUiModel(Priority.MEDIUM, UiText.DynamicString("Med"), false, "medium"),
+                    PriorityOptionUiModel(Priority.HIGH, UiText.DynamicString("High"), false, "high")
+                )
+            ),
+            onEvent = {},
+            onBack = {}
+        )
+    }
+}
+
 @Composable
 fun TaskEditorScreen(
     taskId: Long?,
@@ -101,56 +129,26 @@ fun TaskEditorScreen(
         viewModel.navigationEvent.collect { onBack() }
     }
 
-    when (uiState.dialogState.activeDialog) {
-        ActiveDialog.DatePicker -> {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = uiState.dialogState.datePickerUtcMillis
-            )
-            DatePickerDialog(
-                modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
-                onDismissRequest = { viewModel.onEvent(TaskEditorEvent.DismissDialog) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            viewModel.onEvent(TaskEditorEvent.DueDateChanged(it))
-                        } ?: viewModel.onEvent(TaskEditorEvent.DismissDialog)
-                    }) { Text(stringResource(R.string.editor_ok)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.DismissDialog) }) {
-                        Text(stringResource(R.string.editor_cancel))
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState, showModeToggle = true)
-            }
-        }
-        ActiveDialog.TimePicker -> {
-            val timePickerState = rememberTimePickerState(
-                initialHour = uiState.dialogState.timePickerHour,
-                initialMinute = uiState.dialogState.timePickerMinute,
-                is24Hour = true
-            )
-            AlertDialog(
-                modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
-                onDismissRequest = { viewModel.onEvent(TaskEditorEvent.DismissDialog) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.onEvent(
-                            TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
-                        )
-                    }) { Text(stringResource(R.string.editor_ok)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.DismissDialog) }) {
-                        Text(stringResource(R.string.editor_cancel))
-                    }
-                },
-                text = { TimePicker(state = timePickerState) }
-            )
-        }
-        null -> {}
-    }
+    TaskEditorContent(
+        uiState = uiState,
+        onEvent = viewModel::onEvent,
+        onBack = onBack,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun TaskEditorContent(
+    uiState: TaskEditorUiState,
+    onEvent: (TaskEditorEvent) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TaskEditorDialogs(
+        dialogState = uiState.dialogState,
+        onEvent = onEvent
+    )
 
     Scaffold(
         modifier = modifier.testTag(TestTags.SCREEN_TASK_EDITOR),
@@ -167,7 +165,7 @@ fun TaskEditorScreen(
                 },
                 actions = {
                     TextButton(
-                        onClick = { viewModel.onEvent(TaskEditorEvent.Save) },
+                        onClick = { onEvent(TaskEditorEvent.Save) },
                         modifier = Modifier.testTag(TestTags.BTN_TASK_EDITOR_DONE)
                     ) {
                         Text(stringResource(R.string.editor_done), style = MaterialTheme.typography.titleMedium)
@@ -185,41 +183,13 @@ fun TaskEditorScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // ── Title + Notes ─────────────────────────────────────────────
-            Surface(
-                tonalElevation = 1.dp,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    OutlinedTextField(
-                        value = uiState.title,
-                        onValueChange = { viewModel.onEvent(TaskEditorEvent.TitleChanged(it)) },
-                        placeholder = { Text(stringResource(R.string.editor_placeholder_title)) },
-                        isError = uiState.titleError != null,
-                        supportingText = uiState.titleError?.let { { Text(it) } },
-                        modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_TITLE),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        textStyle = MaterialTheme.typography.titleLarge
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-                    OutlinedTextField(
-                        value = uiState.notes,
-                        onValueChange = { viewModel.onEvent(TaskEditorEvent.NotesChanged(it)) },
-                        placeholder = { Text(stringResource(R.string.editor_placeholder_notes)) },
-                        modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_NOTES),
-                        minLines = 3,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent
-                        )
-                    )
-                }
-            }
+            EditorMainSection(
+                title = uiState.title,
+                notes = uiState.notes,
+                titleError = uiState.titleError,
+                onTitleChange = { onEvent(TaskEditorEvent.TitleChanged(it)) },
+                onNotesChange = { onEvent(TaskEditorEvent.NotesChanged(it)) }
+            )
 
             // ── Checklist ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
@@ -229,7 +199,7 @@ fun TaskEditorScreen(
             )
             ChecklistSection(
                 items = uiState.checklistItems,
-                onEvent = viewModel::onEvent,
+                onEvent = onEvent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -238,144 +208,42 @@ fun TaskEditorScreen(
             // ── Date & Time ───────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_datetime), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DATETIME))
-            Surface(
-                tonalElevation = 1.dp,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Column {
-                    ToggleRow(
-                        label = stringResource(R.string.editor_label_date),
-                        checked = uiState.dateSection.hasDate,
-                        onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleDate) },
-                        icon = Icons.Filled.CalendarMonth,
-                        supportingText = uiState.dateSection.formattedDate,
-                        onRowClick = if (uiState.dateSection.hasDate) {
-                            { viewModel.onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.DatePicker)) }
-                        } else null,
-                        testTag = TestTags.TOGGLE_TASK_DATE
-                    )
-
-                    if (uiState.dateSection.showTimeToggle) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        ToggleRow(
-                            label = stringResource(R.string.editor_label_time),
-                            checked = uiState.dateSection.hasTime,
-                            onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleTime) },
-                            icon = Icons.Filled.Schedule,
-                            supportingText = uiState.dateSection.formattedTime,
-                            onRowClick = if (uiState.dateSection.hasTime) {
-                                { viewModel.onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.TimePicker)) }
-                            } else null,
-                            testTag = TestTags.TOGGLE_TASK_TIME
-                        )
-                    }
-
-                    if (uiState.dateSection.showRecurrence) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        RecurrenceSelector(
-                            model = uiState.dateSection.recurrenceUiModel,
-                            onEvent = viewModel::onEvent,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
+            DateTimeSection(
+                dateSection = uiState.dateSection,
+                onEvent = onEvent
+            )
 
             // ── Details ───────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_details), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_DETAILS))
-            Surface(
-                tonalElevation = 1.dp,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Column {
-                    ToggleRow(
-                        label = stringResource(R.string.editor_label_urgent),
-                        checked = uiState.isUrgent,
-                        onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleUrgent) },
-                        icon = Icons.Filled.Warning,
-                        testTag = TestTags.TOGGLE_TASK_URGENT
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    ToggleRow(
-                        label = stringResource(R.string.editor_label_flag),
-                        checked = uiState.isFlagged,
-                        onCheckedChange = { viewModel.onEvent(TaskEditorEvent.ToggleFlagged) },
-                        icon = Icons.Filled.Flag,
-                        testTag = TestTags.TOGGLE_TASK_FLAGGED
-                    )
-                }
-            }
+            DetailsSection(
+                isUrgent = uiState.isUrgent,
+                isFlagged = uiState.isFlagged,
+                onEvent = onEvent
+            )
 
             // ── Priority ─────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_priority), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_PRIORITY))
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                uiState.priorityOptions.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = option.isSelected,
-                        onClick = { viewModel.onEvent(TaskEditorEvent.PriorityChanged(option.priority)) },
-                        shape = SegmentedButtonDefaults.itemShape(index, uiState.priorityOptions.size),
-                        modifier = Modifier.testTag(option.testTag),
-                        label = { Text(option.label.asString()) }
-                    )
-                }
-            }
+            PrioritySection(
+                priorityOptions = uiState.priorityOptions,
+                onPriorityChange = { onEvent(TaskEditorEvent.PriorityChanged(it)) }
+            )
 
             // ── Tags ─────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_tags), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_TAGS))
-            if (uiState.tagSection.showEmptyState) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.no_tags_created),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.create_tags_sidebar),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            } else {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    uiState.tagSection.tags.forEach { tag ->
-                        TagChip(
-                            tag = Tag(id = tag.id, name = tag.name, color = tag.color),
-                            isSelected = tag.isSelected,
-                            onClick = { viewModel.onEvent(TaskEditorEvent.TagClicked(tag.id)) }
-                        )
-                    }
-                }
-            }
+            TagsSection(
+                tagSection = uiState.tagSection,
+                onTagClick = { onEvent(TaskEditorEvent.TagClicked(it)) }
+            )
 
             // ── URL ───────────────────────────────────────────────────────
             Spacer(Modifier.height(8.dp))
             SectionHeader(stringResource(R.string.editor_section_url), modifier = Modifier.testTag(TestTags.SECTION_TASK_EDITOR_URL))
             OutlinedTextField(
                 value = uiState.url,
-                onValueChange = { viewModel.onEvent(TaskEditorEvent.UrlChanged(it)) },
+                onValueChange = { onEvent(TaskEditorEvent.UrlChanged(it)) },
                 placeholder = { Text(stringResource(R.string.editor_placeholder_url)) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -388,6 +256,264 @@ fun TaskEditorScreen(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskEditorDialogs(
+    dialogState: TaskEditorDialogState,
+    onEvent: (TaskEditorEvent) -> Unit
+) {
+    when (dialogState.activeDialog) {
+        ActiveDialog.DatePicker -> {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = dialogState.datePickerUtcMillis
+            )
+            DatePickerDialog(
+                modifier = Modifier.testTag(TestTags.DIALOG_DATE_PICKER),
+                onDismissRequest = { onEvent(TaskEditorEvent.DismissDialog) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            onEvent(TaskEditorEvent.DueDateChanged(it))
+                        } ?: onEvent(TaskEditorEvent.DismissDialog)
+                    }) { Text(stringResource(R.string.editor_ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(TaskEditorEvent.DismissDialog) }) {
+                        Text(stringResource(R.string.editor_cancel))
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState, showModeToggle = true)
+            }
+        }
+        ActiveDialog.TimePicker -> {
+            val timePickerState = rememberTimePickerState(
+                initialHour = dialogState.timePickerHour,
+                initialMinute = dialogState.timePickerMinute,
+                is24Hour = true
+            )
+            AlertDialog(
+                modifier = Modifier.testTag(TestTags.DIALOG_TIME_PICKER),
+                onDismissRequest = { onEvent(TaskEditorEvent.DismissDialog) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onEvent(
+                            TaskEditorEvent.TimeChanged(timePickerState.hour, timePickerState.minute)
+                        )
+                    }) { Text(stringResource(R.string.editor_ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(TaskEditorEvent.DismissDialog) }) {
+                        Text(stringResource(R.string.editor_cancel))
+                    }
+                },
+                text = { TimePicker(state = timePickerState) }
+            )
+        }
+        null -> {}
+    }
+}
+
+@Composable
+private fun EditorMainSection(
+    title: String,
+    notes: String,
+    titleError: UiText?,
+    onTitleChange: (String) -> Unit,
+    onNotesChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(4.dp)) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = onTitleChange,
+                placeholder = { Text(stringResource(R.string.editor_placeholder_title)) },
+                isError = titleError != null,
+                supportingText = titleError?.let { { Text(it.asString()) } },
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_TITLE),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                ),
+                textStyle = MaterialTheme.typography.titleLarge
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+            OutlinedTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                placeholder = { Text(stringResource(R.string.editor_placeholder_notes)) },
+                modifier = Modifier.fillMaxWidth().testTag(TestTags.INPUT_TASK_EDITOR_NOTES),
+                minLines = 3,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun DateTimeSection(
+    dateSection: DateSectionUiModel,
+    onEvent: (TaskEditorEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Column {
+            ToggleRow(
+                label = stringResource(R.string.editor_label_date),
+                checked = dateSection.hasDate,
+                onCheckedChange = { onEvent(TaskEditorEvent.ToggleDate) },
+                icon = Icons.Filled.CalendarMonth,
+                supportingText = dateSection.formattedDate,
+                onRowClick = if (dateSection.hasDate) {
+                    { onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.DatePicker)) }
+                } else null,
+                testTag = TestTags.TOGGLE_TASK_DATE
+            )
+
+            if (dateSection.showTimeToggle) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                ToggleRow(
+                    label = stringResource(R.string.editor_label_time),
+                    checked = dateSection.hasTime,
+                    onCheckedChange = { onEvent(TaskEditorEvent.ToggleTime) },
+                    icon = Icons.Filled.Schedule,
+                    supportingText = dateSection.formattedTime,
+                    onRowClick = if (dateSection.hasTime) {
+                        { onEvent(TaskEditorEvent.ShowDialog(ActiveDialog.TimePicker)) }
+                    } else null,
+                    testTag = TestTags.TOGGLE_TASK_TIME
+                )
+            }
+
+            if (dateSection.showRecurrence) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                RecurrenceSelector(
+                    model = dateSection.recurrenceUiModel,
+                    onEvent = onEvent,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsSection(
+    isUrgent: Boolean,
+    isFlagged: Boolean,
+    onEvent: (TaskEditorEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Column {
+            ToggleRow(
+                label = stringResource(R.string.editor_label_urgent),
+                checked = isUrgent,
+                onCheckedChange = { onEvent(TaskEditorEvent.ToggleUrgent) },
+                icon = Icons.Filled.Warning,
+                testTag = TestTags.TOGGLE_TASK_URGENT
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            ToggleRow(
+                label = stringResource(R.string.editor_label_flag),
+                checked = isFlagged,
+                onCheckedChange = { onEvent(TaskEditorEvent.ToggleFlagged) },
+                icon = Icons.Filled.Flag,
+                testTag = TestTags.TOGGLE_TASK_FLAGGED
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrioritySection(
+    priorityOptions: List<PriorityOptionUiModel>,
+    onPriorityChange: (Priority) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        priorityOptions.forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = option.isSelected,
+                onClick = { onPriorityChange(option.priority) },
+                shape = SegmentedButtonDefaults.itemShape(index, priorityOptions.size),
+                modifier = Modifier.testTag(option.testTag),
+                label = { Text(option.label.asString()) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsSection(
+    tagSection: TagSectionUiModel,
+    onTagClick: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (tagSection.showEmptyState) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.no_tags_created),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.create_tags_sidebar),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+    } else {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = modifier.padding(horizontal = 16.dp)
+        ) {
+            tagSection.tags.forEach { tag ->
+                TagChip(
+                    tag = Tag(id = tag.id, name = tag.name, color = tag.color),
+                    isSelected = tag.isSelected,
+                    onClick = { onTagClick(tag.id) }
+                )
+            }
+        }
+    }
+}
+
 
 // ── Checklist section ─────────────────────────────────────────────────────────
 

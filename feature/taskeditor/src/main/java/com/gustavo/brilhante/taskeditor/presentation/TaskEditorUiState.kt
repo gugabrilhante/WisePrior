@@ -1,9 +1,11 @@
 package com.gustavo.brilhante.taskeditor.presentation
 
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Tag
+import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.ui.UiText
 
 data class TaskEditorUiState(
@@ -16,7 +18,7 @@ data class TaskEditorUiState(
     val isFlagged: Boolean = false,
     val isCompleted: Boolean = false,
     val recurrenceRule: RecurrenceRule = RecurrenceRule.NONE,
-    val titleError: String? = null,
+    val titleError: UiText? = null,
     val isLoading: Boolean = false,
     val screenTitle: UiText = UiText.DynamicString(""),
     val priorityOptions: List<PriorityOptionUiModel> = emptyList(),
@@ -25,6 +27,27 @@ data class TaskEditorUiState(
     val tagSection: TagSectionUiModel = TagSectionUiModel(),
     val checklistItems: List<ChecklistItemUiModel> = emptyList()
 )
+
+fun TaskEditorUiState.toTask(id: Long, createdAt: Long, tagIds: List<Long>): Task {
+    return Task(
+        id = id,
+        title = title.trim(),
+        notes = notes.trim(),
+        url = url.trim(),
+        dueDate = if (dateSection.hasDate) dueDate else null,
+        hasTime = dateSection.hasTime,
+        isUrgent = isUrgent,
+        priority = priority,
+        tagIds = tagIds,
+        isFlagged = isFlagged,
+        isCompleted = isCompleted,
+        recurrenceRule = recurrenceRule,
+        createdAt = createdAt,
+        checklistItems = checklistItems
+            .filter { it.text.isNotBlank() }
+            .map { ChecklistItem(id = it.id, text = it.text.trim(), isChecked = it.isChecked) }
+    )
+}
 
 data class PriorityOptionUiModel(
     val priority: Priority,

@@ -311,29 +311,16 @@ class TaskEditorViewModel @Inject constructor(
     private fun save() {
         val state = _uiState.value
         if (state.title.isBlank()) {
-            _uiState.update { it.copy(titleError = "Title is required") }
+            _uiState.update { it.copy(titleError = UiText.StringResource(R.string.error_title_required)) }
             return
         }
         viewModelScope.launch {
             val isEditing = editingTaskId > 0L
             val now = clockProvider.currentTimeMillis()
-            val task = Task(
+            val task = state.toTask(
                 id = if (isEditing) editingTaskId else 0L,
-                title = state.title.trim(),
-                notes = state.notes.trim(),
-                url = state.url.trim(),
-                dueDate = if (state.dateSection.hasDate) state.dueDate else null,
-                hasTime = state.dateSection.hasTime,
-                isUrgent = state.isUrgent,
-                priority = state.priority,
-                tagIds = selectedTagIds.toList(),
-                isFlagged = state.isFlagged,
-                isCompleted = state.isCompleted,
-                recurrenceRule = state.recurrenceRule,
                 createdAt = if (isEditing) originalCreatedAt else now,
-                checklistItems = state.checklistItems
-                    .filter { it.text.isNotBlank() }
-                    .map { ChecklistItem(id = it.id, text = it.text.trim(), isChecked = it.isChecked) }
+                tagIds = selectedTagIds.toList()
             )
 
             if (isEditing) {

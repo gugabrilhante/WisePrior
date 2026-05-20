@@ -13,6 +13,8 @@ import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.ui.DateFormatterImpl
+import com.gustavo.brilhante.taskeditor.R
+import com.gustavo.brilhante.ui.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -165,7 +167,8 @@ class TaskEditorViewModelTest {
     @Test
     fun `TitleChanged updates title and clears titleError`() {
         viewModel.onEvent(TaskEditorEvent.Save)
-        assertNotNull(viewModel.uiState.value.titleError)
+        assertTrue(viewModel.uiState.value.titleError is UiText.StringResource)
+        assertEquals(R.string.error_title_required, (viewModel.uiState.value.titleError as UiText.StringResource).resId)
 
         viewModel.onEvent(TaskEditorEvent.TitleChanged("My Task"))
 
@@ -310,7 +313,8 @@ class TaskEditorViewModelTest {
     @Test
     fun `Save with blank title sets titleError`() = runTest {
         viewModel.onEvent(TaskEditorEvent.Save)
-        assertNotNull(viewModel.uiState.value.titleError)
+        assertTrue(viewModel.uiState.value.titleError is UiText.StringResource)
+        assertEquals(R.string.error_title_required, (viewModel.uiState.value.titleError as UiText.StringResource).resId)
     }
 
     @Test

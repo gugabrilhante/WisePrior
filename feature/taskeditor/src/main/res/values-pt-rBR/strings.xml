@@ -8,6 +8,7 @@
     <string name="editor_title_edit">Editar Lembrete</string>
     <string name="editor_back">Voltar</string>
     <string name="editor_done">Concluir</string>
+    <string name="error_title_required">Título é obrigatório</string>
 
     <string name="editor_placeholder_title">Título</string>
     <string name="editor_placeholder_notes">Notas</string>

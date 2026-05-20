@@ -8,6 +8,7 @@
     <string name="editor_title_edit">Edit Reminder</string>
     <string name="editor_back">Back</string>
     <string name="editor_done">Done</string>
+    <string name="error_title_required">Title is required</string>
 
     <string name="editor_placeholder_title">Title</string>
     <string name="editor_placeholder_notes">Notes</string>
