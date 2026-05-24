@@ -8,6 +8,12 @@
 
 ---
 
+## Available on Google Play
+
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="200">](https://play.google.com/store/apps/details?id=com.gustavo.brilhante.wiseprior)
+
+---
+
 ## Overview
 
 WisePrior is a production-grade Android task manager designed with a heavy focus on **Scalability**, **Modularization**, and **Quality Engineering**. Inspired by modern productivity tools, it serves as a technical showcase for Clean Architecture and robust background synchronization. Open source and available under the MIT License.
