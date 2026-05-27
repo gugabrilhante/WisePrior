@@ -19,7 +19,7 @@ import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.ui.UiText
 import io.mockk.coEvery
@@ -53,7 +53,7 @@ class TaskListUiTextTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private val swipeDismissUseCase = SwipeDismissUseCase()
@@ -105,7 +105,7 @@ class TaskListUiTextTest {
     fun `given Today collection, when state emitted, then screenTitle is StringResource`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Today)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Today))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -117,7 +117,7 @@ class TaskListUiTextTest {
     fun `given Scheduled collection, when state emitted, then screenTitle is StringResource`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Scheduled)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Scheduled))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -129,7 +129,7 @@ class TaskListUiTextTest {
     fun `given Flagged collection, when state emitted, then screenTitle is StringResource`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Flagged)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Flagged))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -141,7 +141,7 @@ class TaskListUiTextTest {
     fun `given Completed collection, when state emitted, then screenTitle is StringResource`() = runTest(testDispatcher) {
         val viewModel = buildViewModel()
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.Completed)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Completed))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -154,7 +154,7 @@ class TaskListUiTextTest {
         val tag = Tag(id = 7L, name = "Work", color = 0L)
         val viewModel = buildViewModel(tags = listOf(tag))
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(7L))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(7L)))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -168,7 +168,7 @@ class TaskListUiTextTest {
     fun `given ByTag collection with unknown tag id, when state emitted, then screenTitle falls back to StringResource`() = runTest(testDispatcher) {
         val viewModel = buildViewModel(tags = emptyList())
         advanceUntilIdle()
-        viewModel.onCollectionSelected(TaskCollection.ByTag(999L))
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(999L)))
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -182,7 +182,7 @@ class TaskListUiTextTest {
         advanceUntilIdle()
 
         val titleAll = viewModel.uiState.value.screenTitle
-        viewModel.onCollectionSelected(TaskCollection.Today)
+        viewModel.onEvent(TaskListEvent.SelectCollection(TaskCollection.Today))
         advanceUntilIdle()
         val titleToday = viewModel.uiState.value.screenTitle
 

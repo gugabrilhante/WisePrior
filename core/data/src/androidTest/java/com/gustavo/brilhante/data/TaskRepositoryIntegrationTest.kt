@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.gustavo.brilhante.data.repository.TaskRepositoryImpl
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
@@ -18,6 +19,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,7 +40,7 @@ class TaskRepositoryIntegrationTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        val dataSource = TaskDataSource(database.taskDao())
+        val dataSource = TaskDataSource(database, database.taskDao(), database.checklistItemDao())
         repository = TaskRepositoryImpl(dataSource, UnconfinedTestDispatcher())
     }
 
@@ -66,7 +68,6 @@ class TaskRepositoryIntegrationTest {
         createdAt = createdAt
     )
 
-    /** Adds a task and returns it back with its auto-generated id. */
     private suspend fun addAndGet(task: Task): Task {
         repository.addTask(task)
         var inserted: Task? = null
@@ -173,12 +174,12 @@ class TaskRepositoryIntegrationTest {
 
         val retrieved = repository.getTaskById(inserted.id)!!
 
-        assertEquals("Full task",   retrieved.title)
-        assertEquals("My notes",    retrieved.notes)
-        assertEquals(true,          retrieved.isUrgent)
+        assertEquals("Full task",    retrieved.title)
+        assertEquals("My notes",     retrieved.notes)
+        assertEquals(true,           retrieved.isUrgent)
         assertEquals(Priority.MEDIUM, retrieved.priority)
-        assertEquals(true,          retrieved.isFlagged)
-        assertEquals(weeklyRule,    retrieved.recurrenceRule)
+        assertEquals(true,           retrieved.isFlagged)
+        assertEquals(weeklyRule,     retrieved.recurrenceRule)
     }
 
     @Test
@@ -190,5 +191,71 @@ class TaskRepositoryIntegrationTest {
         val retrieved = repository.getTaskById(inserted.id)!!
 
         assertEquals(rule, retrieved.recurrenceRule)
+    }
+
+    // ── checklist round-trip ──────────────────────────────────────────────────
+
+    @Test
+    fun givenTaskWithChecklist_whenAddThenRetrieve_thenChecklistSurvives() = runTest {
+        val task = buildTask(title = "Shopping").copy(
+            checklistItems = listOf(
+                ChecklistItem(text = "Milk", isChecked = false),
+                ChecklistItem(text = "Eggs", isChecked = true)
+            )
+        )
+        val inserted = addAndGet(task)
+
+        val retrieved = repository.getTaskById(inserted.id)!!
+
+        assertEquals(2, retrieved.checklistItems.size)
+        assertEquals("Milk", retrieved.checklistItems[0].text)
+        assertEquals(false,  retrieved.checklistItems[0].isChecked)
+        assertEquals("Eggs", retrieved.checklistItems[1].text)
+        assertEquals(true,   retrieved.checklistItems[1].isChecked)
+    }
+
+    @Test
+    fun givenTaskWithChecklist_whenUpdateReplacesItems_thenNewChecklistPersists() = runTest {
+        val task = buildTask(title = "Shopping").copy(
+            checklistItems = listOf(ChecklistItem(text = "Old item", isChecked = false))
+        )
+        val inserted = addAndGet(task)
+
+        val updated = inserted.copy(
+            checklistItems = listOf(
+                ChecklistItem(text = "New item 1", isChecked = false),
+                ChecklistItem(text = "New item 2", isChecked = true)
+            )
+        )
+        repository.updateTask(updated)
+
+        val retrieved = repository.getTaskById(inserted.id)!!
+        assertEquals(2, retrieved.checklistItems.size)
+        assertEquals("New item 1", retrieved.checklistItems[0].text)
+        assertEquals("New item 2", retrieved.checklistItems[1].text)
+    }
+
+    @Test
+    fun givenTaskWithChecklist_whenTaskDeleted_thenChecklistItemsAreAlsoDeleted() = runTest {
+        val task = buildTask(title = "To delete").copy(
+            checklistItems = listOf(ChecklistItem(text = "Item", isChecked = false))
+        )
+        val inserted = addAndGet(task)
+
+        repository.deleteTask(inserted)
+
+        val checklistItems = database.checklistItemDao().getItemsForTask(inserted.id)
+        assertTrue(checklistItems.isEmpty())
+    }
+
+    @Test
+    fun givenExistingTaskWithNoChecklist_thenChecklistIsEmpty() = runTest {
+        repository.addTask(buildTask(title = "Simple"))
+
+        repository.getTasks().test {
+            val items = awaitItem()
+            assertTrue(items.first().checklistItems.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

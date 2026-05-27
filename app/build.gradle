@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId "com.gustavo.brilhante.wiseprior"
         minSdk 24
-        targetSdk 36
-        versionCode 2
-        versionName "1.1"
+        targetSdk 35
+        versionCode 3
+        versionName "1.2"
         testInstrumentationRunner "com.gustavo.brilhante.wiseprior.HiltTestRunner"
         vectorDrawables { useSupportLibrary true }
     }
@@ -54,6 +54,7 @@ dependencies {
 
     implementation libs.androidx.core.ktx
     implementation libs.androidx.activity.compose
+    implementation libs.androidx.activity.ktx
     implementation libs.androidx.lifecycle.runtime.ktx
 
     def composeBom = platform(libs.androidx.compose.bom)
@@ -82,10 +83,11 @@ dependencies {
     androidTestImplementation libs.androidx.datastore.preferences
     // Expose test-tag constants and shared UI components to androidTest.
     androidTestImplementation project(':core:ui')
-    // Expose core:storage and core:notifications so @TestInstallIn can reference
+    // Expose core:storage, core:notifications and feature:tasklist so @TestInstallIn can reference
     // their Hilt modules (which are impl-scoped transitive deps, not visible to KSP).
     androidTestImplementation project(':core:storage')
     androidTestImplementation project(':core:notifications')
+    androidTestImplementation project(':feature:tasklist')
     // Room runtime needed to build Room.inMemoryDatabaseBuilder in TestDatabaseModule
     androidTestImplementation libs.androidx.room.runtime
     androidTestImplementation libs.androidx.work.testing

@@ -43,7 +43,6 @@ class TaskListScreenTest {
     private lateinit var addReminderCd: String
     private lateinit var emptyTitle: String
     private lateinit var newReminderScreenTitle: String
-    private lateinit var backCd: String
     private lateinit var editTitle: String
     private lateinit var markCompleteCd: String
     private lateinit var markIncompleteCd: String
@@ -57,7 +56,6 @@ class TaskListScreenTest {
         addReminderCd = activity.getString(com.gustavo.brilhante.tasklist.R.string.add_task_button_description)
         emptyTitle = activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
         newReminderScreenTitle = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_new)
-        backCd = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
         editTitle = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
         markCompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
         markIncompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
@@ -85,7 +83,7 @@ class TaskListScreenTest {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
         composeTestRule.onNodeWithTag(TestTags.SCREEN_TASK_EDITOR).assertIsDisplayed()
 
-        composeTestRule.onNodeWithContentDescription(backCd).performClick()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_BACK).performClick()
 
         waitUntilDisplayed(emptyTitle)
         composeTestRule.onNodeWithText(emptyTitle).assertIsDisplayed()

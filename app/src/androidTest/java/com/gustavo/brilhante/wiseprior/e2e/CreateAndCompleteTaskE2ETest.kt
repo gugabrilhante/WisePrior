@@ -49,7 +49,6 @@ class CreateAndCompleteTaskE2ETest {
     private lateinit var addReminderCd: String
     private lateinit var emptyStateTitle: String
     private lateinit var editScreenTitle: String
-    private lateinit var backCd: String
     private lateinit var markCompleteCd: String
     private lateinit var markIncompleteCd: String
 
@@ -62,7 +61,6 @@ class CreateAndCompleteTaskE2ETest {
         addReminderCd = activity.getString(com.gustavo.brilhante.tasklist.R.string.add_task_button_description)
         emptyStateTitle = activity.getString(com.gustavo.brilhante.tasklist.R.string.empty_tasks_title)
         editScreenTitle = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_title_edit)
-        backCd = activity.getString(com.gustavo.brilhante.taskeditor.R.string.editor_back)
         markCompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_complete)
         markIncompleteCd = activity.getString(com.gustavo.brilhante.ui.R.string.task_card_mark_incomplete)
     }
@@ -94,8 +92,8 @@ class CreateAndCompleteTaskE2ETest {
 
         // ── Step 4: Open the task in edit mode ───────────────────────────────
         composeTestRule.onNodeWithText(originalTitle).performClick()
-        composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
         waitUntilTextFieldHasText(originalTitle)
+        composeTestRule.onNodeWithText(editScreenTitle).assertIsDisplayed()
         composeTestRule.onNode(hasTestTag(TestTags.INPUT_TASK_EDITOR_TITLE).and(hasText(originalTitle))).assertIsDisplayed()
 
         // ── Step 5: Change title and set priority ────────────────────────────
@@ -138,7 +136,7 @@ class CreateAndCompleteTaskE2ETest {
     fun backWithoutSaving_doesNotCreateTask() {
         composeTestRule.onNodeWithContentDescription(addReminderCd).performClick()
         composeTestRule.onNodeWithTag(TestTags.INPUT_TASK_EDITOR_TITLE).performTextInput("Unsaved task")
-        composeTestRule.onNodeWithContentDescription(backCd).performClick()
+        composeTestRule.onNodeWithTag(TestTags.BTN_TASK_EDITOR_BACK).performClick()
 
         waitUntilDisplayed(emptyStateTitle)
         composeTestRule.onNodeWithText(emptyStateTitle).assertIsDisplayed()

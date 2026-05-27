@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.notifications
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -108,6 +109,7 @@ class AlarmManagerNotificationScheduler @Inject constructor(
 
     // ── Internal helpers ──────────────────────────────────────────────────
 
+    @SuppressLint("NewApi")
     private fun scheduleExact(taskId: Long, triggerAtMillis: Long, pendingIntent: PendingIntent) {
         val canScheduleExact = if (versionProvider.sdkInt >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()

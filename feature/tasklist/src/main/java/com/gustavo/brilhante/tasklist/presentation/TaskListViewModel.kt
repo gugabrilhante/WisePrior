@@ -13,7 +13,7 @@ import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.model.TaskSortOption
 import com.gustavo.brilhante.notifications.NotificationScheduler
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import com.gustavo.brilhante.tasklist.model.TaskCollection
 import com.gustavo.brilhante.ui.UiText
 import com.gustavo.brilhante.tasklist.R
@@ -23,6 +23,9 @@ import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -40,7 +43,7 @@ class TaskListViewModel @Inject constructor(
     private val updateTagUseCase: UpdateTagUseCase,
     private val deleteTagUseCase: DeleteTagUseCase,
     private val notificationScheduler: NotificationScheduler,
-    private val sortPreferences: SortPreferencesDataStore,
+    private val sortPreferences: SortPreferences,
     private val taskListUiMapper: TaskListUiMapper,
     private val tagEditorUiMapper: TagEditorUiMapper,
     private val swipeDismissUseCase: SwipeDismissUseCase
@@ -50,6 +53,9 @@ class TaskListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TaskListUiState())
     val uiState: StateFlow<TaskListUiState> = _uiState.asStateFlow()
+
+    private val _navigationEvent = MutableSharedFlow<TaskListEvent>()
+    val navigationEvent: SharedFlow<TaskListEvent> = _navigationEvent.asSharedFlow()
 
     init {
         observeTasks()
@@ -63,16 +69,16 @@ class TaskListViewModel @Inject constructor(
                 getTagsUseCase(),
                 sortPreferences.sortOption
             ) { tasks, collection, tags, sortOption ->
-                Quad(tasks, collection, tags, sortOption)
+                TaskData(tasks, collection, tags, sortOption)
             }
                 .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") } }
-                .collect { (tasks, collection, tags, sortOption) ->
+                .collect { data ->
                     _uiState.update { currentState ->
                         taskListUiMapper.map(
-                            tasks = tasks,
-                            collection = collection,
-                            tags = tags,
-                            sortOption = sortOption,
+                            tasks = data.tasks,
+                            collection = data.collection,
+                            tags = data.tags,
+                            sortOption = data.sortOption,
                             currentUiState = currentState
                         )
                     }
@@ -82,13 +88,33 @@ class TaskListViewModel @Inject constructor(
 
     // ── Collection selection ──────────────────────────────────────────────────
 
-    fun onCollectionSelected(collection: TaskCollection) {
+    fun onEvent(event: TaskListEvent) {
+        when (event) {
+            is TaskListEvent.DeleteTask -> deleteTask(event.task)
+            is TaskListEvent.SelectCollection -> onCollectionSelected(event.collection)
+            is TaskListEvent.SetSortOption -> setSortOption(event.option)
+            is TaskListEvent.ToggleTaskChecked -> onTaskCheckedChange(event.task, event.isChecked)
+            is TaskListEvent.ToggleChecklistItem -> onChecklistItemToggled(event.task, event.itemId, event.isChecked)
+            is TaskListEvent.ToggleTaskExpanded -> toggleExpanded(event.taskId)
+            is TaskListEvent.ShowAddTag -> showAddTag(event.defaultColor)
+            is TaskListEvent.ShowEditTag -> showEditTag(event.tag)
+            TaskListEvent.DismissTagEditor -> dismissTagEditor()
+            is TaskListEvent.SaveTag -> saveTag(event.name, event.color)
+            is TaskListEvent.DeleteTag -> deleteTag(event.tag)
+            TaskListEvent.ErrorDismissed -> _uiState.update { it.copy(error = null) }
+            TaskListEvent.AddTask, is TaskListEvent.EditTask -> {
+                viewModelScope.launch { _navigationEvent.emit(event) }
+            }
+        }
+    }
+
+    private fun onCollectionSelected(collection: TaskCollection) {
         _selectedCollection.value = collection
     }
 
     // ── Sort option ───────────────────────────────────────────────────────────
 
-    fun setSortOption(option: TaskSortOption) {
+    private fun setSortOption(option: TaskSortOption) {
         viewModelScope.launch {
             sortPreferences.setSortOption(option)
         }
@@ -96,7 +122,7 @@ class TaskListViewModel @Inject constructor(
 
     // ── Task actions ──────────────────────────────────────────────────────────
 
-    fun deleteTask(task: Task) {
+    private fun deleteTask(task: Task) {
         viewModelScope.launch {
             swipeDismissUseCase {
                 runCatching {
@@ -109,7 +135,7 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    fun onTaskCheckedChange(task: Task, isChecked: Boolean) {
+    private fun onTaskCheckedChange(task: Task, isChecked: Boolean) {
         viewModelScope.launch {
             runCatching {
                 updateTaskUseCase(task.copy(isCompleted = isChecked))
@@ -120,9 +146,28 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
+    private fun onChecklistItemToggled(task: Task, itemId: Long, isChecked: Boolean) {
+        viewModelScope.launch {
+            val updatedItems = task.checklistItems.map {
+                if (it.id == itemId) it.copy(isChecked = isChecked) else it
+            }
+            val allChecked = updatedItems.isNotEmpty() && updatedItems.all { it.isChecked }
+            val updatedTask = task.copy(
+                checklistItems = updatedItems,
+                isCompleted = allChecked
+            )
+            runCatching {
+                updateTaskUseCase(updatedTask)
+                if (allChecked && !task.isCompleted) notificationScheduler.cancel(task.id)
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
     // ── Card expansion ────────────────────────────────────────────────────────
 
-    fun toggleExpanded(taskId: Long) {
+    private fun toggleExpanded(taskId: Long) {
         _uiState.update { state ->
             val updated = if (taskId in state.expandedTaskIds) {
                 state.expandedTaskIds - taskId
@@ -135,7 +180,7 @@ class TaskListViewModel @Inject constructor(
 
     // ── Tag editor UI state ───────────────────────────────────────────────────
 
-    fun showAddTag(defaultColor: Long) {
+    private fun showAddTag(defaultColor: Long) {
         _uiState.update { 
             it.copy(
                 showTagEditor = true, 
@@ -145,7 +190,7 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    fun showEditTag(tag: Tag) {
+    private fun showEditTag(tag: Tag) {
         _uiState.update { 
             it.copy(
                 showTagEditor = true, 
@@ -155,11 +200,11 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    fun dismissTagEditor() {
+    private fun dismissTagEditor() {
         _uiState.update { it.copy(showTagEditor = false, editingTag = null, tagEditorDialog = null) }
     }
 
-    fun saveTag(name: String, color: Long) {
+    private fun saveTag(name: String, color: Long) {
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) return
         val state = _uiState.value
@@ -178,7 +223,7 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    fun deleteTag(tag: Tag) {
+    private fun deleteTag(tag: Tag) {
         viewModelScope.launch {
             deleteTagUseCase(tag)
             if (_selectedCollection.value == TaskCollection.ByTag(tag.id)) {
@@ -189,9 +234,9 @@ class TaskListViewModel @Inject constructor(
     }
 }
 
-// Minimal tuple to avoid Pair/Triple nesting for 4 values in combine
-private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-private operator fun <A, B, C, D> Quad<A, B, C, D>.component1() = first
-private operator fun <A, B, C, D> Quad<A, B, C, D>.component2() = second
-private operator fun <A, B, C, D> Quad<A, B, C, D>.component3() = third
-private operator fun <A, B, C, D> Quad<A, B, C, D>.component4() = fourth
+private data class TaskData(
+    val tasks: List<Task>,
+    val collection: TaskCollection,
+    val tags: List<Tag>,
+    val sortOption: TaskSortOption
+)

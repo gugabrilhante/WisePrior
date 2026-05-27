@@ -1,6 +1,7 @@
 package com.gustavo.brilhante.data.repository
 
 import com.gustavo.brilhante.common.IoDispatcher
+import com.gustavo.brilhante.data.mapper.toChecklistEntities
 import com.gustavo.brilhante.data.mapper.toEntity
 import com.gustavo.brilhante.data.mapper.toModel
 import com.gustavo.brilhante.domain.repository.TaskRepository
@@ -28,11 +29,11 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addTask(task: Task) = withContext(ioDispatcher) {
-        taskDataSource.insertTask(task.toEntity())
+        taskDataSource.insertTask(task.toEntity(), task.toChecklistEntities())
     }
 
     override suspend fun updateTask(task: Task) = withContext(ioDispatcher) {
-        taskDataSource.updateTask(task.toEntity())
+        taskDataSource.updateTask(task.toEntity(), task.toChecklistEntities())
     }
 
     override suspend fun deleteTask(task: Task) = withContext(ioDispatcher) {

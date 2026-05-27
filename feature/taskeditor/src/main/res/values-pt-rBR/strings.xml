@@ -8,6 +8,7 @@
     <string name="editor_title_edit">Editar Lembrete</string>
     <string name="editor_back">Voltar</string>
     <string name="editor_done">Concluir</string>
+    <string name="error_title_required">Título é obrigatório</string>
 
     <string name="editor_placeholder_title">Título</string>
     <string name="editor_placeholder_notes">Notas</string>
@@ -18,6 +19,12 @@
     <string name="editor_section_priority">Prioridade</string>
     <string name="editor_section_tags">Tags</string>
     <string name="editor_section_url">URL</string>
+    <string name="editor_section_checklist">Lista de Verificação</string>
+    <string name="editor_checklist_add_item">Adicionar Item</string>
+    <string name="editor_checklist_item_placeholder">Item</string>
+    <string name="editor_checklist_item_delete">Excluir item</string>
+    <string name="editor_checklist_item_mark_complete">Marcar item como concluído</string>
+    <string name="editor_checklist_item_mark_incomplete">Marcar item como incompleto</string>
 
     <string name="editor_label_date">Data</string>
     <string name="editor_label_time">Hora</string>

@@ -9,4 +9,14 @@
     <string name="priority_medium">Média prioridade</string>
     <string name="priority_high">Alta prioridade</string>
     <string name="tag_selected_description">Selecionada</string>
+
+    <string name="color_name_red">Vermelho</string>
+    <string name="color_name_orange">Laranja</string>
+    <string name="color_name_yellow">Amarelo</string>
+    <string name="color_name_green">Verde</string>
+    <string name="color_name_blue">Azul</string>
+    <string name="color_name_purple">Roxo</string>
+    <string name="color_name_pink">Rosa</string>
+    <string name="color_name_gray">Cinza</string>
+    <string name="color_name_format">Cor %s</string>
 </resources>

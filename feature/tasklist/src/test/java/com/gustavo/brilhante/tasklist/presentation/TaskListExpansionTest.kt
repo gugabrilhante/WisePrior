@@ -16,7 +16,7 @@ import com.gustavo.brilhante.domain.usecase.SwipeDismissUseCase
 import com.gustavo.brilhante.tasklist.presentation.mapper.SortOptionUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TagEditorUiMapper
 import com.gustavo.brilhante.tasklist.presentation.mapper.TaskListUiMapper
-import com.gustavo.brilhante.tasklist.data.SortPreferencesDataStore
+import com.gustavo.brilhante.tasklist.data.SortPreferences
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -51,7 +51,7 @@ class TaskListExpansionTest {
     private val deleteTagUseCase: DeleteTagUseCase = mockk(relaxed = true)
     private val notificationScheduler: NotificationScheduler = mockk(relaxed = true)
     private val dateFormatter: DateFormatter = mockk(relaxed = true)
-    private val sortPreferences: SortPreferencesDataStore = mockk()
+    private val sortPreferences: SortPreferences = mockk()
     private val clockProvider: ClockProvider = mockk()
     private val calculateTaskPriority = CalculateTaskPriorityUseCase(clockProvider)
     private val swipeDismissUseCase = SwipeDismissUseCase()
@@ -96,7 +96,7 @@ class TaskListExpansionTest {
     fun `toggleExpanded on a collapsed task marks it as expanded`() {
         val viewModel = buildViewModel()
 
-        viewModel.toggleExpanded(taskId = 1L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 1L))
 
         assertTrue(1L in viewModel.uiState.value.expandedTaskIds)
     }
@@ -104,9 +104,9 @@ class TaskListExpansionTest {
     @Test
     fun `toggleExpanded on an already-expanded task collapses it`() {
         val viewModel = buildViewModel()
-        viewModel.toggleExpanded(taskId = 1L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 1L))
 
-        viewModel.toggleExpanded(taskId = 1L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 1L))
 
         assertFalse(1L in viewModel.uiState.value.expandedTaskIds)
     }
@@ -114,11 +114,11 @@ class TaskListExpansionTest {
     @Test
     fun `toggling one task does not affect other tasks`() {
         val viewModel = buildViewModel()
-        viewModel.toggleExpanded(taskId = 1L)
-        viewModel.toggleExpanded(taskId = 2L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 1L))
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 2L))
 
         // Collapse task 1 only
-        viewModel.toggleExpanded(taskId = 1L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 1L))
 
         val expanded = viewModel.uiState.value.expandedTaskIds
         assertFalse(1L in expanded)
@@ -129,9 +129,9 @@ class TaskListExpansionTest {
     fun `multiple tasks can be expanded independently`() {
         val viewModel = buildViewModel()
 
-        viewModel.toggleExpanded(taskId = 10L)
-        viewModel.toggleExpanded(taskId = 20L)
-        viewModel.toggleExpanded(taskId = 30L)
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 10L))
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 20L))
+        viewModel.onEvent(TaskListEvent.ToggleTaskExpanded(taskId = 30L))
 
         val expanded = viewModel.uiState.value.expandedTaskIds
         assertEquals(setOf(10L, 20L, 30L), expanded)

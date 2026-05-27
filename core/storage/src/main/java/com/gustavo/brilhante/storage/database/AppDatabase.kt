@@ -7,20 +7,23 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.gustavo.brilhante.model.DefaultTagColorPalette
 import com.gustavo.brilhante.storage.converter.Converters
+import com.gustavo.brilhante.storage.dao.ChecklistItemDao
 import com.gustavo.brilhante.storage.dao.TagDao
 import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.database.migration.RecurrenceMigrationMapper
 import com.gustavo.brilhante.storage.database.migration.TagColorGenerator
 import com.gustavo.brilhante.storage.database.migration.TagMigrationMapper
 import com.gustavo.brilhante.storage.database.migration.TagNameParser
+import com.gustavo.brilhante.storage.entity.ChecklistItemEntity
 import com.gustavo.brilhante.storage.entity.TagEntity
 import com.gustavo.brilhante.storage.entity.TaskEntity
 
-@Database(entities = [TaskEntity::class, TagEntity::class], version = 7, exportSchema = true)
+@Database(entities = [TaskEntity::class, TagEntity::class, ChecklistItemEntity::class], version = 8, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun tagDao(): TagDao
+    abstract fun checklistItemDao(): ChecklistItemDao
 
     companion object {
         const val databaseName = "wiseprior_database"
@@ -166,6 +169,25 @@ abstract class AppDatabase : RoomDatabase() {
 
                 database.execSQL("DROP TABLE `tasks`")
                 database.execSQL("ALTER TABLE `tasks_new` RENAME TO `tasks`")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `checklist_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `taskId` INTEGER NOT NULL,
+                        `text` TEXT NOT NULL,
+                        `isChecked` INTEGER NOT NULL,
+                        FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_checklist_items_taskId` ON `checklist_items` (`taskId`)"
+                )
             }
         }
 

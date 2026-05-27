@@ -14,10 +14,11 @@ object TaskCardUiMapper {
         val taskTags = allTags.filter { task.tagIds.contains(it.id) }
         val hasPriority = task.priority != Priority.NONE
         
-        val hasExpandableContent = hasPriority || 
-                task.isFlagged || 
-                task.isUrgent || 
-                task.notes.isNotBlank() || 
+        val hasExpandableContent = hasPriority ||
+                task.isFlagged ||
+                task.isUrgent ||
+                task.notes.isNotBlank() ||
+                task.checklistItems.isNotEmpty() ||
                 taskTags.size > 2
 
         return TaskCardUiModel(
@@ -47,7 +48,17 @@ object TaskCardUiMapper {
                 Priority.NONE -> null
             },
             hasPriority = hasPriority,
-            isTitleStrikethrough = task.isCompleted
+            isTitleStrikethrough = task.isCompleted,
+            checklistItems = task.checklistItems.map { item ->
+                ChecklistItemUiModel(
+                    id = item.id,
+                    text = item.text,
+                    isChecked = item.isChecked,
+                    isDisplayChecked = task.isCompleted || item.isChecked,
+                    checkboxDescriptionRes = if (item.isChecked) R.string.task_card_mark_incomplete
+                                             else R.string.task_card_mark_complete
+                )
+            }
         )
     }
 }

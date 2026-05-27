@@ -1,5 +1,6 @@
 package com.gustavo.brilhante.ui
 
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
@@ -267,6 +268,49 @@ class TaskCardUiMapperTest {
         val result = TaskCardUiMapper.map(task(tagIds = listOf(1L, 2L, 3L)), allTags, null)
 
         assertTrue(result.hasExpandableContent)
+    }
+
+    @Test
+    fun `given task with checklist items, hasExpandableContent is true`() {
+        val task = task().copy(checklistItems = listOf(ChecklistItem(text = "Step 1")))
+
+        val result = TaskCardUiMapper.map(task, emptyList(), null)
+
+        assertTrue(result.hasExpandableContent)
+    }
+
+    @Test
+    fun `given task with checklist items, checklistItems are mapped to uiModel`() {
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "Buy milk", isChecked = false),
+            ChecklistItem(id = 2L, text = "Buy eggs", isChecked = true)
+        )
+        val task = task(isCompleted = false).copy(checklistItems = items)
+
+        val result = TaskCardUiMapper.map(task, emptyList(), null)
+
+        assertEquals(2, result.checklistItems.size)
+        assertEquals(1L, result.checklistItems[0].id)
+        assertEquals("Buy milk", result.checklistItems[0].text)
+        assertFalse(result.checklistItems[0].isChecked)
+        assertFalse(result.checklistItems[0].isDisplayChecked)
+
+        assertEquals(2L, result.checklistItems[1].id)
+        assertEquals("Buy eggs", result.checklistItems[1].text)
+        assertTrue(result.checklistItems[1].isChecked)
+        assertTrue(result.checklistItems[1].isDisplayChecked)
+    }
+
+    @Test
+    fun `given completed task, all checklist items have isDisplayChecked as true`() {
+        val items = listOf(
+            ChecklistItem(id = 1L, text = "Item", isChecked = false)
+        )
+        val task = task(isCompleted = true).copy(checklistItems = items)
+
+        val result = TaskCardUiMapper.map(task, emptyList(), null)
+
+        assertTrue(result.checklistItems[0].isDisplayChecked)
     }
 
     // ── Tag filtering ─────────────────────────────────────────────────────────

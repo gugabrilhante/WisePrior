@@ -1,18 +1,6 @@
 package com.gustavo.brilhante.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.animateDp
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,10 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -47,20 +37,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.testTag
-import com.gustavo.brilhante.designsystem.R as DesignR
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gustavo.brilhante.designsystem.R as DesignR
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.model.Task
@@ -76,6 +65,7 @@ fun TaskCard(
     formattedDueDate: String? = null,
     isExpanded: Boolean = false,
     onToggleExpanded: () -> Unit = {},
+    onToggleChecklistItem: (itemId: Long, isChecked: Boolean) -> Unit = { _, _ -> },
 ) {
     val uiModel = remember(task, allTags, formattedDueDate) {
         TaskCardUiMapper.map(task, allTags, formattedDueDate)
@@ -83,36 +73,6 @@ fun TaskCard(
     
     val checkboxContentDescription = stringResource(uiModel.checkboxDescriptionRes)
     val effectiveExpanded = isExpanded && uiModel.hasExpandableContent
-    val transition = updateTransition(targetState = effectiveExpanded, label = "task_card_transition")
-
-    val verticalBias by transition.animateFloat(
-        transitionSpec = { tween(280, easing = FastOutSlowInEasing) },
-        label = "verticalBias"
-    ) { expanded -> if (expanded) -1f else 1f }
-
-    val titleTopPadding by transition.animateDp(
-        transitionSpec = {
-            if (targetState) tween(150, delayMillis = 50, easing = FastOutSlowInEasing)
-            else tween(180, easing = FastOutLinearInEasing)
-        },
-        label = "titleTopPadding"
-    ) { expanded -> if (uiModel.hasPriority && expanded) 24.dp else 0.dp }
-
-    val titleStartPadding by transition.animateDp(
-        transitionSpec = {
-            if (targetState) tween(150, delayMillis = 50, easing = FastOutSlowInEasing)
-            else tween(180, easing = FastOutLinearInEasing)
-        },
-        label = "titleStartPadding"
-    ) { expanded -> if (expanded || !uiModel.hasPriority) 0.dp else 16.dp }
-
-    val priorityAlpha by transition.animateFloat(
-        transitionSpec = {
-            if (targetState) tween(220, delayMillis = 80, easing = FastOutLinearInEasing)
-            else tween(150, easing = FastOutLinearInEasing)
-        },
-        label = "priorityAlpha"
-    ) { expanded -> if (expanded) 1f else 0f }
 
     ElevatedCard(
         onClick = onClick,
@@ -121,7 +81,7 @@ fun TaskCard(
     ) {
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.padding(end = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(end = 8.dp)
         ) {
             // LEFT: Checkbox
             Box(
@@ -132,7 +92,7 @@ fun TaskCard(
                     checked = uiModel.isCompleted,
                     onCheckedChange = onToggleComplete,
                     modifier = Modifier.semantics {
-                        contentDescription = checkboxContentDescription
+                        this.contentDescription = checkboxContentDescription
                     }
                 )
             }
@@ -141,46 +101,49 @@ fun TaskCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .alpha(uiModel.contentAlpha)
                     .padding(top = 12.dp, bottom = 8.dp)
             ) {
                 // Header Area: Title, Priority and Indicators
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    // Title Stack
-                    if (uiModel.hasPriority) {
-                        PriorityIndicator(
-                            priority = uiModel.priority,
-                            label = uiModel.priorityTextRes?.let { stringResource(it) } ?: "",
-                            color = uiModel.priorityColorRes?.let { colorResource(it) } ?: Color.Unspecified,
-                            showText = effectiveExpanded,
-                            textAlpha = priorityAlpha
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Title and Priority
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (uiModel.hasPriority) {
+                            PriorityIndicator(
+                                priority = uiModel.priority,
+                                label = uiModel.priorityTextRes?.let { stringResource(it) } ?: "",
+                                color = uiModel.priorityColorRes?.let { colorResource(it) } ?: Color.Unspecified,
+                                isExpanded = effectiveExpanded
+                            )
+                        }
+                        Text(
+                            text = uiModel.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = if (effectiveExpanded) 3 else 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textDecoration = if (uiModel.isTitleStrikethrough) TextDecoration.LineThrough else TextDecoration.None,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(TestTags.TEXT_TASK_TITLE)
                         )
                     }
-                    Text(
-                        text = uiModel.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = if (effectiveExpanded) 3 else 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textDecoration = if (uiModel.isTitleStrikethrough) TextDecoration.LineThrough else TextDecoration.None,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = titleTopPadding, start = titleStartPadding)
-                            .testTag(TestTags.TEXT_TASK_TITLE)
-                    )
 
                     // Indicators
                     Row(
-                        modifier = Modifier
-                            .align(BiasAlignment(1f, verticalBias)),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
                         if (uiModel.isFlagged) {
                             StatusIndicator(
                                 icon = Icons.Filled.Flag,
                                 text = stringResource(R.string.task_card_flagged),
                                 color = colorResource(DesignR.color.flagged),
-                                transition = transition,
+                                isExpanded = effectiveExpanded
                             )
                         }
                         if (uiModel.isUrgent) {
@@ -188,7 +151,7 @@ fun TaskCard(
                                 icon = Icons.Filled.Warning,
                                 text = stringResource(R.string.task_card_urgent),
                                 color = colorResource(DesignR.color.urgent),
-                                transition = transition,
+                                isExpanded = effectiveExpanded
                             )
                         }
 
@@ -202,27 +165,56 @@ fun TaskCard(
                 }
 
                 // NOTES
-                AnimatedVisibility(
-                    visible = effectiveExpanded && uiModel.notes.isNotBlank(),
-                    enter = expandVertically(
-                        animationSpec = tween(50, easing = FastOutSlowInEasing)
-                    ) + fadeIn(
-                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                    ),
-                    exit = shrinkVertically(
-                        animationSpec = tween(300, easing = FastOutLinearInEasing)
-                    ) + fadeOut(
-                        animationSpec = tween(150, easing = FastOutLinearInEasing)
-                    )
-                ) {
+                if (effectiveExpanded && uiModel.notes.isNotBlank()) {
                     Text(
                         text = uiModel.notes,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 5,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(vertical = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
+                        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp).testTag(TestTags.TEXT_TASK_NOTES)
                     )
+                }
+
+                // CHECKLIST
+                if (effectiveExpanded && uiModel.checklistItems.isNotEmpty()) {
+                    Column(modifier = Modifier.padding(top = 4.dp)) {
+                        uiModel.checklistItems.forEachIndexed { index, item ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("${TestTags.CHECKLIST_ITEM_ROW}_$index")
+                            ) {
+                                IconButton(
+                                    onClick = { onToggleChecklistItem(item.id, !item.isChecked) },
+                                    enabled = !uiModel.isCompleted,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .testTag("${TestTags.CHECKLIST_ITEM_CHECKBOX}_$index")
+                                ) {
+                                    Icon(
+                                        imageVector = if (item.isDisplayChecked) Icons.Filled.CheckCircle
+                                                      else Icons.Outlined.RadioButtonUnchecked,
+                                        contentDescription = stringResource(item.checkboxDescriptionRes),
+                                        modifier = Modifier.size(22.dp),
+                                        tint = if (item.isDisplayChecked) Color(0xFF34C759)
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = item.text,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (item.isDisplayChecked) MaterialTheme.colorScheme.onSurfaceVariant
+                                            else MaterialTheme.colorScheme.onSurface,
+                                    textDecoration = if (item.isDisplayChecked) TextDecoration.LineThrough else null,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // METADATA
@@ -304,21 +296,19 @@ private fun PriorityIndicator(
     priority: Priority,
     label: String,
     color: Color,
-    showText: Boolean,
-    textAlpha: Float
+    isExpanded: Boolean
 ) {
     Row(
         modifier = Modifier.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PriorityBadge(priority = priority)
-        if (showText || textAlpha > 0f) {
+        if (isExpanded) {
             Spacer(Modifier.width(4.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = color,
-                modifier = Modifier.alpha(textAlpha)
+                color = color
             )
         }
     }
@@ -329,50 +319,27 @@ private fun StatusIndicator(
     icon: ImageVector,
     text: String,
     color: Color,
-    transition: Transition<Boolean>,
+    isExpanded: Boolean,
 ) {
-    val statusHorizontalBias by transition.animateFloat(
-        transitionSpec = {
-            if (targetState) tween(280, delayMillis = 0, easing = FastOutSlowInEasing)
-            else tween(200, delayMillis = 80, easing = FastOutLinearInEasing)
-        },
-        label = "statusHorizontalBias"
-    ) { expanded -> if (expanded) -1f else 1f }
-    val statusTextStartPadding by transition.animateDp(
-        transitionSpec = {
-            if (targetState) tween(160, delayMillis = 120, easing = FastOutSlowInEasing)
-            else tween(100, delayMillis = 0, easing = FastOutLinearInEasing)
-        },
-        label = "statusTextStartPadding"
-    ) { expanded -> if (expanded) 18.dp else 0.dp }
-    val statusTextAlpha by transition.animateFloat(
-        transitionSpec = {
-            if (targetState) tween(200, delayMillis = 150, easing = FastOutLinearInEasing)
-            else tween(100, delayMillis = 0, easing = FastOutLinearInEasing)
-        },
-        label = "statusTextAlpha"
-    ) { expanded -> if (expanded) 1f else 0f }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.wrapContentWidth()) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = color,
-                modifier = Modifier
-                    .size(16.dp)
-                    .align(BiasAlignment(statusHorizontalBias, 0f))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = text
+        }
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        if (isExpanded) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = color
             )
-            if (statusTextAlpha > 0f) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = color,
-                    modifier = Modifier
-                        .alpha(statusTextAlpha)
-                        .padding(start = statusTextStartPadding)
-                )
-            }
         }
     }
 }

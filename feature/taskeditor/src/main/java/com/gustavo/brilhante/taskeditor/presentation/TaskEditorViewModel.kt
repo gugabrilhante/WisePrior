@@ -7,6 +7,7 @@ import com.gustavo.brilhante.domain.usecase.AddTaskUseCase
 import com.gustavo.brilhante.domain.usecase.GetTagsUseCase
 import com.gustavo.brilhante.domain.usecase.GetTaskByIdUseCase
 import com.gustavo.brilhante.domain.usecase.UpdateTaskUseCase
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.RecurrenceUnit
@@ -42,7 +43,7 @@ class TaskEditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        TaskEditorUiState(dueDate = clockProvider.currentTimeMillis())
+        TaskEditorUiState(dueDate = clockProvider.currentTimeMillis()).withStaticLabels()
     )
     val uiState: StateFlow<TaskEditorUiState> = _uiState.asStateFlow()
 
@@ -118,8 +119,12 @@ class TaskEditorViewModel @Inject constructor(
                         isFlagged = task.isFlagged,
                         isCompleted = task.isCompleted,
                         recurrenceRule = task.recurrenceRule,
-                        isLoading = false
+                        isLoading = false,
+                        checklistItems = task.checklistItems.map {
+                            ChecklistItemUiModel(id = it.id, text = it.text, isChecked = it.isChecked)
+                        }
                     ).withTags()
+                        .withChecklist()
                         .withDateSection(hasDate = task.dueDate != null, hasTime = task.hasTime)
                         .withPriorityOptions()
                         .withScreenTitle(mode)
@@ -198,12 +203,52 @@ class TaskEditorViewModel @Inject constructor(
                 else selectedTagIds + tagId
                 _uiState.update { it.withTags() }
             }
+            is TaskEditorEvent.AddChecklistItem ->
+                _uiState.update { it.copy(checklistItems = it.checklistItems + ChecklistItemUiModel()).withChecklist() }
+            is TaskEditorEvent.RemoveChecklistItem ->
+                _uiState.update {
+                    if (event.index in it.checklistItems.indices) {
+                        it.copy(checklistItems = it.checklistItems.toMutableList().also { list -> list.removeAt(event.index) }).withChecklist()
+                    } else {
+                        it
+                    }
+                }
+            is TaskEditorEvent.ChecklistItemTextChanged ->
+                _uiState.update {
+                    it.copy(checklistItems = it.checklistItems.mapIndexed { i, item ->
+                        if (i == event.index) item.copy(text = event.text) else item
+                    }).withChecklist()
+                }
+            is TaskEditorEvent.ChecklistItemChecked ->
+                _uiState.update {
+                    it.copy(checklistItems = it.checklistItems.mapIndexed { i, item ->
+                        if (i == event.index) item.copy(isChecked = event.isChecked) else item
+                    }).withChecklist()
+                }
             is TaskEditorEvent.ShowDialog ->
                 _uiState.update { it.withDialogState(event.dialog) }
             is TaskEditorEvent.DismissDialog ->
                 _uiState.update { it.withDialogState(null) }
             is TaskEditorEvent.Save -> save()
         }
+    }
+
+    private fun TaskEditorUiState.withChecklist(): TaskEditorUiState {
+        return copy(
+            checklistItems = checklistItems.mapIndexed { index, item ->
+                item.copy(
+                    checkContentDescription = UiText.StringResource(
+                        if (item.isChecked) R.string.editor_checklist_item_mark_incomplete
+                        else R.string.editor_checklist_item_mark_complete
+                    ),
+                    showDivider = index < checklistItems.lastIndex,
+                    placeholder = UiText.StringResource(R.string.editor_checklist_item_placeholder),
+                    deleteContentDescription = UiText.StringResource(R.string.editor_checklist_item_delete),
+                    isStrikethrough = item.isChecked,
+                    isPrimaryTint = item.isChecked
+                )
+            }
+        )
     }
 
     private fun TaskEditorUiState.withDateSection(
@@ -213,9 +258,11 @@ class TaskEditorViewModel @Inject constructor(
         return copy(
             dateSection = DateSectionUiModel(
                 hasDate = hasDate,
+                dateLabel = UiText.StringResource(R.string.editor_label_date),
                 formattedDate = if (hasDate) dateFormatter.formatDate(dueDate) else null,
                 showTimeToggle = hasDate,
                 hasTime = hasTime,
+                timeLabel = UiText.StringResource(R.string.editor_label_time),
                 formattedTime = if (hasTime) dateFormatter.formatTime(dueDate) else null,
                 showRecurrence = hasDate,
                 recurrenceUiModel = RecurrenceUiMapper.map(recurrenceRule, recurrenceUnitOptions)
@@ -234,7 +281,9 @@ class TaskEditorViewModel @Inject constructor(
                         isSelected = tag.id in selectedTagIds
                     )
                 },
-                showEmptyState = availableTags.isEmpty()
+                showEmptyState = availableTags.isEmpty(),
+                emptyStateTitle = UiText.StringResource(R.string.no_tags_created),
+                emptyStateSubtitle = UiText.StringResource(R.string.create_tags_sidebar)
             )
         )
     }
@@ -268,7 +317,9 @@ class TaskEditorViewModel @Inject constructor(
                 activeDialog = activeDialog,
                 datePickerUtcMillis = dateFormatter.toUtcMidnight(dueDate),
                 timePickerHour = dateFormatter.getHour(dueDate),
-                timePickerMinute = dateFormatter.getMinute(dueDate)
+                timePickerMinute = dateFormatter.getMinute(dueDate),
+                okLabel = UiText.StringResource(R.string.editor_ok),
+                cancelLabel = UiText.StringResource(R.string.editor_cancel)
             )
         )
     }
@@ -282,29 +333,38 @@ class TaskEditorViewModel @Inject constructor(
         )
     }
 
+    private fun TaskEditorUiState.withStaticLabels(): TaskEditorUiState {
+        return copy(
+            titlePlaceholder = UiText.StringResource(R.string.editor_placeholder_title),
+            notesPlaceholder = UiText.StringResource(R.string.editor_placeholder_notes),
+            urlPlaceholder = UiText.StringResource(R.string.editor_placeholder_url),
+            urgentLabel = UiText.StringResource(R.string.editor_label_urgent),
+            flagLabel = UiText.StringResource(R.string.editor_label_flag),
+            backContentDescription = UiText.StringResource(R.string.editor_back),
+            doneLabel = UiText.StringResource(R.string.editor_done),
+            checklistSectionLabel = UiText.StringResource(R.string.editor_section_checklist),
+            datetimeSectionLabel = UiText.StringResource(R.string.editor_section_datetime),
+            detailsSectionLabel = UiText.StringResource(R.string.editor_section_details),
+            prioritySectionLabel = UiText.StringResource(R.string.editor_section_priority),
+            tagsSectionLabel = UiText.StringResource(R.string.editor_section_tags),
+            urlSectionLabel = UiText.StringResource(R.string.editor_section_url),
+            addChecklistItemLabel = UiText.StringResource(R.string.editor_checklist_add_item)
+        )
+    }
+
     private fun save() {
         val state = _uiState.value
         if (state.title.isBlank()) {
-            _uiState.update { it.copy(titleError = "Title is required") }
+            _uiState.update { it.copy(titleError = UiText.StringResource(R.string.error_title_required)) }
             return
         }
         viewModelScope.launch {
             val isEditing = editingTaskId > 0L
             val now = clockProvider.currentTimeMillis()
-            val task = Task(
+            val task = state.toTask(
                 id = if (isEditing) editingTaskId else 0L,
-                title = state.title.trim(),
-                notes = state.notes.trim(),
-                url = state.url.trim(),
-                dueDate = if (state.dateSection.hasDate) state.dueDate else null,
-                hasTime = state.dateSection.hasTime,
-                isUrgent = state.isUrgent,
-                priority = state.priority,
-                tagIds = selectedTagIds.toList(),
-                isFlagged = state.isFlagged,
-                isCompleted = state.isCompleted,
-                recurrenceRule = state.recurrenceRule,
-                createdAt = if (isEditing) originalCreatedAt else now
+                createdAt = if (isEditing) originalCreatedAt else now,
+                tagIds = selectedTagIds.toList()
             )
 
             if (isEditing) {

@@ -163,7 +163,7 @@ User action ──▶ ViewModel.onEvent(Event) ──▶ StateFlow<UiState> upda
 
 ## Quality Engineering & Test Strategy
 
-At WisePrior, the architecture is the foundation of our testing strategy. By decoupling business rules from Android frameworks, we achieve a high degree of testability where every layer can be validated independently. Our suite provides fast feedback, prevents regressions, and ensures that critical user journeys remain functional across all SDK versions.
+At WisePrior, quality is not an afterthought; it is governed by the [WisePrior Constitution](my-project/.specify/memory/constitution.md). Our architecture is the foundation of our testing strategy. By decoupling business rules from Android frameworks, we achieve a high degree of testability where every layer can be validated independently. Our suite provides fast feedback, prevents regressions, and ensures that critical user journeys remain functional across all SDK versions.
 
 ---
 

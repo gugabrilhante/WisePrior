@@ -3,6 +3,7 @@ package com.gustavo.brilhante.wiseprior.di
 import android.content.Context
 import androidx.room.Room
 import com.gustavo.brilhante.storage.DatabaseModule
+import com.gustavo.brilhante.storage.dao.ChecklistItemDao
 import com.gustavo.brilhante.storage.dao.TagDao
 import com.gustavo.brilhante.storage.dao.TaskDao
 import com.gustavo.brilhante.storage.database.AppDatabase
@@ -35,4 +36,7 @@ object TestDatabaseModule {
 
     @Provides
     fun provideTagDao(db: AppDatabase): TagDao = db.tagDao()
+
+    @Provides
+    fun provideChecklistItemDao(db: AppDatabase): ChecklistItemDao = db.checklistItemDao()
 }

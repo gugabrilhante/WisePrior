@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.gustavo.brilhante.model.Tag
 import com.gustavo.brilhante.tasklist.R
 import com.gustavo.brilhante.tasklist.model.TaskCollection
+import com.gustavo.brilhante.tasklist.presentation.TaskListEvent
 import com.gustavo.brilhante.tasklist.presentation.TaskListUiState
 
 // Public so the app-module UI tests can reference it without hardcoding the string.
@@ -68,9 +69,8 @@ private val defaultCollections = listOf(
 @Composable
 fun TaskSidebarContent(
     uiState: TaskListUiState,
-    onCollectionSelected: (TaskCollection) -> Unit,
-    onAddTag: () -> Unit,
-    onEditTag: (Tag) -> Unit,
+    onEvent: (TaskListEvent) -> Unit,
+    defaultColor: Long,
     modifier: Modifier = Modifier
 ) {
     val counts = uiState.collectionCounts
@@ -121,7 +121,7 @@ fun TaskSidebarContent(
                     }
                 } else null,
                 selected = selectedCollection == item.collection,
-                onClick = { onCollectionSelected(item.collection) },
+                onClick = { onEvent(TaskListEvent.SelectCollection(item.collection)) },
                 colors = NavigationDrawerItemDefaults.colors(),
                 modifier = Modifier.padding(horizontal = 12.dp).testTag(item.testTag)
             )
@@ -165,7 +165,7 @@ fun TaskSidebarContent(
                             )
                         }
                         IconButton(
-                            onClick = { onEditTag(tag) },
+                            onClick = { onEvent(TaskListEvent.ShowEditTag(tag)) },
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
@@ -178,7 +178,7 @@ fun TaskSidebarContent(
                     }
                 },
                 selected = isSelected,
-                onClick = { onCollectionSelected(TaskCollection.ByTag(tag.id)) },
+                onClick = { onEvent(TaskListEvent.SelectCollection(TaskCollection.ByTag(tag.id))) },
                 colors = NavigationDrawerItemDefaults.colors(),
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
@@ -204,7 +204,7 @@ fun TaskSidebarContent(
                     )
                 },
                 selected = false,
-                onClick = { if (enabled) onAddTag() },
+                onClick = { if (enabled) onEvent(TaskListEvent.ShowAddTag(defaultColor)) },
                 colors = NavigationDrawerItemDefaults.colors(),
                 modifier = Modifier
                     .padding(horizontal = 12.dp)

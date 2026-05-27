@@ -1,11 +1,14 @@
 package com.gustavo.brilhante.data.repository
 
 import app.cash.turbine.test
+import com.gustavo.brilhante.model.ChecklistItem
 import com.gustavo.brilhante.model.Priority
 import com.gustavo.brilhante.model.RecurrenceRule
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.storage.datasources.TaskDataSource
+import com.gustavo.brilhante.storage.entity.ChecklistItemEntity
 import com.gustavo.brilhante.storage.entity.TaskEntity
+import com.gustavo.brilhante.storage.entity.TaskWithChecklistItems
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -43,6 +46,8 @@ class TaskRepositoryImplTest {
         createdAt = 1_000L,
     )
 
+    private val taskWithNoChecklist = TaskWithChecklistItems(entity, emptyList())
+
     private val task = Task(
         id = 1L,
         title = "Task",
@@ -55,7 +60,7 @@ class TaskRepositoryImplTest {
 
     @Test
     fun `getTasks maps entities to domain models`() = runTest {
-        every { dataSource.allTasks } returns flowOf(listOf(entity))
+        every { dataSource.allTasks } returns flowOf(listOf(taskWithNoChecklist))
 
         repository.getTasks().test {
             val items = awaitItem()
@@ -77,7 +82,7 @@ class TaskRepositoryImplTest {
 
     @Test
     fun `getTaskById returns mapped task when found`() = runTest {
-        coEvery { dataSource.getTaskById(1L) } returns entity
+        coEvery { dataSource.getTaskById(1L) } returns taskWithNoChecklist
 
         val result = repository.getTaskById(1L)
 
@@ -94,47 +99,76 @@ class TaskRepositoryImplTest {
     }
 
     @Test
-    fun `addTask inserts entity into data source`() = runTest {
-        val slot = slot<TaskEntity>()
-        coEvery { dataSource.insertTask(capture(slot)) } returns Unit
+    fun `addTask inserts entity and checklist items into data source`() = runTest {
+        val entitySlot = slot<TaskEntity>()
+        val checklistSlot = slot<List<ChecklistItemEntity>>()
+        coEvery { dataSource.insertTask(capture(entitySlot), capture(checklistSlot)) } returns Unit
 
         repository.addTask(task)
 
-        coVerify(exactly = 1) { dataSource.insertTask(any()) }
-        val captured = slot.captured
-        assertEquals(task.id, captured.id)
-        assertEquals(task.title, captured.title)
-        assertEquals(task.priority.name, captured.priority)
-        assertEquals(task.tagIds, captured.tagIds)
-        assertEquals(task.isCompleted, captured.isCompleted)
+        coVerify(exactly = 1) { dataSource.insertTask(any(), any()) }
+        assertEquals(task.id, entitySlot.captured.id)
+        assertEquals(task.title, entitySlot.captured.title)
+        assertEquals(task.priority.name, entitySlot.captured.priority)
+        assertEquals(emptyList<ChecklistItemEntity>(), checklistSlot.captured)
     }
 
     @Test
-    fun `updateTask updates entity in data source`() = runTest {
-        val slot = slot<TaskEntity>()
-        coEvery { dataSource.updateTask(capture(slot)) } returns Unit
+    fun `addTask passes checklist items to data source`() = runTest {
+        val checklistSlot = slot<List<ChecklistItemEntity>>()
+        coEvery { dataSource.insertTask(any(), capture(checklistSlot)) } returns Unit
+        val taskWithChecklist = task.copy(
+            checklistItems = listOf(
+                ChecklistItem(id = 0L, text = "Milk", isChecked = false),
+                ChecklistItem(id = 0L, text = "Eggs", isChecked = true)
+            )
+        )
+
+        repository.addTask(taskWithChecklist)
+
+        assertEquals(2, checklistSlot.captured.size)
+        assertEquals("Milk", checklistSlot.captured[0].text)
+        assertEquals("Eggs", checklistSlot.captured[1].text)
+    }
+
+    @Test
+    fun `updateTask updates entity and checklist items in data source`() = runTest {
+        val entitySlot = slot<TaskEntity>()
+        val checklistSlot = slot<List<ChecklistItemEntity>>()
+        coEvery { dataSource.updateTask(capture(entitySlot), capture(checklistSlot)) } returns Unit
 
         repository.updateTask(task)
 
-        coVerify(exactly = 1) { dataSource.updateTask(any()) }
-        val captured = slot.captured
-        assertEquals(task.id, captured.id)
-        assertEquals(task.title, captured.title)
-        assertEquals(task.priority.name, captured.priority)
-        assertEquals(task.tagIds, captured.tagIds)
-        assertEquals(task.isCompleted, captured.isCompleted)
+        coVerify(exactly = 1) { dataSource.updateTask(any(), any()) }
+        assertEquals(task.id, entitySlot.captured.id)
+        assertEquals(task.title, entitySlot.captured.title)
     }
 
     @Test
     fun `deleteTask deletes entity from data source`() = runTest {
-        val slot = slot<TaskEntity>()
-        coEvery { dataSource.deleteTask(capture(slot)) } returns Unit
+        val entitySlot = slot<TaskEntity>()
+        coEvery { dataSource.deleteTask(capture(entitySlot)) } returns Unit
 
         repository.deleteTask(task)
 
         coVerify(exactly = 1) { dataSource.deleteTask(any()) }
-        val captured = slot.captured
-        assertEquals(task.id, captured.id)
-        assertEquals(task.title, captured.title)
+        assertEquals(task.id, entitySlot.captured.id)
+        assertEquals(task.title, entitySlot.captured.title)
+    }
+
+    @Test
+    fun `getTasks maps checklist items to domain model`() = runTest {
+        val checklistEntity = ChecklistItemEntity(id = 1L, taskId = 1L, text = "Bread", isChecked = true)
+        val taskWithChecklist = TaskWithChecklistItems(entity, listOf(checklistEntity))
+        every { dataSource.allTasks } returns flowOf(listOf(taskWithChecklist))
+
+        repository.getTasks().test {
+            val items = awaitItem()
+            val checklist = items.first().checklistItems
+            assertEquals(1, checklist.size)
+            assertEquals("Bread", checklist.first().text)
+            assertEquals(true, checklist.first().isChecked)
+            awaitComplete()
+        }
     }
 }

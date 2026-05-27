@@ -35,16 +35,6 @@
         <item quantity="other">Limite de %d tags atingido</item>
     </plurals>
 
-    <string name="color_name_red">Vermelho</string>
-    <string name="color_name_orange">Laranja</string>
-    <string name="color_name_yellow">Amarelo</string>
-    <string name="color_name_green">Verde</string>
-    <string name="color_name_blue">Azul</string>
-    <string name="color_name_purple">Roxo</string>
-    <string name="color_name_pink">Rosa</string>
-    <string name="color_name_gray">Cinza</string>
-    <string name="color_name_format">Cor %s</string>
-
     <string name="sort_button_description">Ordenar tarefas</string>
     <string name="sort_created_newest">Criado (Mais recente)</string>
     <string name="sort_created_oldest">Criado (Mais antigo)</string>

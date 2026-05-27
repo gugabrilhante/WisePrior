@@ -1,10 +1,12 @@
 package com.gustavo.brilhante.notifications
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,17 +19,19 @@ class NotificationHelper @Inject constructor(
 ) {
 
     fun createChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Reminders for scheduled tasks"
-            enableVibration(true)
-            enableLights(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Reminders for scheduled tasks"
+                enableVibration(true)
+                enableLights(true)
+            }
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
         }
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
     }
 
     /**
@@ -36,7 +40,10 @@ class NotificationHelper @Inject constructor(
      * Tapping the notification opens [MainActivity] and navigates to [TaskEditorRoute]
      * for the given [taskId] via an Intent extra.
      */
+    @SuppressLint("MissingPermission")
     fun showNotification(taskId: Long, title: String, notes: String) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+
         val pendingIntent = buildLaunchIntent(taskId)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

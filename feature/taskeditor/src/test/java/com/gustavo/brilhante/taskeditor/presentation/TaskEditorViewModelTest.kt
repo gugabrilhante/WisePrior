@@ -13,6 +13,8 @@ import com.gustavo.brilhante.model.RecurrenceUnit
 import com.gustavo.brilhante.model.Task
 import com.gustavo.brilhante.notifications.NotificationScheduler
 import com.gustavo.brilhante.ui.DateFormatterImpl
+import com.gustavo.brilhante.taskeditor.R
+import com.gustavo.brilhante.ui.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -165,7 +167,8 @@ class TaskEditorViewModelTest {
     @Test
     fun `TitleChanged updates title and clears titleError`() {
         viewModel.onEvent(TaskEditorEvent.Save)
-        assertNotNull(viewModel.uiState.value.titleError)
+        assertTrue(viewModel.uiState.value.titleError is UiText.StringResource)
+        assertEquals(R.string.error_title_required, (viewModel.uiState.value.titleError as UiText.StringResource).resId)
 
         viewModel.onEvent(TaskEditorEvent.TitleChanged("My Task"))
 
@@ -310,7 +313,8 @@ class TaskEditorViewModelTest {
     @Test
     fun `Save with blank title sets titleError`() = runTest {
         viewModel.onEvent(TaskEditorEvent.Save)
-        assertNotNull(viewModel.uiState.value.titleError)
+        assertTrue(viewModel.uiState.value.titleError is UiText.StringResource)
+        assertEquals(R.string.error_title_required, (viewModel.uiState.value.titleError as UiText.StringResource).resId)
     }
 
     @Test
@@ -417,5 +421,146 @@ class TaskEditorViewModelTest {
         viewModel.onEvent(TaskEditorEvent.ToggleRecurrence)
         viewModel.onEvent(TaskEditorEvent.RecurrenceUnitSelected(RecurrenceUnit.WEEKS))
         assertEquals(RecurrenceUnit.WEEKS, viewModel.uiState.value.recurrenceRule.unit)
+    }
+
+    // ── checklist events ──────────────────────────────────────────────────────
+
+    @Test
+    fun `AddChecklistItem appends empty item`() {
+        assertTrue(viewModel.uiState.value.checklistItems.isEmpty())
+
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+        assertEquals("", viewModel.uiState.value.checklistItems.first().text)
+        assertFalse(viewModel.uiState.value.checklistItems.first().isChecked)
+    }
+
+    @Test
+    fun `AddChecklistItem multiple times accumulates items`() {
+        repeat(3) { viewModel.onEvent(TaskEditorEvent.AddChecklistItem) }
+        assertEquals(3, viewModel.uiState.value.checklistItems.size)
+    }
+
+    @Test
+    fun `RemoveChecklistItem removes item at given index`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(0, "First"))
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(1, "Second"))
+
+        viewModel.onEvent(TaskEditorEvent.RemoveChecklistItem(0))
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+        assertEquals("Second", viewModel.uiState.value.checklistItems.first().text)
+    }
+
+    @Test
+    fun `RemoveChecklistItem with out of bounds index does not crash and preserves state`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(0, "Keep me"))
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+
+        // Out of bounds
+        viewModel.onEvent(TaskEditorEvent.RemoveChecklistItem(1))
+        viewModel.onEvent(TaskEditorEvent.RemoveChecklistItem(-1))
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+        assertEquals("Keep me", viewModel.uiState.value.checklistItems.first().text)
+    }
+
+    @Test
+    fun `ChecklistItemTextChanged updates text at given index`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(1, "Milk"))
+
+        assertEquals("", viewModel.uiState.value.checklistItems[0].text)
+        assertEquals("Milk", viewModel.uiState.value.checklistItems[1].text)
+    }
+
+    @Test
+    fun `ChecklistItemChecked toggles isChecked and updates visual properties`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        val initialItem = viewModel.uiState.value.checklistItems.first()
+        assertFalse(initialItem.isChecked)
+        assertFalse(initialItem.isStrikethrough)
+
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemChecked(0, true))
+
+        val updatedItem = viewModel.uiState.value.checklistItems.first()
+        assertTrue(updatedItem.isChecked)
+        assertTrue(updatedItem.isStrikethrough)
+        assertTrue(updatedItem.isPrimaryTint)
+        assertEquals(R.string.editor_checklist_item_mark_incomplete, (updatedItem.checkContentDescription as UiText.StringResource).resId)
+    }
+
+    @Test
+    fun `AddChecklistItem updates showDivider for existing items`() {
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        assertFalse(viewModel.uiState.value.checklistItems[0].showDivider)
+
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        assertTrue(viewModel.uiState.value.checklistItems[0].showDivider)
+        assertFalse(viewModel.uiState.value.checklistItems[1].showDivider)
+    }
+
+    @Test
+    fun `uiState has static labels populated on init`() {
+        val state = viewModel.uiState.value
+        assertEquals(R.string.editor_placeholder_title, (state.titlePlaceholder as UiText.StringResource).resId)
+        assertEquals(R.string.editor_section_checklist, (state.checklistSectionLabel as UiText.StringResource).resId)
+        assertEquals(R.string.editor_label_urgent, (state.urgentLabel as UiText.StringResource).resId)
+    }
+
+    @Test
+    fun `Save filters blank checklist items and trims text`() = runTest {
+        viewModel.onEvent(TaskEditorEvent.TitleChanged("Shopping"))
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        viewModel.onEvent(TaskEditorEvent.ChecklistItemTextChanged(0, "  Milk  "))
+        viewModel.onEvent(TaskEditorEvent.AddChecklistItem)
+        // index 1 stays blank — should be filtered out
+
+        viewModel.navigationEvent.test {
+            viewModel.onEvent(TaskEditorEvent.Save)
+            awaitItem()
+        }
+
+        coVerify {
+            addTaskUseCase(match { task ->
+                task.checklistItems.size == 1 && task.checklistItems.first().text == "Milk"
+            })
+        }
+    }
+
+    @Test
+    fun `loadTask populates checklistItems from task with correct visual properties`() = runTest {
+        val task = Task(
+            id = 10L,
+            title = "Supermarket",
+            createdAt = 1000L,
+            checklistItems = listOf(
+                com.gustavo.brilhante.model.ChecklistItem(id = 1L, text = "Bread", isChecked = false),
+                com.gustavo.brilhante.model.ChecklistItem(id = 2L, text = "Butter", isChecked = true)
+            )
+        )
+        coEvery { getTaskByIdUseCase(10L) } returns task
+
+        viewModel.loadTask(10L)
+
+        val items = viewModel.uiState.value.checklistItems
+        assertEquals(2, items.size)
+        assertEquals("Bread", items[0].text)
+        assertFalse(items[0].isChecked)
+        assertTrue(items[0].showDivider)
+        assertFalse(items[0].isStrikethrough)
+
+        assertEquals("Butter", items[1].text)
+        assertTrue(items[1].isChecked)
+        assertFalse(items[1].showDivider)
+        assertTrue(items[1].isStrikethrough)
+        assertEquals(R.string.editor_checklist_item_mark_incomplete, (items[1].checkContentDescription as UiText.StringResource).resId)
     }
 }
